@@ -1,3 +1,59 @@
+## @c15t/ui@3.1.0
+
+### Dialog close-button offset and trigger labels follow the text size
+
+The consent dialog's close-button offset and the dialog trigger's small and
+large labels now use `rem`, so they scale with the visitor's text-size setting
+like the rest of the dialog. At the default 16px root they render exactly as
+before.
+
+### Keep fixed elements still while a blocking surface locks scrolling
+
+When a blocking banner or the preference dialog locks page scrolling and no
+`scrollbar-gutter` holds the scrollbar's space, c15t pads `<body>` instead.
+That happens in browsers without `scrollbar-gutter`, and in Chromium on macOS
+on pages that style their scrollbar with `::-webkit-scrollbar`. The padding
+keeps page content still, but `position: fixed` elements moved right by the
+scrollbar's width.
+
+While it pads `<body>`, the lock now sets `--c15t-scroll-lock-gap` on `<html>`
+to the same width. Use it to keep your fixed elements still:
+
+```css
+.chat-button {
+  right: calc(1rem + var(--c15t-scroll-lock-gap, 0px));
+}
+```
+
+The padding and the variable now also account for CSS `zoom` on `<html>` or
+`<body>`, in browsers with `Element.currentCSSZoom`. Before, `html { zoom: 2 }`
+doubled the padding, so page content moved left by the scrollbar's width while
+the lock held. Browsers without `currentCSSZoom` behave as before.
+
+### Yiddish and other right-to-left languages render right to left
+
+Banners, dialogs and preference centers now set `dir="rtl"` for Yiddish
+(`yi`), Central Kurdish (`ckb`), Uyghur (`ug`), Syriac (`syr`) and N'Ko
+(`nqo`), and for the older codes `iw` (Hebrew) and `ji` (Yiddish). They
+rendered left to right before.
+
+A script subtag now decides the direction over the language: `ku-Arab`,
+`pa-Arab` and `az-Arab` are right to left, and `sd-Deva` is left to right.
+
+Plain `ku` is now left to right. It usually means Kurmanji, which uses
+Latin script. For Sorani, use `ckb` or `ku-Arab`.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/ui@3.0.2-canary.0 (canary)
 
 ### Yiddish and other right-to-left languages render right to left

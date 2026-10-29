@@ -1,460 +1,558 @@
 c15t:release:
-  - branch: canary
-    id: npm:@c15t/dev-tools
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/backend
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/integrations
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/vue
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/iab
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/ui
-    version: 3.0.2-canary.0
-  - branch: canary
-    id: npm:@c15t/astro
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/browser
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/svelte
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/scripts
-    version: 3.0.2-canary.0
-  - branch: canary
-    id: npm:@c15t/node-sdk
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/translations
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/tanstack-start
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/cli
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/core
-    version: 3.2.0-canary.0
-  - branch: canary
+  - branch: main
     id: npm:@c15t/nextjs
-    version: 3.2.0-canary.0
-  - branch: canary
-    id: npm:@c15t/react
-    version: 3.2.0-canary.0
-  - branch: canary
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/translations
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/browser
+    version: 3.2.0
+  - branch: main
     id: npm:@c15t/schema
-    version: 3.1.1-canary.0
-  - branch: canary
+    version: 3.1.1
+  - branch: main
+    id: npm:@c15t/scripts
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/backend
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/tanstack-start
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/svelte
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/cli
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/integrations
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/node-sdk
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/dev-tools
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/vue
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/react
+    version: 3.2.0
+  - branch: main
     id: npm:c15t
-    version: 3.2.0-canary.0
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/astro
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/ui
+    version: 3.1.0
+  - branch: main
+    id: npm:@c15t/iab
+    version: 3.2.0
+  - branch: main
+    id: npm:@c15t/core
+    version: 3.2.0
 core:changelogs:
-  - content: "---\npackages:\n  c15t:\n    type: patch\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/backend\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n  \"@c15t/iab\":\n    type: patch\n  \"@c15t/integrations\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/node-sdk\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/translations\":\n    type: patch\n  \"@c15t/ui\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Rewrite npm descriptions for search\n\nnpm search scores a phrase in the description far above the same words in\nkeywords or the README. Each package description now names the phrases\npeople search for that package: \"cookie banner\", \"cookie consent manager\",\n\"consent management platform\" and \"Google Consent Mode v2\" on `c15t`,\n\"React cookie banner\" on `@c15t/react`, \"Vue cookie consent\" on `@c15t/vue`,\nand so on. `c15t` keeps \"The open standard for cookie banners\". Supporting\npackages describe their role in c15t instead of repeating the main\npackage's phrases. Keyword lists are shorter. No code changes.\n"
-    filename: 2026-10-16-npm-search-metadata.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/backend\":\n    type: minor\n  \"@c15t/browser\":\n    type: minor\n---\n\n### Give every visitor a subject ID from the first page load\n\nA browser runtime now has `snapshot.subject.subjectId` from the first\nsnapshot, before the visitor decides anything. Before, the ID appeared only\nat the first save. You can link activity to a visitor from the first page\nload and still find it when they opt out.\n\n- Persistence stores the ID in a new `<storageKey>-sid` cookie and\n  localStorage key (`c15t-sid` by default). The first save records the same\n  ID with the choice.\n- The ID alone is not a choice. The banner still shows and `hasConsented()`\n  stays `false` until the visitor decides.\n- `clear()`, a revocation and `clearOnRevocation` patterns keep the ID.\n  `kernel.set.subjectId(null)` starts over with a new one.\n- An ID a tab generated, or read from `c15t-sid` alone, follows one another\n  tab stores until this tab saves or identifies the visitor. IDs the app or\n  the server supplies, IDs the stored records carry when the page loads, and\n  a new ID `set.subjectId(null)` writes into existing records do not follow.\n  `subject:resolved` now carries `previousSubjectId`, the ID it replaced, so\n  you can move anything recorded under the old one.\n- With `persistence: false`, the ID lives in memory and each page load gets a\n  new one.\n\n`identify()` works before the first save. `PATCH /subjects/:id` in\n`@c15t/backend` now creates the subject and links the identity in one request\nwhen no save has created the subject yet. Before, the link needed a save\nfirst. Like `POST /subjects`, it needs no API key. The backend has no rate or\nbody-size limit of its own, so set them in front of it; see the self-host\nconfiguration guide. The client treats a `404` from an older self-hosted\nbackend as success and sends the identity with the next save.\n"
-    filename: 2026-10-21-subject-id-from-first-load.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/backend\":\n    type: patch\n---\n\n### Record the tenant on identity-link audit entries\n\nOn an instance configured with a `tenantId`, `PATCH /subjects/:id` wrote its\n`identify_user` audit entry with a NULL tenant, while the subject and the\n`consent_given` entry carried the configured one. Identity-link entries now\ncarry the tenant too. Entries written before this fix keep a NULL tenant; their\nsubject's `tenantId` identifies the tenant they belong to.\n"
-    filename: 2026-10-19-identify-user-audit-tenant.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/backend\":\n    type: patch\n---\n\n### Validate identity links before writing, and skip repeated links\n\n`PATCH /subjects/:id` now checks that `externalId` and `identityProvider` are\nstrings before it writes anything. Other values get a 400 with\n`INPUT_VALIDATION_FAILED`. Before, a number or an object could create the\nsubject and then fail the link, with a misleading 409 or a 500, or store the\nvalue as text such as `\"[object Object]\"`.\n\nCreating a subject and linking it now happen in one transaction. A link the\ndatabase rejects leaves no subject behind.\n\nA link that matches the stored identity, provider and verification state writes\nnothing, so client retries no longer add an `identify_user` audit entry each\ntime. A link that verifies the identity or changes the provider is still stored\nand audited.\n"
-    filename: 2026-10-22-identity-link-validation.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Attentive integration\n\n`attentiveTag` from `@c15t/integrations/attentive` loads the Attentive tag after `marketing` consent. Attentive cannot be stopped once it runs, so withdrawing consent reloads the page.\n"
-    filename: 2026-10-21-attentive-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Lucky Orange\n\n`luckyOrange` from `@c15t/integrations/lucky-orange` loads Lucky Orange after\n`measurement` consent and sets its privacy consent status. Turn on Require\nConsent in the Lucky Orange dashboard, and keep the default page reload when\nconsent is withdrawn. The CLI can generate the integration too.\n"
-    filename: 2026-10-21-lucky-orange-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  c15t:\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/integrations\":\n    type: patch\n  \"@c15t/nextjs\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/tanstack-start\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Allowed scripts start from the server HTML\n\nNext.js, TanStack Start, Nuxt and SvelteKit now start the `scripts` entries a\nvisitor's consent already allows from the server-rendered HTML, before the page\nhydrates. An inline script runs after first paint and inserts their tags; the\nscript loader adopts them. On a throttled mobile profile, vendors started about\n800 ms sooner. This covers React 18 and 19, and every vendor helper in\n`@c15t/integrations` except Cloudflare Zaraz and Sentry.\n\nNothing starts while the policy asks the visitor to choose, or from prerendered\nor cached HTML. Set `scriptLoader: { serverStart: false }` to start every entry\nafter hydration, as before.\n"
-    filename: 2026-10-19-server-script-start.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add RB2B\n\n`rb2b` from `@c15t/integrations/rb2b` loads RB2B after `marketing` consent.\nRB2B has no stop API, so keep the default page reload when consent is\nwithdrawn. The CLI can generate the integration too.\n"
-    filename: 2026-10-21-rb2b-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Wisepops consent integration\n\n`wisepops()` from `@c15t/integrations/wisepops` loads Wisepops after `marketing` consent. Wisepops can't revoke consent from code, so c15t reloads the page on revocation. The CLI can add it during setup.\n"
-    filename: 2026-10-21-wisepops-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add AdRoll consent integration\n\nLoad AdRoll after `marketing` consent with `adrollPixel` from `@c15t/integrations/adroll`. AdRoll has no API to stop it, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.\n"
-    filename: 2026-10-21-adroll-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Adobe Target consent integration\n\n`adobeTarget()` from `@c15t/integrations/adobe-target` loads Adobe Target after `experience` consent, using either a self-hosted at.js file or Adobe Experience Platform Web SDK 2.21 or later. On revocation it denies Target through Adobe's consent APIs; keep the page reload on to stop code that already ran. The CLI can add it during setup.\n"
-    filename: 2026-10-21-adobe-target-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Pendo\n\n`pendo` from `@c15t/integrations/pendo` loads Pendo after `measurement`\nconsent. When consent is withdrawn it stops Pendo's event sending, and resumes\nit with the same visitor if consent returns. The CLI can generate the\nintegration too.\n"
-    filename: 2026-10-21-pendo-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Statable analytics\n\n`statableAnalytics` from `@c15t/integrations/statable-analytics` loads\nStatable after `measurement` consent. Statable has no stop API, so keep the\ndefault page reload when consent is withdrawn. The CLI can generate the\nintegration too.\n"
-    filename: 2026-10-21-statable-analytics.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Insider One integration\n\n`insiderTag` from `@c15t/integrations/insider` loads the Insider One tag after `marketing` consent, with optional user attributes, currency and page context. Withdrawing consent sends `gdpr_optin: false` to Insider and reloads the page.\n"
-    filename: 2026-10-21-insider-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Zendesk Messaging consent integration\n\n`zendeskWidget()` from `@c15t/integrations/zendesk` loads Zendesk Messaging only after `functionality` consent. It sets Zendesk's cookie range to `all` with measurement consent and `functional` without it. On revocation it sends `none`, which hides the widget and clears its storage. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#zendesk-messaging).\n"
-    filename: 2026-10-21-zendesk-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Dynamic Yield consent integration\n\n`dynamicYield()` from `@c15t/integrations/dynamic-yield` loads Dynamic Yield after `experience` consent and sends the choice through Dynamic Yield's Active Cookie Consent API. The CLI can add it during setup.\n"
-    filename: 2026-10-21-dynamic-yield-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Salesforce Account Engagement integration\n\n`pardotTracking` from `@c15t/integrations/salesforce-pardot` loads Salesforce Account Engagement (Pardot) after `marketing` consent. In the default consent mode, withdrawing consent calls Pardot's `revokeConsent` and reloads the page.\n"
-    filename: 2026-10-21-salesforce-pardot-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Gorgias Chat consent integration\n\n`gorgiasChat()` from `@c15t/integrations/gorgias` loads Gorgias Chat only after `functionality` consent. Without `measurement` consent it turns off the widget's Segment analytics. Gorgias has no shutdown API, so revocation relies on c15t's page reload. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#gorgias-chat).\n"
-    filename: 2026-10-21-gorgias-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add The Trade Desk consent integration\n\nLoad The Trade Desk Universal Pixel after `marketing` consent with `theTradeDeskPixel` from `@c15t/integrations/the-trade-desk`. The Trade Desk has no API to stop its SDK, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.\n"
-    filename: 2026-10-21-the-trade-desk-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n---\n\n### Send c15t consent to Shopify\n\n`@c15t/integrations/shopify` adds `createShopifyCustomerPrivacy`, a bridge that\nsends each c15t choice to Shopify's Customer Privacy API. Pass its `setup` to\nHydrogen's `ShopifyScripts` with `consent: { mode: 'custom-banner' }`, and\nHydrogen holds analytics events until the visitor has answered the c15t\nbanner. Under an opt-out policy, Shopify applies its region defaults until the\nvisitor saves a choice. See the\n[Shopify guide](https://c15t.com/docs/integrations/shopify).\n"
-    filename: 2026-10-16-shopify-customer-privacy.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Marketo Munchkin integration\n\n`marketoMunchkin` from `@c15t/integrations/marketo` loads Adobe Marketo Munchkin after `marketing` consent. Munchkin has no API to stop tracking, so withdrawing consent reloads the page.\n"
-    filename: 2026-10-21-marketo-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add LiveIntent consent integration\n\nLoad LiveIntent's LiveConnect tag after `marketing` consent with `liveIntentTag` from `@c15t/integrations/liveintent`. LiveConnect has no API to stop it, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.\n"
-    filename: 2026-10-21-liveintent-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Appcues consent integration\n\n`appcues()` from `@c15t/integrations/appcues` loads Appcues after `experience` consent. Use `onReady` to identify the visitor once the SDK loads. On revocation it calls `Appcues.reset()` and c15t reloads the page. The CLI can add it during setup.\n"
-    filename: 2026-10-21-appcues-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Ada consent integration\n\n`ada()` from `@c15t/integrations/ada` imports the Ada Messaging Web SDK only after `functionality` consent. On revocation it calls Ada's `stop()`, which removes the widget but keeps stored conversations. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#ada).\n"
-    filename: 2026-10-21-ada-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Clay consent integration\n\nLoad Clay after marketing consent with the `clay` helper, with vendor metadata, framework registration examples and CLI setup.\n"
-    filename: 2026-10-21-clay-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Customer.io integration\n\n`customerIo` from `@c15t/integrations/customer-io` loads Customer.io Data Pipelines after `marketing` consent. Withdrawing consent clears the stored identity with `reset()` and reloads the page, because `reset()` does not stop the SDK from sending.\n"
-    filename: 2026-10-21-customer-io-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Optimizely Web Experimentation consent integration\n\n`optimizelyWeb()` from `@c15t/integrations/optimizely` loads Optimizely Web Experimentation after `experience` consent. On revocation, c15t removes the snippet and reloads the page. The CLI can add it during setup.\n"
-    filename: 2026-10-21-optimizely-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Vector\n\n`vector` from `@c15t/integrations/vector` loads Vector after `marketing`\nconsent. Vector has no stop API, so keep the default page reload when consent\nis withdrawn. The CLI can generate the integration too.\n"
-    filename: 2026-10-21-vector-integration.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/astro\":\n    type: minor\n  \"@c15t/browser\":\n    type: minor\n  \"@c15t/cli\":\n    type: minor\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/svelte\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  \"@c15t/vue\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Rename offline mode to `local()` and warn that it keeps no consent records\n\n`offline()` is now `local()` in every framework package, in `c15t` and in\n`c15t/modes`. `offline()` still works and is marked deprecated. c15t v4 removes\nit.\n\nIn development builds, local mode logs one `console.warn` per page: c15t keeps\nno server-side record of consent, and with no geolocation every visitor gets\nthe same policy. Production builds never log it, and it blocks nothing. Pass\n`local({ acknowledgeNoRecords: true })` to hide it once you have decided a\nbrowser-only record is enough. c15t v4 will require that option.\n\nThe script tag's local-mode file is now `c15t.local.js`. `c15t.offline.js`\nstill ships until v4, and on development hosts it logs its new name. Script-tag files are production builds, so\nthey log the warning only on development hosts such as `localhost`. Add\n`data-acknowledge-no-records` to the tag to hide it. `c15t.local()` joins the\nscript-tag global.\n\n`c15t setup` labels local mode \"Development and tests only, no consent records\"\nand generates `local()`.\n"
-    filename: 2026-10-19-local-mode-warning.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### The banner keeps its corner for right-to-left text\n\nA floating or widget banner in its default corner used to jump to the other\nside of the page when the visitor's language ran right to left, so a\n`bottom-left` banner showed at the bottom right in Hebrew. The IAB banner in\n`@c15t/browser` did the same. The page layout doesn't change with the\nbanner's language, so the banner shouldn't move either. It now stays in the\nsame corner in every language, and only its text runs right to left.\n\nTo put the banner on the right for right-to-left pages, set `position`\nyourself.\n"
-    filename: 2026-10-21-rtl-banner-corner.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  \"@c15t/svelte\":\n    type: minor\n  \"@c15t/vue\":\n    type: minor\n  \"@c15t/browser\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Export banner copy and button labels for headless UIs\n\n`resolvePromptCopy(translations, prompt)` returns the banner's title and\ndescription, and reads the notice copy when the prompt is a notice.\n`resolveActionLabels(translations)` labels each banner action, and\n`resolvePreferenceControlLabels(translations)` labels the opt-out and\npreferences buttons. All three use the active language and fall back to\nEnglish for a missing key. Import them from `c15t`, `@c15t/svelte`,\n`@c15t/svelte/headless`, `c15t/vue/vue-plugin` or `@c15t/browser/headless`.\n`@c15t/browser/headless` also exports `resolveConsentPresentation` now.\n\nReact adds `useBannerCopy()` and `useConsentLabels()` to\n`c15t/react/headless`, `c15t/next/headless` and\n`c15t/tanstack-start/headless`. They return the same strings the stock\nbanner renders and update when the language changes. The same headless\nentries now export `useVendorsListedUnder(category)`, which returns the\nvendors the stock dialog lists under a category.\n\nWhen a notice offers only a dismiss button, `primaryActions` from\n`resolveConsentPresentation` now contains `dismiss`, so a headless banner can\nstyle it as the primary button. The browser banner now styles that button as\nprimary too. The React, Vue and Svelte banners already did.\n"
-    filename: 2026-10-13-consent-copy-helpers.md
-    v: 0.0.0
-  - content: "---\npackages:\n  c15t:\n    type: minor\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  \"@c15t/astro\":\n    type: minor\n  \"@c15t/svelte\":\n    type: minor\n  \"@c15t/vue\":\n    type: minor\n---\n\n### Set the subject ID cookie on the server\n\nThe framework adapters now give a new visitor a subject ID on their first\nrequest. The server sets it in the `c15t-sid` cookie and the server render\nuses the same ID, so the browser starts with it instead of creating its own.\nThe cookie holds only the ID: the banner still shows until the visitor\ndecides.\n\n- Next.js: `c15tProxy` sets the cookie and forwards it on the request, so\n  `resolveConsent` in the same request reads it. `withConsentProps` sets it\n  for Pages Router pages. Both accept `storage`, `trustForwardedHeaders`\n  and `subjectCookie`. Without the proxy, App Router pages leave it to the\n  browser.\n- TanStack Start: `consentRequestMiddleware` sets it and accepts the same\n  options. Prerendered pages get none.\n- Astro: the c15t middleware sets it on server-rendered pages, named from\n  `storageConfig`. `middleware.trustForwardedHeaders` and\n  `middleware.subjectCookie` are new. With a `consentSource`, pass\n  `subjectCookie: false`.\n- SvelteKit: `c15tHandle` sets it and exposes the request cookie as\n  `locals.c15t.cookie`. `storage`, `trustForwardedHeaders` and\n  `subjectCookie` are new options. With `persistence: false` or a\n  `consentSource` on `ConsentProvider`, pass `subjectCookie: false`.\n- Nuxt: the plugin sets it during server rendering, except for prerendered\n  and cached routes.\n\nPrefetch and prerender requests, and responses marked as shared, never get a\ncookie, because every visitor who received it would share the ID. Neither does\nthe consent route, which renders no page and serves its manifest as public\ndata a shared cache keeps: Next.js skips the `routePrefix` in\n`c15t.config.ts`, SvelteKit and Astro skip their `routePrefix`, and each falls\nback to `/api/c15t`. The Next.js proxy and the SvelteKit handle run before\nthe response exists, so pass `subjectCookie: false` for requests to other\nroutes a shared cache keeps, such as a public API route or feed; the\nconsent headers are still normalized. TanStack Start sees the response: a\npage whose `resolveConsent` read the visitor's cookies holds the visitor's\nconsent and subject ID, so it is sent `private` with the cookie, keeping\nits browser directives, and without the CDN cache fields, such as\n`CDN-Cache-Control` and `Surrogate-Control`, that a CDN honouring them reads\nin place of `Cache-Control`. A response with no such render that sets\n`public`, `s-maxage`, `max-age`, `no-cache` or `Expires`, or a CDN cache field\nthat lets the CDN store it, gets no cookie, and\nTanStack Start sends the consent route's responses unchanged, wherever it is\nmounted. Render HTML you cache for every\nvisitor with `shared: true`. Pass the same `storage` options as the\nbrowser so the cookie has the same name, domain and lifetime. With\n`persistence={false}` or a `consentSource` on `ConsentRoot`, pass\n`subjectCookie: false` so the server sets no cookie.\n\nOn another server, `resolveRequestSubject()` from `c15t/server` returns the\nvisitor's ID, the `Set-Cookie` value to send and the request `Cookie` header\nto render with.\n\nA subject ID with an unpaired UTF-16 surrogate gets no subject cookie, and the\nserver keeps the ID its records carry. TanStack Start's server-render state\nreplaces that surrogate with U+FFFD on the way to the browser; see the\nTanStack Start docs for when the browser keeps the changed ID.\n\nThe server helpers read a Node-style header record under any header-name\ncasing. `resolveRequestSubject()` and `readRequestConsent()` find a `Cookie` or\n`COOKIE` header, and the request origin finds `Host`. Forwarding headers are\nstill read only with `trustForwardedHeaders: true`.\n\nThe server and the adapters never replace a `c15t-sid` cookie the request\nalready has. While the browser's cookie writes succeed, the server render and\nthe browser use the same ID. The server reads cookies only, though. If the\nbrowser refuses to rewrite a record cookie after the subject ID changes, a\nserver render keeps reporting the old ID that cookie holds, and the browser\nstarts with the new ID from its localStorage. This happens even when the\nrequest's `c15t-sid` cookie already holds the new ID. It lasts until a later\nwrite of that record reaches the cookie, which may never happen while the\nbrowser keeps refusing it.\n\nWith `crossSubdomain`, a visitor whose only record is a vendor decision can hold\na local vendor copy and a shared cookie copy with the same decision time but\ndifferent subject IDs, because a rekey keeps the original decision time. As\nbefore, a page that hydrates from storage starts with the local copy's ID.\nServer-rendered pages now do the same. The runtime does not write that ID over a\nshared `c15t-sid` cookie the record cookies agree with, but a later vendor save\nfrom this origin stores it in the shared vendor cookie, and after that a later\npage load can store it in the shared `c15t-sid` cookie too. The ID mismatch on\nits own grants no optional category and lifts no denial; that vendor save\nchanges only the vendor decisions it names.\n"
-    filename: 2026-10-21-server-subject-id.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: patch\n---\n\n### Yiddish and other right-to-left languages render right to left\n\nBanners, dialogs and preference centers now set `dir=\"rtl\"` for Yiddish\n(`yi`), Central Kurdish (`ckb`), Uyghur (`ug`), Syriac (`syr`) and N'Ko\n(`nqo`), and for the older codes `iw` (Hebrew) and `ji` (Yiddish). They\nrendered left to right before.\n\nA script subtag now decides the direction over the language: `ku-Arab`,\n`pa-Arab` and `az-Arab` are right to left, and `sd-Deva` is left to right.\n\nPlain `ku` is now left to right. It usually means Kurmanji, which uses\nLatin script. For Sorani, use `ckb` or `ku-Arab`.\n"
-    filename: 2026-10-21-rtl-languages.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/astro\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Diagnose slow Astro consent setup\n\nAdd troubleshooting guidance for Astro 7.4's build timing report. Explain\nwhere to find c15t's setup hook duration, how it includes manifest loading,\nand how to investigate a slow build-time manifest request.\n"
-    filename: 2026-10-17-astro-build-timings.md
-    v: 0.0.0
-  - content: "---\npackages:\n  c15t:\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n---\n\n### Install Svelte and SvelteKit through c15t\n\nUse `c15t/svelte` for Svelte components and consent modes, with SvelteKit\nhelpers at `c15t/svelte/kit`, server resolution at `c15t/svelte/server` and\nthe Vite plugin at `c15t/svelte/vite`. The package also includes headless\nAPIs, dev tools, locals types and stylesheets. Svelte and SvelteKit docs now\ninstall `c15t` and use these imports.\n\nThe CLI now installs `c15t` and generates `c15t/svelte` imports for Svelte\nand SvelteKit. Runtime setup errors recommend the same import paths.\n"
-    filename: 2026-10-20-svelte-umbrella-exports.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/node-sdk\":\n    type: patch\n---\n\n### Errors say what the backend said\n\nWhen a backend refuses a request with a JSON body, the error now carries its\nmessage and code. Over HTTP/2 an error used to read\n`c15t hosted transport: /init responded 402 ` with nothing after the status.\nIt now reads\n`c15t hosted transport: /init responded 402: <message> (<CODE>)` and has\n`status` and `code` properties. Bodies that are not JSON keep the old message.\nThis covers `/init`, `/manifest`, `/subjects`, the manifest cache, the static\nmanifest and the GVL. The dev warning for a failed init now includes the\nmessage too.\n\nA consent save refused with 402 (payment required) is no longer resent. The\nchoice stays in the browser, as it does for other permanent rejections. A 402\non init is not retried. A 409 or 422 save is also no longer resent when its\npermanent code, such as `SUBJECT_CONFLICT`, is at the top level of the body\ninstead of under `cause`.\n\n`@c15t/node-sdk` now reads a top-level `code` when the body has no\n`cause.code`, so `serverCode` is set for `{ message, code }` bodies.\n"
-    filename: 2026-10-20-backend-error-messages.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/translations\":\n    type: minor\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n---\n\n### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages\n\n`@c15t/translations` now ships consent copy for Japanese (`ja`), Thai\n(`th`), Malay (`ms`), Vietnamese (`vi`), Turkish (`tr`), Tamil (`ta`),\nTelugu (`te`), Marathi (`mr`), Kannada (`kn`), Malayalam (`ml`) and Punjabi\nin Gurmukhi script (`pa`).\n\nImport one with `@c15t/translations/<code>`, or load them all with\n`@c15t/translations/all`. `manifest()` loads them on demand like the other\nlanguages, and the backend serves them from `/init`.\n"
-    filename: 2026-10-21-asia-translations.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/translations\":\n    type: minor\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n---\n\n### Add Arabic, Bangla, Haitian Creole, Korean, Russian, Urdu and Yiddish\n\n`@c15t/translations` now ships consent copy for `ar`, `bn`, `ht`, `ko`,\n`ru`, `ur` and `yi`. Along with the existing Spanish, Chinese, Italian,\nPolish and French, that covers the 12 languages New York State's language\naccess law names for state agencies.\n\nImport one with `@c15t/translations/<code>`, or load them all with\n`@c15t/translations/all`. `manifest()` loads them on demand like the other\nlanguages, and the backend serves them from `/init`.\n\nArabic, Urdu and Yiddish render right to left.\n"
-    filename: 2026-10-21-ny-language-access-translations.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Lock page scroll from a headless banner\n\n`useScrollLock(shouldLock)` locks page scroll the way the stock banner does\nwhen its policy is blocking. Call it with\n`banner.isVisible && banner.blocking` from `useHeadlessConsentUI()`. Locks\nare counted, so the page scrolls again once every surface holding one lets\ngo. Import it from `c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n"
-    filename: 2026-10-13-headless-scroll-lock.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Match the stock surfaces' text direction and IAB handling in headless UI\n\n`useConsentTextDirection()` returns `'rtl'` or `'ltr'` for the language\nc15t shows consent copy in. Set it as `dir` on a custom banner or\npreference center, as the stock ones do, so a visitor whose browser\nlanguage runs right to left gets a mirrored layout.\n\n`useIABPolicyGuard()` is now public. A custom surface that handles only\nopt-in and opt-out calls it and returns `null` when `useModel()` is\n`'iab'`. The guard throws `IABUnavailableError` while rendering when the\npolicy needs IAB and the app never loaded `<IABProvider>`.\n\nImport both from `c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n"
+  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Match the stock surfaces' text direction and IAB handling in headless UI\n\n`useConsentTextDirection()` returns `'rtl'` or `'ltr'` for the language\nc15t shows consent copy in. Set it as `dir` on a custom banner or\npreference center, as the stock ones do, so a visitor whose browser\nlanguage runs right to left gets a mirrored layout.\n\n`useIABPolicyGuard()` is now public. A custom surface that handles only\nopt-in and opt-out calls it and returns `null` when `useModel()` is\n`'iab'`. The guard throws `IABUnavailableError` while rendering when the\npolicy needs IAB and the app never loaded `<IABProvider>`.\n\nImport both from `c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n"
     filename: 2026-10-16-headless-direction-and-iab-guard.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Stream a headless banner with `StreamedConsentSurface`\n\n`StreamedConsentSurface` lets a banner built with the headless hooks stream\nlike the stock `ConsentBanner`. With Next.js\n`<ConsentRoot state={resolveConsent()}>` or a streamed TanStack Start loader,\nit waits for the consent promise in its own `Suspense` boundary, so the\nbanner follows in a later chunk of the same response and shows before\nhydration. Without a pending promise it renders its children as they are.\nCall the hooks in a component inside it. Import it from\n`c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n"
+  - content: "---\npackages:\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n---\n\n### Set the subject ID cookie on the server\n\nThe framework adapters now give a new visitor a subject ID on their first\nrequest. The server sets it in the `c15t-sid` cookie and the server render\nuses the same ID, so the browser starts with it instead of creating its own.\nThe cookie holds only the ID: the banner still shows until the visitor\ndecides.\n\n- Next.js: `c15tProxy` sets the cookie and forwards it on the request, so\n  `resolveConsent` in the same request reads it. `withConsentProps` sets it\n  for Pages Router pages. Both accept `storage`, `trustForwardedHeaders`\n  and `subjectCookie`. Without the proxy, App Router pages leave it to the\n  browser.\n- TanStack Start: `consentRequestMiddleware` sets it and accepts the same\n  options. Prerendered pages get none.\n- Astro: the c15t middleware sets it on server-rendered pages, named from\n  `storageConfig`. `middleware.trustForwardedHeaders` and\n  `middleware.subjectCookie` are new. With a `consentSource`, pass\n  `subjectCookie: false`.\n- SvelteKit: `c15tHandle` sets it and exposes the request cookie as\n  `locals.c15t.cookie`. `storage`, `trustForwardedHeaders` and\n  `subjectCookie` are new options. With `persistence: false` or a\n  `consentSource` on `ConsentProvider`, pass `subjectCookie: false`.\n- Nuxt: the plugin sets it during server rendering, except for prerendered\n  and cached routes.\n\nPrefetch and prerender requests, and responses marked as shared, never get a\ncookie, because every visitor who received it would share the ID. Neither does\nthe consent route, which renders no page and serves its manifest as public\ndata a shared cache keeps: Next.js skips the `routePrefix` in\n`c15t.config.ts`, SvelteKit and Astro skip their `routePrefix`, and each falls\nback to `/api/c15t`. The Next.js proxy and the SvelteKit handle run before\nthe response exists, so pass `subjectCookie: false` for requests to other\nroutes a shared cache keeps, such as a public API route or feed; the\nconsent headers are still normalized. TanStack Start sees the response: a\npage whose `resolveConsent` read the visitor's cookies holds the visitor's\nconsent and subject ID, so it is sent `private` with the cookie, keeping\nits browser directives, and without the CDN cache fields, such as\n`CDN-Cache-Control` and `Surrogate-Control`, that a CDN honouring them reads\nin place of `Cache-Control`. A response with no such render that sets\n`public`, `s-maxage`, `max-age`, `no-cache` or `Expires`, or a CDN cache field\nthat lets the CDN store it, gets no cookie, and\nTanStack Start sends the consent route's responses unchanged, wherever it is\nmounted. Render HTML you cache for every\nvisitor with `shared: true`. Pass the same `storage` options as the\nbrowser so the cookie has the same name, domain and lifetime. With\n`persistence={false}` or a `consentSource` on `ConsentRoot`, pass\n`subjectCookie: false` so the server sets no cookie.\n\nOn another server, `resolveRequestSubject()` from `c15t/server` returns the\nvisitor's ID, the `Set-Cookie` value to send and the request `Cookie` header\nto render with.\n\nA subject ID with an unpaired UTF-16 surrogate gets no subject cookie, and the\nserver keeps the ID its records carry. TanStack Start's server-render state\nreplaces that surrogate with U+FFFD on the way to the browser; see the\nTanStack Start docs for when the browser keeps the changed ID.\n\nThe server helpers read a Node-style header record under any header-name\ncasing. `resolveRequestSubject()` and `readRequestConsent()` find a `Cookie` or\n`COOKIE` header, and the request origin finds `Host`. Forwarding headers are\nstill read only with `trustForwardedHeaders: true`.\n\nThe server and the adapters never replace a `c15t-sid` cookie the request\nalready has. While the browser's cookie writes succeed, the server render and\nthe browser use the same ID. The server reads cookies only, though. If the\nbrowser refuses to rewrite a record cookie after the subject ID changes, a\nserver render keeps reporting the old ID that cookie holds, and the browser\nstarts with the new ID from its localStorage. This happens even when the\nrequest's `c15t-sid` cookie already holds the new ID. It lasts until a later\nwrite of that record reaches the cookie, which may never happen while the\nbrowser keeps refusing it.\n\nWith `crossSubdomain`, a visitor whose only record is a vendor decision can hold\na local vendor copy and a shared cookie copy with the same decision time but\ndifferent subject IDs, because a rekey keeps the original decision time. As\nbefore, a page that hydrates from storage starts with the local copy's ID.\nServer-rendered pages now do the same. The runtime does not write that ID over a\nshared `c15t-sid` cookie the record cookies agree with, but a later vendor save\nfrom this origin stores it in the shared vendor cookie, and after that a later\npage load can store it in the shared `c15t-sid` cookie too. The ID mismatch on\nits own grants no optional category and lifts no denial; that vendor save\nchanges only the vendor decisions it names.\n"
+    filename: 2026-10-21-server-subject-id.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Rename offline mode to `local()` and warn that it keeps no consent records\n\n`offline()` is now `local()` in every framework package, in `c15t` and in\n`c15t/modes`. `offline()` still works and is marked deprecated. c15t v4 removes\nit.\n\nIn development builds, local mode logs one `console.warn` per page: c15t keeps\nno server-side record of consent, and with no geolocation every visitor gets\nthe same policy. Production builds never log it, and it blocks nothing. Pass\n`local({ acknowledgeNoRecords: true })` to hide it once you have decided a\nbrowser-only record is enough. c15t v4 will require that option.\n\nThe script tag's local-mode file is now `c15t.local.js`. `c15t.offline.js`\nstill ships until v4, and on development hosts it logs its new name. Script-tag files are production builds, so\nthey log the warning only on development hosts such as `localhost`. Add\n`data-acknowledge-no-records` to the tag to hide it. `c15t.local()` joins the\nscript-tag global.\n\n`c15t setup` labels local mode \"Development and tests only, no consent records\"\nand generates `local()`.\n"
+    filename: 2026-10-19-local-mode-warning.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Lock page scroll from a headless banner\n\n`useScrollLock(shouldLock)` locks page scroll the way the stock banner does\nwhen its policy is blocking. Call it with\n`banner.isVisible && banner.blocking` from `useHeadlessConsentUI()`. Locks\nare counted, so the page scrolls again once every surface holding one lets\ngo. Import it from `c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n"
+    filename: 2026-10-13-headless-scroll-lock.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Stream a headless banner with `StreamedConsentSurface`\n\n`StreamedConsentSurface` lets a banner built with the headless hooks stream\nlike the stock `ConsentBanner`. With Next.js\n`<ConsentRoot state={resolveConsent()}>` or a streamed TanStack Start loader,\nit waits for the consent promise in its own `Suspense` boundary, so the\nbanner follows in a later chunk of the same response and shows before\nhydration. Without a pending promise it renders its children as they are.\nCall the hooks in a component inside it. Import it from\n`c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n"
     filename: 2026-10-13-streamed-consent-surface.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Add `useConsentGate` for custom consent gates\n\n`useConsentGate(category)` returns what a gate on one consent category should\nrender: `'granted'`, `'pending'`, `'denied'` or `'policy-blocked'`. It also\nreturns the translated title, button label and policy message, and\n`requestConsent`, which opens the preference center. Import it from\n`c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n\n`ConsentGate` now runs on the hook, so a custom gate follows the same rules.\nGranted content waits for hydration, a strict policy scope blocks categories\noutside it, and server rendering never reads the clock. `ConsentGate` renders\nthe same markup as before.\n"
+  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Add `useConsentGate` for custom consent gates\n\n`useConsentGate(category)` returns what a gate on one consent category should\nrender: `'granted'`, `'pending'`, `'denied'` or `'policy-blocked'`. It also\nreturns the translated title, button label and policy message, and\n`requestConsent`, which opens the preference center. Import it from\n`c15t/react/headless`, `c15t/next/headless` or\n`c15t/tanstack-start/headless`.\n\n`ConsentGate` now runs on the hook, so a custom gate follows the same rules.\nGranted content waits for hydration, a strict policy scope blocks categories\noutside it, and server rendering never reads the clock. `ConsentGate` renders\nthe same markup as before.\n"
     filename: 2026-10-13-use-consent-gate.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Browser manifest mode skips the manifest request when the server state has a policy\n\nWith `manifest({ resolve: 'browser' })`, the browser used to request\n`/manifest` and load the policy resolver (about 20 KB gzipped) on every page\nload, even when the server state from `resolveConsent()` already held the\nvisitor's policy and the browser never used them. Now neither starts until an\ninit needs them. With a streamed state, they start once it arrives without a\npolicy.\n"
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Export banner copy and button labels for headless UIs\n\n`resolvePromptCopy(translations, prompt)` returns the banner's title and\ndescription, and reads the notice copy when the prompt is a notice.\n`resolveActionLabels(translations)` labels each banner action, and\n`resolvePreferenceControlLabels(translations)` labels the opt-out and\npreferences buttons. All three use the active language and fall back to\nEnglish for a missing key. Import them from `c15t`, `@c15t/svelte`,\n`@c15t/svelte/headless`, `c15t/vue/vue-plugin` or `@c15t/browser/headless`.\n`@c15t/browser/headless` also exports `resolveConsentPresentation` now.\n\nReact adds `useBannerCopy()` and `useConsentLabels()` to\n`c15t/react/headless`, `c15t/next/headless` and\n`c15t/tanstack-start/headless`. They return the same strings the stock\nbanner renders and update when the language changes. The same headless\nentries now export `useVendorsListedUnder(category)`, which returns the\nvendors the stock dialog lists under a category.\n\nWhen a notice offers only a dismiss button, `primaryActions` from\n`resolveConsentPresentation` now contains `dismiss`, so a headless banner can\nstyle it as the primary button. The browser banner now styles that button as\nprimary too. The React, Vue and Svelte banners already did.\n"
+    filename: 2026-10-13-consent-copy-helpers.md
+    v: 0.0.0
+  - content: "---\npackages:\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n---\n\n### Allowed scripts start from the server HTML\n\nNext.js, TanStack Start, Nuxt and SvelteKit now start the `scripts` entries a\nvisitor's consent already allows from the server-rendered HTML, before the page\nhydrates. An inline script runs after first paint and inserts their tags; the\nscript loader adopts them. On a throttled mobile profile, vendors started about\n800 ms sooner. This covers React 18 and 19, and every vendor helper in\n`@c15t/integrations` except Cloudflare Zaraz and Sentry.\n\nNothing starts while the policy asks the visitor to choose, or from prerendered\nor cached HTML. Set `scriptLoader: { serverStart: false }` to start every entry\nafter hydration, as before.\n"
+    filename: 2026-10-19-server-script-start.md
+    v: 0.0.0
+  - content: "---\npackages:\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/backend\":\n    replay:\n      - exit-prerelease(npm:@c15t/backend)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/dev-tools\":\n    replay:\n      - exit-prerelease(npm:@c15t/dev-tools)\n  \"@c15t/iab\":\n    replay:\n      - exit-prerelease(npm:@c15t/iab)\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/nextjs\":\n    replay:\n      - exit-prerelease(npm:@c15t/nextjs)\n  \"@c15t/node-sdk\":\n    replay:\n      - exit-prerelease(npm:@c15t/node-sdk)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/schema\":\n    replay:\n      - exit-prerelease(npm:@c15t/schema)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/tanstack-start\":\n    replay:\n      - exit-prerelease(npm:@c15t/tanstack-start)\n  \"@c15t/translations\":\n    replay:\n      - exit-prerelease(npm:@c15t/translations)\n  \"@c15t/ui\":\n    replay:\n      - exit-prerelease(npm:@c15t/ui)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n---\n\n### Rewrite npm descriptions for search\n\nnpm search scores a phrase in the description far above the same words in\nkeywords or the README. Each package description now names the phrases\npeople search for that package: \"cookie banner\", \"cookie consent manager\",\n\"consent management platform\" and \"Google Consent Mode v2\" on `c15t`,\n\"React cookie banner\" on `@c15t/react`, \"Vue cookie consent\" on `@c15t/vue`,\nand so on. `c15t` keeps \"The open standard for cookie banners\". Supporting\npackages describe their role in c15t instead of repeating the main\npackage's phrases. Keyword lists are shorter. No code changes.\n"
+    filename: 2026-10-16-npm-search-metadata.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/translations\":\n    replay:\n      - exit-prerelease(npm:@c15t/translations)\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/schema\":\n    replay:\n      - exit-prerelease(npm:@c15t/schema)\n---\n\n### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages\n\n`@c15t/translations` now ships consent copy for Japanese (`ja`), Thai\n(`th`), Malay (`ms`), Vietnamese (`vi`), Turkish (`tr`), Tamil (`ta`),\nTelugu (`te`), Marathi (`mr`), Kannada (`kn`), Malayalam (`ml`) and Punjabi\nin Gurmukhi script (`pa`).\n\nImport one with `@c15t/translations/<code>`, or load them all with\n`@c15t/translations/all`. `manifest()` loads them on demand like the other\nlanguages, and the backend serves them from `/init`.\n"
+    filename: 2026-10-21-asia-translations.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/translations\":\n    replay:\n      - exit-prerelease(npm:@c15t/translations)\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/schema\":\n    replay:\n      - exit-prerelease(npm:@c15t/schema)\n---\n\n### Add Arabic, Bangla, Haitian Creole, Korean, Russian, Urdu and Yiddish\n\n`@c15t/translations` now ships consent copy for `ar`, `bn`, `ht`, `ko`,\n`ru`, `ur` and `yi`. Along with the existing Spanish, Chinese, Italian,\nPolish and French, that covers the 12 languages New York State's language\naccess law names for state agencies.\n\nImport one with `@c15t/translations/<code>`, or load them all with\n`@c15t/translations/all`. `manifest()` loads them on demand like the other\nlanguages, and the backend serves them from `/init`.\n\nArabic, Urdu and Yiddish render right to left.\n"
+    filename: 2026-10-21-ny-language-access-translations.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n---\n\n### Show the banner on pages that hide empty elements\n\nThe script-tag UI stayed hidden on pages with a rule such as\n`div:empty { display: none; }`, which Shopify's Dawn theme ships. The banner\nrenders into a shadow root, and shadow content doesn't count as a child, so the\npage rule matched the `<div data-c15t-ui>` host and hid it. c15t still reported\nthe banner as shown, so visitors saw nothing and no consent was saved.\n\nThe host now sets `display: block !important` inline, and page CSS can no longer\nhide it. The DevTools panel's host gets the same fix. With `shadow: false` the\nhost has child elements and keeps no inline display.\n"
+    filename: 2026-10-24-ui-host-empty-selector.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/backend\":\n    replay:\n      - exit-prerelease(npm:@c15t/backend)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n---\n\n### Give every visitor a subject ID from the first page load\n\nA browser runtime now has `snapshot.subject.subjectId` from the first\nsnapshot, before the visitor decides anything. Before, the ID appeared only\nat the first save. You can link activity to a visitor from the first page\nload and still find it when they opt out.\n\n- Persistence stores the ID in a new `<storageKey>-sid` cookie and\n  localStorage key (`c15t-sid` by default). The first save records the same\n  ID with the choice.\n- The ID alone is not a choice. The banner still shows and `hasConsented()`\n  stays `false` until the visitor decides.\n- `clear()`, a revocation and `clearOnRevocation` patterns keep the ID.\n  `kernel.set.subjectId(null)` starts over with a new one.\n- An ID a tab generated, or read from `c15t-sid` alone, follows one another\n  tab stores until this tab saves or identifies the visitor. IDs the app or\n  the server supplies, IDs the stored records carry when the page loads, and\n  a new ID `set.subjectId(null)` writes into existing records do not follow.\n  `subject:resolved` now carries `previousSubjectId`, the ID it replaced, so\n  you can move anything recorded under the old one.\n- With `persistence: false`, the ID lives in memory and each page load gets a\n  new one.\n\n`identify()` works before the first save. `PATCH /subjects/:id` in\n`@c15t/backend` now creates the subject and links the identity in one request\nwhen no save has created the subject yet. Before, the link needed a save\nfirst. Like `POST /subjects`, it needs no API key. The backend has no rate or\nbody-size limit of its own, so set them in front of it; see the self-host\nconfiguration guide. The client treats a `404` from an older self-hosted\nbackend as success and sends the identity with the next save.\n"
+    filename: 2026-10-21-subject-id-from-first-load.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  \"@c15t/browser\":\n    replay:\n      - exit-prerelease(npm:@c15t/browser)\n  \"@c15t/react\":\n    replay:\n      - exit-prerelease(npm:@c15t/react)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n  \"@c15t/vue\":\n    replay:\n      - exit-prerelease(npm:@c15t/vue)\n---\n\n### The banner keeps its corner for right-to-left text\n\nA floating or widget banner in its default corner used to jump to the other\nside of the page when the visitor's language ran right to left, so a\n`bottom-left` banner showed at the bottom right in Hebrew. The IAB banner in\n`@c15t/browser` did the same. The page layout doesn't change with the\nbanner's language, so the banner shouldn't move either. It now stays in the\nsame corner in every language, and only its text runs right to left.\n\nTo put the banner on the right for right-to-left pages, set `position`\nyourself.\n"
+    filename: 2026-10-21-rtl-banner-corner.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/backend\":\n    type: minor\n  \"@c15t/node-sdk\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n---\n\n### Stricter input on subject writes: JSON bodies, trusted domains and verified links\n\n`POST /subjects` and `PATCH /subjects/:id` accept JSON bodies only. A request\nwith another `Content-Type`, or none, gets `415 UNSUPPORTED_MEDIA_TYPE` and\nwrites nothing. 2.x backends refused these bodies in their request validators,\nand the c15t clients and `@c15t/node-sdk` send JSON.\n\nA save's `domain` must be 1 to 253 characters with no control characters.\nOther values get `400 INPUT_VALIDATION_FAILED`.\n\nWith `trustedOrigins` set, a save's `domain` must be a host the list covers.\nOther saves get `400 DOMAIN_NOT_ALLOWED` and create no row. This applies to\nsame-origin saves too, so list every site that saves consent, including the\none the backend is mounted on. Only an entry's host counts, so\n`localhost:3000` covers `localhost`, and `*` covers every site. Empty or\nabsent `trustedOrigins` accepts any domain.\n\nSave domains may include a port, including the default HTTPS port `:443`.\n\n`identityToken.requireVerifiedLinks`, off by default, stores identity links\nonly when an API key or identity token proves them. `PATCH /subjects/:id`\nwithout either gets `401 IDENTITY_TOKEN_REQUIRED` and creates nothing. A save\nstill records its consent, without the external ID.\n\n`@c15t/node-sdk` types the new codes: `subjects.create` can return\n`DOMAIN_NOT_ALLOWED`, and `subjects.identify` can return\n`IDENTITY_TOKEN_REQUIRED`.\n"
+    filename: 2026-10-29-subject-write-input.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Add Gainsight PX consent integration\n\nLoad Gainsight PX after measurement consent with the `gainsightPx` helper.\n"
+    filename: 2026-10-21-gainsight-px-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add consent-gated FullStory loading\n\nLoad FullStory after measurement consent with the `fullStory` helper.\n"
+    filename: 2026-10-21-fullstory-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add HubSpot consent integration\n\nLoad HubSpot after marketing consent with the `hubspot` helper.\n"
+    filename: 2026-10-21-hubspot-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add consent-gated ActiveCampaign loading\n\nLoad ActiveCampaign site tracking after marketing consent with the `activeCampaignTracking` helper.\n"
+    filename: 2026-10-21-activecampaign-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add consent-gated Oracle Eloqua loading\n\nLoad Oracle Eloqua after marketing consent with the `eloquaTracking` helper.\n"
+    filename: 2026-10-21-oracle-eloqua-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/scripts\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n---\n\n### Group built-in integrations by kind of tool\n\nAdd `IntegrationKind`, `BUILT_IN_INTEGRATION_KINDS` and an `integrationKind`\nfield on built-in registry entries for the groups used in the integrations\ndocs: web analytics, product analytics, replay and monitoring, experimentation\nand personalization, ads and growth, data and tags, and chat and embeds.\nThese additions are also available through `@c15t/scripts/registry`.\n\nThe existing `IntegrationCategory` type, `BUILT_IN_INTEGRATION_CATEGORIES`\nlist and each entry's `integrationCategory` keep their v3 values. Consent\ncategories and loading behavior are unchanged.\n\nThe `c15t generate` script picker orders integrations by the new kinds.\n"
+    filename: 2026-10-19-integration-kinds.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n---\n\n### Add Default consent integration\n\nLoad the Default Pixel after measurement consent with `defaultComPixel`, or the Forms SDK after functionality consent with `defaultComFormsSdk`.\n"
+    filename: 2026-10-21-default-com-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Amazon Ads consent integration\n\nLoad Amazon Ads after marketing consent with the `amazonAdsTag` helper.\n"
+    filename: 2026-10-21-amazon-ads-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Gorgias Chat consent integration\n\n`gorgiasChat()` from `@c15t/integrations/gorgias` loads Gorgias Chat only after `functionality` consent. Without `measurement` consent it turns off the widget's Segment analytics. Gorgias has no shutdown API, so revocation relies on c15t's page reload. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#gorgias-chat).\n"
+    filename: 2026-10-21-gorgias-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Salesforce Account Engagement integration\n\n`pardotTracking` from `@c15t/integrations/salesforce-pardot` loads Salesforce Account Engagement (Pardot) after `marketing` consent. In the default consent mode, withdrawing consent calls Pardot's `revokeConsent` and reloads the page.\n"
+    filename: 2026-10-21-salesforce-pardot-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Dynamic Yield consent integration\n\n`dynamicYield()` from `@c15t/integrations/dynamic-yield` loads Dynamic Yield after `experience` consent and sends the choice through Dynamic Yield's Active Cookie Consent API. The CLI can add it during setup.\n"
+    filename: 2026-10-21-dynamic-yield-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Marketo Munchkin integration\n\n`marketoMunchkin` from `@c15t/integrations/marketo` loads Adobe Marketo Munchkin after `marketing` consent. Munchkin has no API to stop tracking, so withdrawing consent reloads the page.\n"
+    filename: 2026-10-21-marketo-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add LiveIntent consent integration\n\nLoad LiveIntent's LiveConnect tag after `marketing` consent with `liveIntentTag` from `@c15t/integrations/liveintent`. LiveConnect has no API to stop it, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.\n"
+    filename: 2026-10-21-liveintent-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Customer.io integration\n\n`customerIo` from `@c15t/integrations/customer-io` loads Customer.io Data Pipelines after `marketing` consent. Withdrawing consent clears the stored identity with `reset()` and reloads the page, because `reset()` does not stop the SDK from sending.\n"
+    filename: 2026-10-21-customer-io-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Zendesk Messaging consent integration\n\n`zendeskWidget()` from `@c15t/integrations/zendesk` loads Zendesk Messaging only after `functionality` consent. It sets Zendesk's cookie range to `all` with measurement consent and `functional` without it. On revocation it sends `none`, which hides the widget and clears its storage. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#zendesk-messaging).\n"
+    filename: 2026-10-21-zendesk-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Vector\n\n`vector` from `@c15t/integrations/vector` loads Vector after `marketing`\nconsent. Vector has no stop API, so keep the default page reload when consent\nis withdrawn. The CLI can generate the integration too.\n"
+    filename: 2026-10-21-vector-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Lucky Orange\n\n`luckyOrange` from `@c15t/integrations/lucky-orange` loads Lucky Orange after\n`measurement` consent and sets its privacy consent status. Turn on Require\nConsent in the Lucky Orange dashboard, and keep the default page reload when\nconsent is withdrawn. The CLI can generate the integration too.\n"
+    filename: 2026-10-21-lucky-orange-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add RB2B\n\n`rb2b` from `@c15t/integrations/rb2b` loads RB2B after `marketing` consent.\nRB2B has no stop API, so keep the default page reload when consent is\nwithdrawn. The CLI can generate the integration too.\n"
+    filename: 2026-10-21-rb2b-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add The Trade Desk consent integration\n\nLoad The Trade Desk Universal Pixel after `marketing` consent with `theTradeDeskPixel` from `@c15t/integrations/the-trade-desk`. The Trade Desk has no API to stop its SDK, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.\n"
+    filename: 2026-10-21-the-trade-desk-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Optimizely Web Experimentation consent integration\n\n`optimizelyWeb()` from `@c15t/integrations/optimizely` loads Optimizely Web Experimentation after `experience` consent. On revocation, c15t removes the snippet and reloads the page. The CLI can add it during setup.\n"
+    filename: 2026-10-21-optimizely-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Ada consent integration\n\n`ada()` from `@c15t/integrations/ada` imports the Ada Messaging Web SDK only after `functionality` consent. On revocation it calls Ada's `stop()`, which removes the widget but keeps stored conversations. The CLI can add it during setup. See [Other chat and support tools](https://c15t.com/docs/integrations/other-chat-and-support#ada).\n"
+    filename: 2026-10-21-ada-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add AdRoll consent integration\n\nLoad AdRoll after `marketing` consent with `adrollPixel` from `@c15t/integrations/adroll`. AdRoll has no API to stop it, so keep the default page reload when consent is withdrawn. The CLI can now add it during setup.\n"
+    filename: 2026-10-21-adroll-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Appcues consent integration\n\n`appcues()` from `@c15t/integrations/appcues` loads Appcues after `experience` consent. Use `onReady` to identify the visitor once the SDK loads. On revocation it calls `Appcues.reset()` and c15t reloads the page. The CLI can add it during setup.\n"
+    filename: 2026-10-21-appcues-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Statable analytics\n\n`statableAnalytics` from `@c15t/integrations/statable-analytics` loads\nStatable after `measurement` consent. Statable has no stop API, so keep the\ndefault page reload when consent is withdrawn. The CLI can generate the\nintegration too.\n"
+    filename: 2026-10-21-statable-analytics.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Insider One integration\n\n`insiderTag` from `@c15t/integrations/insider` loads the Insider One tag after `marketing` consent, with optional user attributes, currency and page context. Withdrawing consent sends `gdpr_optin: false` to Insider and reloads the page.\n"
+    filename: 2026-10-21-insider-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Clay consent integration\n\nLoad Clay after marketing consent with the `clay` helper, with vendor metadata, framework registration examples and CLI setup.\n"
+    filename: 2026-10-21-clay-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Adobe Target consent integration\n\n`adobeTarget()` from `@c15t/integrations/adobe-target` loads Adobe Target after `experience` consent, using either a self-hosted at.js file or Adobe Experience Platform Web SDK 2.21 or later. On revocation it denies Target through Adobe's consent APIs; keep the page reload on to stop code that already ran. The CLI can add it during setup.\n"
+    filename: 2026-10-21-adobe-target-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Pendo\n\n`pendo` from `@c15t/integrations/pendo` loads Pendo after `measurement`\nconsent. When consent is withdrawn it stops Pendo's event sending, and resumes\nit with the same visitor if consent returns. The CLI can generate the\nintegration too.\n"
+    filename: 2026-10-21-pendo-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n---\n\n### Add Attentive integration\n\n`attentiveTag` from `@c15t/integrations/attentive` loads the Attentive tag after `marketing` consent. Attentive cannot be stopped once it runs, so withdrawing consent reloads the page.\n"
+    filename: 2026-10-21-attentive-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n  \"@c15t/scripts\":\n    replay:\n      - exit-prerelease(npm:@c15t/scripts)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n---\n\n### Add Wisepops consent integration\n\n`wisepops()` from `@c15t/integrations/wisepops` loads Wisepops after `marketing` consent. Wisepops can't revoke consent from code, so c15t reloads the page on revocation. The CLI can add it during setup.\n"
+    filename: 2026-10-21-wisepops-integration.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/backend\":\n    type: minor\n  \"@c15t/cli\":\n    type: minor\n---\n\n### Stop bundling docs in `@c15t/backend` and `@c15t/cli`\n\nThe packages no longer ship `docs/`, `AGENTS.md` or `SKILL.md`. These Markdown\nfiles added size to every install and deploy without being read at runtime.\nRead the docs at [c15t.com/docs](https://c15t.com/docs) or through\n[llms.txt](https://c15t.com/docs/llms.txt).\n"
+    filename: 2026-10-29-drop-bundled-package-docs.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/backend\":\n    type: patch\n---\n\n### Accept consent saves from clocks a little ahead of the server\n\n`POST /subjects` refused a save with 400 `INPUT_VALIDATION_FAILED` when\n`givenAt`, a category receipt's `confirmedAt` or `vendorChoice.confirmedAt` was\nlater than the backend's clock by any amount. A visitor whose clock ran a few\nhundred milliseconds ahead lost the live save, and the backend held no record\nunless the visitor loaded another page. The backend now accepts these times up\nto ten minutes ahead, the same tolerance it allows a replayed save, and records\nthem as sent. A time further ahead is still refused.\n"
+    filename: 2026-10-27-client-clock-tolerance.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/backend\":\n    replay:\n      - exit-prerelease(npm:@c15t/backend)\n---\n\n### Record the tenant on identity-link audit entries\n\nOn an instance configured with a `tenantId`, `PATCH /subjects/:id` wrote its\n`identify_user` audit entry with a NULL tenant, while the subject and the\n`consent_given` entry carried the configured one. Identity-link entries now\ncarry the tenant too. Entries written before this fix keep a NULL tenant; their\nsubject's `tenantId` identifies the tenant they belong to.\n"
+    filename: 2026-10-19-identify-user-audit-tenant.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/backend\":\n    replay:\n      - exit-prerelease(npm:@c15t/backend)\n---\n\n### Validate identity links before writing, and skip repeated links\n\n`PATCH /subjects/:id` now checks that `externalId` and `identityProvider` are\nstrings before it writes anything. Other values get a 400 with\n`INPUT_VALIDATION_FAILED`. Before, a number or an object could create the\nsubject and then fail the link, with a misleading 409 or a 500, or store the\nvalue as text such as `\"[object Object]\"`.\n\nCreating a subject and linking it now happen in one transaction. A link the\ndatabase rejects leaves no subject behind.\n\nA link that matches the stored identity, provider and verification state writes\nnothing, so client retries no longer add an `identify_user` audit entry each\ntime. A link that verifies the identity or changes the provider is still stored\nand audited.\n"
+    filename: 2026-10-22-identity-link-validation.md
+    v: 0.0.0
+  - content: "---\npackages:\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n  \"@c15t/cli\":\n    replay:\n      - exit-prerelease(npm:@c15t/cli)\n  \"@c15t/svelte\":\n    replay:\n      - exit-prerelease(npm:@c15t/svelte)\n---\n\n### Install Svelte and SvelteKit through c15t\n\nUse `c15t/svelte` for Svelte components and consent modes, with SvelteKit\nhelpers at `c15t/svelte/kit`, server resolution at `c15t/svelte/server` and\nthe Vite plugin at `c15t/svelte/vite`. The package also includes headless\nAPIs, dev tools, locals types and stylesheets. Svelte and SvelteKit docs now\ninstall `c15t` and use these imports.\n\nThe CLI now installs `c15t` and generates `c15t/svelte` imports for Svelte\nand SvelteKit. Runtime setup errors recommend the same import paths.\n"
+    filename: 2026-10-20-svelte-umbrella-exports.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n---\n\n### Record Databuddy sessions with the `replay` option\n\n`databuddy({ clientId: 'YOUR_CLIENT_ID', replay: true })` loads Databuddy's\nsession replay recorder, `replay.js`, while measurement is allowed. Recordings\nmask page text and typed input. Pass `replay: { maskText: false }` to record\npage text on pages that show no personal data, or `recordIframes: true` to\nrecord your own embedded pages. On revocation the helper calls\n`window.databuddyReplay.stop()` and removes the script, so recording stops\nwithout waiting for a page reload.\nRemove any `replay.js` script you registered yourself. See the\n[Databuddy guide](https://c15t.com/docs/integrations/databuddy).\n"
+    filename: 2026-10-26-databuddy-replay.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n---\n\n### Load Databuddy after consent and turn off features you do not use\n\n`databuddy()` now waits for `measurement` consent before it loads\n`databuddy.js`, like most c15t analytics helpers. Until the visitor allows\nmeasurement, the page makes no request to Databuddy and Databuddy stores\nnothing in the browser. Pass `loadMode: 'always'` to keep loading Databuddy on\nevery page, as before.\n\nNew `features` switches turn Databuddy's interaction tracking, Web Vitals,\nerror tracking and outgoing link tracking on or off. `configWhenGranted` and\n`configWhenDenied` are now optional.\n\nThe guide also shows how to load Databuddy's session replay script only with\nmeasurement consent. See the\n[Databuddy guide](https://c15t.com/docs/integrations/databuddy).\n"
+    filename: 2026-10-24-databuddy-after-consent.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    replay:\n      - exit-prerelease(npm:@c15t/integrations)\n---\n\n### Send c15t consent to Shopify\n\n`@c15t/integrations/shopify` adds `createShopifyCustomerPrivacy`, a bridge that\nsends each c15t choice to Shopify's Customer Privacy API. Pass its `setup` to\nHydrogen's `ShopifyScripts` with `consent: { mode: 'custom-banner' }`, and\nHydrogen holds analytics events until the visitor has answered the c15t\nbanner. Under an opt-out policy, Shopify applies its region defaults until the\nvisitor saves a choice. See the\n[Shopify guide](https://c15t.com/docs/integrations/shopify).\n"
+    filename: 2026-10-16-shopify-customer-privacy.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n  \"@c15t/node-sdk\":\n    replay:\n      - exit-prerelease(npm:@c15t/node-sdk)\n---\n\n### Errors say what the backend said\n\nWhen a backend refuses a request with a JSON body, the error now carries its\nmessage and code. Over HTTP/2 an error used to read\n`c15t hosted transport: /init responded 402 ` with nothing after the status.\nIt now reads\n`c15t hosted transport: /init responded 402: <message> (<CODE>)` and has\n`status` and `code` properties. Bodies that are not JSON keep the old message.\nThis covers `/init`, `/manifest`, `/subjects`, the manifest cache, the static\nmanifest and the GVL. The dev warning for a failed init now includes the\nmessage too.\n\nA consent save refused with 402 (payment required) is no longer resent. The\nchoice stays in the browser, as it does for other permanent rejections. A 402\non init is not retried. A 409 or 422 save is also no longer resent when its\npermanent code, such as `SUBJECT_CONFLICT`, is at the top level of the body\ninstead of under `cause`.\n\n`@c15t/node-sdk` now reads a top-level `code` when the body has no\n`cause.code`, so `serverCode` is set for `{ message, code }` bodies.\n"
+    filename: 2026-10-20-backend-error-messages.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Connect the consent panel in Nuxt DevTools popup windows\n\nLet the c15t tab find the app's consent provider through a popup opener or\npast a cross-origin DevTools frame. This keeps the panel connected to the\napp's consent state in Nuxt DevTools 4 while preserving Nuxt 3 and 4 support.\n"
+    filename: 2026-10-28-nuxt-devtools-4.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/astro\":\n    replay:\n      - exit-prerelease(npm:@c15t/astro)\n  c15t:\n    replay:\n      - exit-prerelease(npm:c15t)\n---\n\n### Diagnose slow Astro consent setup\n\nAdd troubleshooting guidance for Astro 7.4's build timing report. Explain\nwhere to find c15t's setup hook duration, how it includes manifest loading,\nand how to investigate a slow build-time manifest request.\n"
+    filename: 2026-10-17-astro-build-timings.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: patch\n---\n\n### Dialog close-button offset and trigger labels follow the text size\n\nThe consent dialog's close-button offset and the dialog trigger's small and\nlarge labels now use `rem`, so they scale with the visitor's text-size setting\nlike the rest of the dialog. At the default 16px root they render exactly as\nbefore.\n"
+    filename: 2026-10-25-rem-text-sizes.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: minor\n---\n\n### Keep fixed elements still while a blocking surface locks scrolling\n\nWhen a blocking banner or the preference dialog locks page scrolling and no\n`scrollbar-gutter` holds the scrollbar's space, c15t pads `<body>` instead.\nThat happens in browsers without `scrollbar-gutter`, and in Chromium on macOS\non pages that style their scrollbar with `::-webkit-scrollbar`. The padding\nkeeps page content still, but `position: fixed` elements moved right by the\nscrollbar's width.\n\nWhile it pads `<body>`, the lock now sets `--c15t-scroll-lock-gap` on `<html>`\nto the same width. Use it to keep your fixed elements still:\n\n```css\n.chat-button {\n  right: calc(1rem + var(--c15t-scroll-lock-gap, 0px));\n}\n```\n\nThe padding and the variable now also account for CSS `zoom` on `<html>` or\n`<body>`, in browsers with `Element.currentCSSZoom`. Before, `html { zoom: 2 }`\ndoubled the padding, so page content moved left by the scrollbar's width while\nthe lock held. Browsers without `currentCSSZoom` behave as before.\n"
+    filename: 2026-10-25-scroll-lock-gap.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/ui\":\n    replay:\n      - exit-prerelease(npm:@c15t/ui)\n---\n\n### Yiddish and other right-to-left languages render right to left\n\nBanners, dialogs and preference centers now set `dir=\"rtl\"` for Yiddish\n(`yi`), Central Kurdish (`ckb`), Uyghur (`ug`), Syriac (`syr`) and N'Ko\n(`nqo`), and for the older codes `iw` (Hebrew) and `ji` (Yiddish). They\nrendered left to right before.\n\nA script subtag now decides the direction over the language: `ku-Arab`,\n`pa-Arab` and `az-Arab` are right to left, and `sd-Deva` is left to right.\n\nPlain `ku` is now left to right. It usually means Kurmanji, which uses\nLatin script. For Sorani, use `ckb` or `ku-Arab`.\n"
+    filename: 2026-10-21-rtl-languages.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Explain consent evidence in the local-mode warning\n\nThe development warning now explains that GDPR Article 7(1) requires businesses\nrelying on consent to demonstrate it. Local mode keeps choices only in the\nbrowser, so keep your own consent records or use a c15t backend.\n"
+    filename: 2026-10-28-local-mode-consent-evidence.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n---\n\n### Browser manifest mode skips the manifest request when the server state has a policy\n\nWith `manifest({ resolve: 'browser' })`, the browser used to request\n`/manifest` and load the policy resolver (about 20 KB gzipped) on every page\nload, even when the server state from `resolveConsent()` already held the\nvisitor's policy and the browser never used them. Now neither starts until an\ninit needs them. With a streamed state, they start once it arrives without a\npolicy.\n"
     filename: 2026-10-15-skip-unused-manifest-request.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### The IAB CMP is created once under an IAB policy\n\nWhen an IAB policy supplied the `cmpId` after the runtime started, the IAB\nCMP was created up to 100 times on every page load, and the console showed\n\"Consent listeners kept updating consent in response to each other\".\n`createIAB` updates the kernel while it runs, and that update started the\nmount again before the first CMP was stored. Now the CMP is created once.\n"
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n---\n\n### Keep the subject ID with a notice acknowledgement\n\nEvery notice acknowledgement now stores the visitor's subject ID with it, in a\nnew `<storageKey>-notice-subject` cookie (`c15t-notice-subject` by default).\nThat includes a choice that acknowledges a notice. A visitor whose only action\nwas acknowledging a banner that offers only necessary categories keeps their ID\nthrough this record. The acknowledgement still grants no optional category. The\n`<storageKey>-notice` cookie keeps its old format, so an older c15t runtime on\nthe same site still reads it.\n\n`clear()` removes the acknowledgement and its `-notice-subject` cookie. The\nvisitor keeps their subject ID in `<storageKey>-sid`, as after any other clear.\n`kernel.set.subjectId(null)` gives the visitor a new ID in both places.\n\n`clearOnRevocation` patterns never delete the notice identity cookie, even when a\nwildcard matches its name.\n\nA save that records only vendor decisions while a notice is shown, such as\nturning off a vendor switch, now stores the notice acknowledgement too, so a\nreload no longer shows the notice again.\n\nNotice acknowledgements stored in localStorage keep their linked account when\ncookies cannot be read.\n\nWhen the consent record cannot be read, a tab now follows another tab's change\nof the subject ID that a notice or vendor record carries, instead of keeping\nthe old ID and saving it later.\n\nA tab drops a linked account when an older c15t runtime removes or replaces\nthe notice acknowledgement that carried it. The subject ID stays.\n\nA seed from a backend keeps the linked account it names for a stored ID. A tab\nfollows another tab's linked account on the record that gave its own.\n\nA save under a subject ID or linked account with no URI encoding, such as\none with a lone surrogate, keeps the whole record in localStorage and skips\nits cookie copy instead of throwing. A tab follows the notice's subject once\nthe vendor record that carried another is removed or loses its subject.\n\nThe `StoredRecords` type exported from `@c15t/core/modules/persistence` gains\noptional `recordedSubjectId` and `subjectCarrier` fields. An object typed as\n`StoredRecords` with the earlier fields still type-checks. `readStoredRecords()`\nalways sets both, and its return type says so. A stand-in typed through the\nreader, such as `typeof readStoredRecords`, its return type or a mocked\nreader, must now return both fields.\n\nIf your cookie policy lists c15t cookies, add `c15t-notice-subject`.\n"
+    filename: 2026-10-21-necessary-only-subject.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n---\n\n### The IAB CMP is created once under an IAB policy\n\nWhen an IAB policy supplied the `cmpId` after the runtime started, the IAB\nCMP was created up to 100 times on every page load, and the console showed\n\"Consent listeners kept updating consent in response to each other\".\n`createIAB` updates the kernel while it runs, and that update started the\nmount again before the first CMP was stored. Now the CMP is created once.\n"
     filename: 2026-10-20-iab-mount-reentry.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Keep a dialog open when consent init resolves\n\nA preference center opened before the consent backend answered closed when\nthe answer arrived, for example when a visitor clicked a consent gate's\nbutton right after the page loaded. The dialog now stays open until the\nvisitor saves or closes it.\n"
+  - content: "---\npackages:\n  \"@c15t/core\":\n    replay:\n      - exit-prerelease(npm:@c15t/core)\n---\n\n### Keep a dialog open when consent init resolves\n\nA preference center opened before the consent backend answered closed when\nthe answer arrived, for example when a visitor clicked a consent gate's\nbutton right after the page loaded. The dialog now stays open until the\nvisitor saves or closes it.\n"
     filename: 2026-10-13-dialog-open-during-init.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Keep the subject ID with a notice acknowledgement\n\nEvery notice acknowledgement now stores the visitor's subject ID with it, in a\nnew `<storageKey>-notice-subject` cookie (`c15t-notice-subject` by default).\nThat includes a choice that acknowledges a notice. A visitor whose only action\nwas acknowledging a banner that offers only necessary categories keeps their ID\nthrough this record. The acknowledgement still grants no optional category. The\n`<storageKey>-notice` cookie keeps its old format, so an older c15t runtime on\nthe same site still reads it.\n\n`clear()` removes the acknowledgement and its `-notice-subject` cookie. The\nvisitor keeps their subject ID in `<storageKey>-sid`, as after any other clear.\n`kernel.set.subjectId(null)` gives the visitor a new ID in both places.\n\n`clearOnRevocation` patterns never delete the notice identity cookie, even when a\nwildcard matches its name.\n\nA save that records only vendor decisions while a notice is shown, such as\nturning off a vendor switch, now stores the notice acknowledgement too, so a\nreload no longer shows the notice again.\n\nNotice acknowledgements stored in localStorage keep their linked account when\ncookies cannot be read.\n\nWhen the consent record cannot be read, a tab now follows another tab's change\nof the subject ID that a notice or vendor record carries, instead of keeping\nthe old ID and saving it later.\n\nA tab drops a linked account when an older c15t runtime removes or replaces\nthe notice acknowledgement that carried it. The subject ID stays.\n\nA seed from a backend keeps the linked account it names for a stored ID. A tab\nfollows another tab's linked account on the record that gave its own.\n\nA save under a subject ID or linked account with no URI encoding, such as\none with a lone surrogate, keeps the whole record in localStorage and skips\nits cookie copy instead of throwing. A tab follows the notice's subject once\nthe vendor record that carried another is removed or loses its subject.\n\nThe `StoredRecords` type exported from `@c15t/core/modules/persistence` gains\noptional `recordedSubjectId` and `subjectCarrier` fields. An object typed as\n`StoredRecords` with the earlier fields still type-checks. `readStoredRecords()`\nalways sets both, and its return type says so. A stand-in typed through the\nreader, such as `typeof readStoredRecords`, its return type or a mocked\nreader, must now return both fields.\n\nIf your cookie policy lists c15t cookies, add `c15t-notice-subject`.\n"
-    filename: 2026-10-21-necessary-only-subject.md
     v: 0.0.0
 core:packages:
   - changelogIds:
-      - 2026-10-16-npm-search-metadata.md
-    id: npm:@c15t/dev-tools
-    updated: true
-  - changelogIds:
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-21-subject-id-from-first-load.md
-      - 2026-10-19-identify-user-audit-tenant.md
-      - 2026-10-22-identity-link-validation.md
-    id: npm:@c15t/backend
-    updated: true
-  - changelogIds:
-      - 2026-10-21-attentive-integration.md
-      - 2026-10-21-lucky-orange-integration.md
+      - 2026-10-16-headless-direction-and-iab-guard.md
+      - 2026-10-21-server-subject-id.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-13-headless-scroll-lock.md
+      - 2026-10-13-streamed-consent-surface.md
+      - 2026-10-13-use-consent-gate.md
+      - 2026-10-13-consent-copy-helpers.md
       - 2026-10-19-server-script-start.md
-      - 2026-10-21-rb2b-integration.md
-      - 2026-10-21-wisepops-integration.md
-      - 2026-10-21-adroll-integration.md
-      - 2026-10-21-adobe-target-integration.md
-      - 2026-10-21-pendo-integration.md
-      - 2026-10-21-statable-analytics.md
-      - 2026-10-21-insider-integration.md
-      - 2026-10-21-zendesk-integration.md
-      - 2026-10-21-dynamic-yield-integration.md
-      - 2026-10-21-salesforce-pardot-integration.md
-      - 2026-10-21-gorgias-integration.md
       - 2026-10-16-npm-search-metadata.md
-      - 2026-10-21-the-trade-desk-integration.md
-      - 2026-10-16-shopify-customer-privacy.md
+    id: npm:@c15t/nextjs
+    updated: true
+  - changelogIds:
+      - 2026-10-21-asia-translations.md
+      - 2026-10-21-ny-language-access-translations.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/translations
+    updated: true
+  - changelogIds:
+      - 2026-10-24-ui-host-empty-selector.md
+      - 2026-10-21-subject-id-from-first-load.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-21-rtl-banner-corner.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/browser
+    updated: true
+  - changelogIds:
+      - 2026-10-29-subject-write-input.md
+      - 2026-10-21-asia-translations.md
+      - 2026-10-21-ny-language-access-translations.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/schema
+    updated: true
+  - changelogIds:
+      - 2026-10-21-gainsight-px-integration.md
+      - 2026-10-21-fullstory-integration.md
+      - 2026-10-21-hubspot-integration.md
+      - 2026-10-21-activecampaign-integration.md
+      - 2026-10-21-oracle-eloqua-integration.md
+      - 2026-10-19-integration-kinds.md
+      - 2026-10-21-default-com-integration.md
+      - 2026-10-21-amazon-ads-integration.md
+      - 2026-10-21-gorgias-integration.md
+      - 2026-10-21-salesforce-pardot-integration.md
+      - 2026-10-21-dynamic-yield-integration.md
       - 2026-10-21-marketo-integration.md
       - 2026-10-21-liveintent-integration.md
-      - 2026-10-21-appcues-integration.md
-      - 2026-10-21-ada-integration.md
-      - 2026-10-21-clay-integration.md
       - 2026-10-21-customer-io-integration.md
-      - 2026-10-21-optimizely-integration.md
+      - 2026-10-21-zendesk-integration.md
       - 2026-10-21-vector-integration.md
-    id: npm:@c15t/integrations
+      - 2026-10-21-lucky-orange-integration.md
+      - 2026-10-21-rb2b-integration.md
+      - 2026-10-21-the-trade-desk-integration.md
+      - 2026-10-21-optimizely-integration.md
+      - 2026-10-21-ada-integration.md
+      - 2026-10-21-adroll-integration.md
+      - 2026-10-21-appcues-integration.md
+      - 2026-10-21-statable-analytics.md
+      - 2026-10-21-insider-integration.md
+      - 2026-10-21-clay-integration.md
+      - 2026-10-21-adobe-target-integration.md
+      - 2026-10-21-pendo-integration.md
+      - 2026-10-21-attentive-integration.md
+      - 2026-10-21-wisepops-integration.md
+    id: npm:@c15t/scripts
+    updated: true
+  - changelogIds:
+      - 2026-10-29-subject-write-input.md
+      - 2026-10-29-drop-bundled-package-docs.md
+      - 2026-10-27-client-clock-tolerance.md
+      - 2026-10-19-identify-user-audit-tenant.md
+      - 2026-10-21-subject-id-from-first-load.md
+      - 2026-10-22-identity-link-validation.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/backend
     updated: true
   - id: npm:@c15t/logger
     updated: false
   - changelogIds:
-      - 2026-10-19-server-script-start.md
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-21-rtl-banner-corner.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-16-headless-direction-and-iab-guard.md
       - 2026-10-21-server-subject-id.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-13-headless-scroll-lock.md
+      - 2026-10-13-streamed-consent-surface.md
+      - 2026-10-13-use-consent-gate.md
+      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-19-server-script-start.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/tanstack-start
+    updated: true
+  - changelogIds:
+      - 2026-10-21-server-subject-id.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-20-svelte-umbrella-exports.md
+      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-21-rtl-banner-corner.md
+      - 2026-10-19-server-script-start.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/svelte
+    updated: true
+  - changelogIds:
+      - 2026-10-21-gainsight-px-integration.md
+      - 2026-10-21-fullstory-integration.md
+      - 2026-10-21-hubspot-integration.md
+      - 2026-10-21-activecampaign-integration.md
+      - 2026-10-29-drop-bundled-package-docs.md
+      - 2026-10-21-oracle-eloqua-integration.md
+      - 2026-10-19-integration-kinds.md
+      - 2026-10-21-default-com-integration.md
+      - 2026-10-21-amazon-ads-integration.md
+      - 2026-10-21-gorgias-integration.md
+      - 2026-10-21-salesforce-pardot-integration.md
+      - 2026-10-21-dynamic-yield-integration.md
+      - 2026-10-21-marketo-integration.md
+      - 2026-10-21-liveintent-integration.md
+      - 2026-10-21-customer-io-integration.md
+      - 2026-10-21-zendesk-integration.md
+      - 2026-10-21-vector-integration.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-21-lucky-orange-integration.md
+      - 2026-10-21-rb2b-integration.md
+      - 2026-10-21-the-trade-desk-integration.md
+      - 2026-10-21-optimizely-integration.md
+      - 2026-10-21-ada-integration.md
+      - 2026-10-21-adroll-integration.md
+      - 2026-10-20-svelte-umbrella-exports.md
+      - 2026-10-21-appcues-integration.md
+      - 2026-10-21-statable-analytics.md
+      - 2026-10-21-insider-integration.md
+      - 2026-10-21-clay-integration.md
+      - 2026-10-16-npm-search-metadata.md
+      - 2026-10-21-adobe-target-integration.md
+      - 2026-10-21-pendo-integration.md
+      - 2026-10-21-attentive-integration.md
+      - 2026-10-21-wisepops-integration.md
+    id: npm:@c15t/cli
+    updated: true
+  - changelogIds:
+      - 2026-10-26-databuddy-replay.md
+      - 2026-10-21-gainsight-px-integration.md
+      - 2026-10-21-fullstory-integration.md
+      - 2026-10-21-hubspot-integration.md
+      - 2026-10-21-activecampaign-integration.md
+      - 2026-10-21-oracle-eloqua-integration.md
+      - 2026-10-24-databuddy-after-consent.md
+      - 2026-10-19-integration-kinds.md
+      - 2026-10-21-default-com-integration.md
+      - 2026-10-21-amazon-ads-integration.md
+      - 2026-10-21-gorgias-integration.md
+      - 2026-10-21-salesforce-pardot-integration.md
+      - 2026-10-21-dynamic-yield-integration.md
+      - 2026-10-21-marketo-integration.md
+      - 2026-10-21-liveintent-integration.md
+      - 2026-10-21-customer-io-integration.md
+      - 2026-10-21-zendesk-integration.md
+      - 2026-10-21-vector-integration.md
+      - 2026-10-16-shopify-customer-privacy.md
+      - 2026-10-21-lucky-orange-integration.md
+      - 2026-10-21-rb2b-integration.md
+      - 2026-10-21-the-trade-desk-integration.md
+      - 2026-10-21-optimizely-integration.md
+      - 2026-10-21-ada-integration.md
+      - 2026-10-21-adroll-integration.md
+      - 2026-10-21-appcues-integration.md
+      - 2026-10-21-statable-analytics.md
+      - 2026-10-21-insider-integration.md
+      - 2026-10-21-clay-integration.md
+      - 2026-10-19-server-script-start.md
+      - 2026-10-16-npm-search-metadata.md
+      - 2026-10-21-adobe-target-integration.md
+      - 2026-10-21-pendo-integration.md
+      - 2026-10-21-attentive-integration.md
+      - 2026-10-21-wisepops-integration.md
+    id: npm:@c15t/integrations
+    updated: true
+  - changelogIds:
+      - 2026-10-29-subject-write-input.md
+      - 2026-10-20-backend-error-messages.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/node-sdk
+    updated: true
+  - changelogIds:
+      - 2026-10-24-ui-host-empty-selector.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/dev-tools
+    updated: true
+  - changelogIds:
+      - 2026-10-28-nuxt-devtools-4.md
+      - 2026-10-21-server-subject-id.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-21-rtl-banner-corner.md
+      - 2026-10-19-server-script-start.md
+      - 2026-10-16-npm-search-metadata.md
     id: npm:@c15t/vue
     updated: true
   - changelogIds:
+      - 2026-10-16-headless-direction-and-iab-guard.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-13-headless-scroll-lock.md
+      - 2026-10-13-streamed-consent-surface.md
+      - 2026-10-13-use-consent-gate.md
+      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-21-rtl-banner-corner.md
+      - 2026-10-19-server-script-start.md
       - 2026-10-16-npm-search-metadata.md
-    id: npm:@c15t/iab
+    id: npm:@c15t/react
     updated: true
   - changelogIds:
+      - 2026-10-17-astro-build-timings.md
+      - 2026-10-16-headless-direction-and-iab-guard.md
+      - 2026-10-21-server-subject-id.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-13-headless-scroll-lock.md
+      - 2026-10-13-streamed-consent-surface.md
+      - 2026-10-13-use-consent-gate.md
+      - 2026-10-20-svelte-umbrella-exports.md
+      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-19-server-script-start.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:c15t
+    updated: true
+  - changelogIds:
+      - 2026-10-17-astro-build-timings.md
+      - 2026-10-21-server-subject-id.md
+      - 2026-10-19-local-mode-warning.md
+      - 2026-10-21-rtl-banner-corner.md
+      - 2026-10-16-npm-search-metadata.md
+    id: npm:@c15t/astro
+    updated: true
+  - changelogIds:
+      - 2026-10-25-rem-text-sizes.md
+      - 2026-10-25-scroll-lock-gap.md
       - 2026-10-21-rtl-languages.md
       - 2026-10-16-npm-search-metadata.md
     id: npm:@c15t/ui
     updated: true
   - changelogIds:
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-21-rtl-banner-corner.md
       - 2026-10-16-npm-search-metadata.md
-      - 2026-10-21-server-subject-id.md
-      - 2026-10-17-astro-build-timings.md
-    id: npm:@c15t/astro
+    id: npm:@c15t/iab
     updated: true
   - changelogIds:
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-21-rtl-banner-corner.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-consent-copy-helpers.md
+      - 2026-10-21-gainsight-px-integration.md
+      - 2026-10-21-fullstory-integration.md
+      - 2026-10-21-hubspot-integration.md
+      - 2026-10-21-activecampaign-integration.md
+      - 2026-10-28-local-mode-consent-evidence.md
+      - 2026-10-21-default-com-integration.md
+      - 2026-10-21-amazon-ads-integration.md
+      - 2026-10-21-server-subject-id.md
       - 2026-10-21-subject-id-from-first-load.md
-    id: npm:@c15t/browser
-    updated: true
-  - changelogIds:
-      - 2026-10-19-server-script-start.md
       - 2026-10-19-local-mode-warning.md
-      - 2026-10-21-rtl-banner-corner.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-consent-copy-helpers.md
-      - 2026-10-20-svelte-umbrella-exports.md
-      - 2026-10-21-server-subject-id.md
-    id: npm:@c15t/svelte
-    updated: true
-  - changelogIds:
-      - 2026-10-21-attentive-integration.md
-      - 2026-10-21-lucky-orange-integration.md
-      - 2026-10-21-rb2b-integration.md
-      - 2026-10-21-wisepops-integration.md
-      - 2026-10-21-adroll-integration.md
-      - 2026-10-21-adobe-target-integration.md
-      - 2026-10-21-pendo-integration.md
-      - 2026-10-21-statable-analytics.md
-      - 2026-10-21-insider-integration.md
-      - 2026-10-21-zendesk-integration.md
-      - 2026-10-21-dynamic-yield-integration.md
-      - 2026-10-21-salesforce-pardot-integration.md
-      - 2026-10-21-gorgias-integration.md
-      - 2026-10-21-the-trade-desk-integration.md
-      - 2026-10-21-marketo-integration.md
-      - 2026-10-21-liveintent-integration.md
-      - 2026-10-21-appcues-integration.md
-      - 2026-10-21-ada-integration.md
-      - 2026-10-21-clay-integration.md
-      - 2026-10-21-customer-io-integration.md
-      - 2026-10-21-optimizely-integration.md
-      - 2026-10-21-vector-integration.md
-    id: npm:@c15t/scripts
-    updated: true
-  - changelogIds:
       - 2026-10-20-backend-error-messages.md
-      - 2026-10-16-npm-search-metadata.md
-    id: npm:@c15t/node-sdk
-    updated: true
-  - changelogIds:
-      - 2026-10-21-asia-translations.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-21-ny-language-access-translations.md
-    id: npm:@c15t/translations
-    updated: true
-  - changelogIds:
-      - 2026-10-19-server-script-start.md
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-headless-scroll-lock.md
-      - 2026-10-13-consent-copy-helpers.md
-      - 2026-10-21-server-subject-id.md
-      - 2026-10-16-headless-direction-and-iab-guard.md
-      - 2026-10-13-streamed-consent-surface.md
-      - 2026-10-13-use-consent-gate.md
-    id: npm:@c15t/tanstack-start
-    updated: true
-  - changelogIds:
-      - 2026-10-21-attentive-integration.md
-      - 2026-10-21-lucky-orange-integration.md
-      - 2026-10-21-rb2b-integration.md
-      - 2026-10-21-wisepops-integration.md
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-21-adroll-integration.md
-      - 2026-10-21-adobe-target-integration.md
-      - 2026-10-21-pendo-integration.md
-      - 2026-10-21-statable-analytics.md
-      - 2026-10-21-insider-integration.md
-      - 2026-10-21-zendesk-integration.md
-      - 2026-10-21-dynamic-yield-integration.md
-      - 2026-10-21-salesforce-pardot-integration.md
-      - 2026-10-21-gorgias-integration.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-21-the-trade-desk-integration.md
-      - 2026-10-21-marketo-integration.md
-      - 2026-10-20-svelte-umbrella-exports.md
-      - 2026-10-21-liveintent-integration.md
-      - 2026-10-21-appcues-integration.md
-      - 2026-10-21-ada-integration.md
-      - 2026-10-21-clay-integration.md
-      - 2026-10-21-customer-io-integration.md
-      - 2026-10-21-optimizely-integration.md
-      - 2026-10-21-vector-integration.md
-    id: npm:@c15t/cli
-    updated: true
-  - changelogIds:
-      - 2026-10-21-asia-translations.md
       - 2026-10-15-skip-unused-manifest-request.md
-      - 2026-10-19-server-script-start.md
-      - 2026-10-20-backend-error-messages.md
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-20-iab-mount-reentry.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-consent-copy-helpers.md
-      - 2026-10-21-subject-id-from-first-load.md
-      - 2026-10-13-dialog-open-during-init.md
-      - 2026-10-21-server-subject-id.md
-      - 2026-10-21-ny-language-access-translations.md
       - 2026-10-21-necessary-only-subject.md
-    id: npm:@c15t/core
-    updated: true
-  - changelogIds:
-      - 2026-10-19-server-script-start.md
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-headless-scroll-lock.md
+      - 2026-10-20-iab-mount-reentry.md
+      - 2026-10-13-dialog-open-during-init.md
       - 2026-10-13-consent-copy-helpers.md
-      - 2026-10-21-server-subject-id.md
-      - 2026-10-16-headless-direction-and-iab-guard.md
-      - 2026-10-13-streamed-consent-surface.md
-      - 2026-10-13-use-consent-gate.md
-    id: npm:@c15t/nextjs
-    updated: true
-  - changelogIds:
-      - 2026-10-19-server-script-start.md
-      - 2026-10-19-local-mode-warning.md
-      - 2026-10-21-rtl-banner-corner.md
-      - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-headless-scroll-lock.md
-      - 2026-10-13-consent-copy-helpers.md
-      - 2026-10-16-headless-direction-and-iab-guard.md
-      - 2026-10-13-streamed-consent-surface.md
-      - 2026-10-13-use-consent-gate.md
-    id: npm:@c15t/react
-    updated: true
-  - changelogIds:
       - 2026-10-21-asia-translations.md
-      - 2026-10-16-npm-search-metadata.md
       - 2026-10-21-ny-language-access-translations.md
-    id: npm:@c15t/schema
-    updated: true
-  - changelogIds:
       - 2026-10-19-server-script-start.md
-      - 2026-10-19-local-mode-warning.md
       - 2026-10-16-npm-search-metadata.md
-      - 2026-10-13-headless-scroll-lock.md
-      - 2026-10-13-consent-copy-helpers.md
-      - 2026-10-20-svelte-umbrella-exports.md
-      - 2026-10-21-server-subject-id.md
-      - 2026-10-16-headless-direction-and-iab-guard.md
-      - 2026-10-13-streamed-consent-surface.md
-      - 2026-10-13-use-consent-gate.md
-      - 2026-10-17-astro-build-timings.md
-    id: npm:c15t
+    id: npm:@c15t/core
     updated: true
 npm:packages:
-  - distTag: canary
-    id: npm:@c15t/dev-tools
-  - distTag: canary
-    id: npm:@c15t/backend
-  - distTag: canary
-    id: npm:@c15t/integrations
-  - distTag: canary
-    id: npm:@c15t/logger
-  - distTag: canary
-    id: npm:@c15t/vue
-  - distTag: canary
-    id: npm:@c15t/iab
-  - distTag: canary
-    id: npm:@c15t/ui
-  - distTag: canary
-    id: npm:@c15t/astro
-  - distTag: canary
-    id: npm:@c15t/browser
-  - distTag: canary
-    id: npm:@c15t/svelte
-  - distTag: canary
-    id: npm:@c15t/scripts
-  - distTag: canary
-    id: npm:@c15t/node-sdk
-  - distTag: canary
-    id: npm:@c15t/translations
-  - distTag: canary
-    id: npm:@c15t/tanstack-start
-  - distTag: canary
-    id: npm:@c15t/cli
-  - distTag: canary
-    id: npm:@c15t/core
-  - distTag: canary
+  - distTag: latest
     id: npm:@c15t/nextjs
-  - distTag: canary
-    id: npm:@c15t/react
-  - distTag: canary
-    id: npm:@c15t/schema
-  - distTag: canary
+  - distTag: latest
     id: npm:c15t
+  - distTag: latest
+    id: npm:@c15t/translations
+  - distTag: latest
+    id: npm:@c15t/browser
+  - distTag: latest
+    id: npm:@c15t/backend
+  - distTag: latest
+    id: npm:@c15t/cli
+  - distTag: latest
+    id: npm:@c15t/schema
+  - distTag: latest
+    id: npm:@c15t/tanstack-start
+  - distTag: latest
+    id: npm:@c15t/svelte
+  - distTag: latest
+    id: npm:@c15t/astro
+  - distTag: latest
+    id: npm:@c15t/node-sdk
+  - distTag: latest
+    id: npm:@c15t/vue
+  - distTag: latest
+    id: npm:@c15t/react
+  - distTag: latest
+    id: npm:@c15t/iab
+  - distTag: latest
+    id: npm:@c15t/core
+  - distTag: latest
+    id: npm:@c15t/integrations
+  - distTag: latest
+    id: npm:@c15t/scripts
+  - distTag: latest
+    id: npm:@c15t/dev-tools
+  - distTag: latest
+    id: npm:@c15t/ui
+  - distTag: latest
+    id: npm:@c15t/logger
