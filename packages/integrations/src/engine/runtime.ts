@@ -6,6 +6,8 @@ import type {
 	ScriptLifecycleCallback,
 } from '@c15t/core';
 
+import { inlineStepsStart } from '#inline-start';
+
 import { RUNTIME_VALUE_KIND } from '../types';
 import type { ManifestStep, ResolvedManifest, RuntimeValue } from '../types';
 
@@ -227,7 +229,9 @@ const executeStep = function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			const args = (step.args ?? []).map((arg) => cloneStepValue(arg));
+			const args = step.literalArgs
+				? (JSON.parse(JSON.stringify(step.args ?? [])) as unknown[])
+				: (step.args ?? []).map((arg) => cloneStepValue(arg));
 
 			if (step.method) {
 				const objectTarget = target as Record<
@@ -360,7 +364,12 @@ const executeStep = function executeStep(step: ManifestStep): void {
 						return;
 					}
 
-					queueTarget.push([methodName, ...args]);
+					queueTarget.push(
+						step.queueFormat === 'nameAndArgs'
+							? [methodName, args]
+							: [methodName, ...args]
+					);
+					return step.returnTarget ? targetRecord : undefined;
 				};
 			}
 			break;
@@ -426,6 +435,66 @@ const executeStep = function executeStep(step: ManifestStep): void {
 								/* empty */
 							};
 			}
+			break;
+		}
+
+		case 'setCookie': {
+			// oxlint-disable-next-line unicorn/no-document-cookie -- The step sets a vendor's documented cookie.
+			document.cookie = step.cookie;
+			break;
+		}
+
+		case 'defineQueueProxy': {
+			if (win[step.name]) {
+				break;
+			}
+			win[step.queue] ||= [];
+			// The vendor's script may swap the array for its own `push`.
+			const queue = () =>
+				win[step.queue] as
+					| { push: (...items: unknown[]) => unknown }
+					| undefined;
+			win[step.name] = new Proxy(
+				{},
+				{
+					get(target: Record<PropertyKey, unknown>, method) {
+						// Queuing `then`, `toJSON` or an Object.prototype member when
+						// something awaits, serializes or stringifies the object makes
+						// the vendor throw during replay, and every later call hangs.
+						if (
+							typeof method !== 'string' ||
+							method === 'then' ||
+							method === 'toJSON' ||
+							method in target
+						) {
+							return target[method];
+						}
+
+						if (method === 'push') {
+							return (...items: unknown[]) => queue()?.push(...items);
+						}
+
+						return (...args: unknown[]) => {
+							const callback =
+								typeof args.at(-1) === 'function'
+									? (args.pop() as (result: unknown) => void)
+									: undefined;
+
+							return new Promise((resolve) => {
+								queue()?.push([
+									method,
+									...args,
+									(result: unknown) => {
+										// oxlint-disable-next-line promise/prefer-await-to-callbacks, node/callback-return -- The queued call takes an optional trailing callback.
+										callback?.(result);
+										resolve(result);
+									},
+								]);
+							});
+						};
+					},
+				}
+			);
 			break;
 		}
 
@@ -588,7 +657,7 @@ const ALL_DENIED: ConsentState = {
  * category state, so its own consent API cannot re-enable tracking.
  */
 const signalConsents = function signalConsents(
-	info: ScriptCallbackInfo
+	info: Pick<ScriptCallbackInfo, 'consents' | 'vendor'>
 ): ConsentState {
 	return info.vendor?.granted === false ? ALL_DENIED : info.consents;
 };
@@ -596,21 +665,36 @@ const signalConsents = function signalConsents(
 const getConsentSignalSteps = function getConsentSignalSteps(
 	resolvedManifest: ResolvedManifest,
 	mode: 'default' | 'update',
-	consents: ConsentState
+	info: Pick<ScriptCallbackInfo, 'consents' | 'vendor'>
 ): ManifestStep[] {
 	if (!resolvedManifest.consentMapping || !resolvedManifest.consentSignal) {
 		return [];
 	}
+	const consents = signalConsents(info);
+	const mapState = (mapping: Record<string, string[]>) => ({
+		...mapConsentState(mapping, consents),
+		...(mode === 'default' && info.vendor?.granted !== false
+			? resolvedManifest.consentSignalDefaults
+			: undefined),
+	});
 
 	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (resolvedManifest.consentSignal) {
 		case 'gtag': {
-			const mapped = mapConsentState(resolvedManifest.consentMapping, consents);
-
 			return [
 				{
-					args: ['consent', mode, mapped],
+					args: ['consent', mode, mapState(resolvedManifest.consentMapping)],
 					global: resolvedManifest.consentSignalTarget ?? 'gtag',
+					type: 'callGlobal',
+				},
+			];
+		}
+
+		case 'clarity': {
+			return [
+				{
+					args: ['consentv2', mapState(resolvedManifest.consentMapping)],
+					global: resolvedManifest.consentSignalTarget ?? 'clarity',
 					type: 'callGlobal',
 				},
 			];
@@ -648,6 +732,33 @@ const getConsentSignalSteps = function getConsentSignalSteps(
 	}
 };
 
+/**
+ * What the manifest's `onBeforeLoad` runs, as inline code for a server
+ * render that starts the vendor from the HTML. A helper that wraps
+ * `onBeforeLoad` runs code the steps don't have, so a script whose
+ * `onBeforeLoad` isn't `manifestOnBeforeLoad` gets none. `undefined` for a
+ * manifest that loads no script.
+ */
+const manifestServerStart = function manifestServerStart(
+	resolvedManifest: ResolvedManifest,
+	manifestOnBeforeLoad: Script['onBeforeLoad']
+): Script['serverStart'] {
+	if (!resolvedManifest.loadScript) {
+		return;
+	}
+	return (info, started) =>
+		started.onBeforeLoad === manifestOnBeforeLoad
+			? inlineStepsStart([
+					...resolvedManifest.bootstrapSteps,
+					...getConsentSignalSteps(resolvedManifest, 'default', info),
+					...resolvedManifest.setupSteps,
+					...(info.hasConsent
+						? resolvedManifest.onBeforeLoadGrantedSteps
+						: resolvedManifest.onBeforeLoadDeniedSteps),
+				])
+			: undefined;
+};
+
 export const resolvedManifestToScript = function resolvedManifestToScript(
 	resolvedManifest: ResolvedManifest
 ): Script {
@@ -677,6 +788,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 		callbackOnly: resolvedManifest.loadScript ? undefined : true,
 		category: resolvedManifest.category as Script['category'],
 		defer: resolvedManifest.loadScript?.defer,
+		fetchPriority: resolvedManifest.loadScript?.fetchPriority,
 		id: resolvedManifest.vendor,
 		persistAfterConsentRevoked: resolvedManifest.persistAfterConsentRevoked,
 		src: resolvedManifest.loadScript?.src,
@@ -695,6 +807,10 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 	) {
 		script.onBeforeLoad = (info: ScriptCallbackInfo) => {
 			lastHasConsent = info.hasConsent;
+			// The HTML already ran these steps through `serverStart`.
+			if (info.startedOnServer) {
+				return;
+			}
 			const baseContext = {
 				callback: 'onBeforeLoad' as const,
 				elementId: info.elementId,
@@ -707,11 +823,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 				phase: 'bootstrap',
 			});
 			executePhaseSteps(
-				getConsentSignalSteps(
-					resolvedManifest,
-					'default',
-					signalConsents(info)
-				),
+				getConsentSignalSteps(resolvedManifest, 'default', info),
 				{
 					...baseContext,
 					phase: 'consent-default',
@@ -732,6 +844,11 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 			);
 		};
 	}
+
+	script.serverStart = manifestServerStart(
+		resolvedManifest,
+		script.onBeforeLoad
+	);
 
 	if (resolvedManifest.afterLoadSteps.length > 0) {
 		script.onLoad = (info: ScriptCallbackInfo) => {
@@ -801,7 +918,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 				scriptId: resolvedManifest.vendor,
 			};
 			executePhaseSteps(
-				getConsentSignalSteps(resolvedManifest, 'update', signalConsents(info)),
+				getConsentSignalSteps(resolvedManifest, 'update', info),
 				{
 					...baseContext,
 					phase: 'consent-update',

@@ -40,6 +40,7 @@ describe('script snippets', () => {
 
 	it('generates matching imports and config calls', () => {
 		const selected = [
+			'default-com',
 			'microsoft-clarity',
 			'segment',
 			'logrocket',
@@ -49,6 +50,7 @@ describe('script snippets', () => {
 
 		expect(generateScriptsImport(selected)).toBe(
 			[
+				"import { defaultComPixel } from '@c15t/integrations/default-com';",
 				"import { clarity } from '@c15t/integrations/microsoft-clarity';",
 				"import { segment } from '@c15t/integrations/segment';",
 				"import { logRocket } from '@c15t/integrations/logrocket';",
@@ -58,6 +60,9 @@ describe('script snippets', () => {
 		);
 
 		const config = generateScriptsConfig(selected);
+		expect(config).toContain(
+			"defaultComPixel({ publicKey: 'YOUR_PUBLIC_KEY' })"
+		);
 		expect(config).toContain("clarity({ id: 'YOUR_PROJECT_ID' })");
 		expect(config).toContain("segment({ writeKey: 'YOUR_WRITE_KEY' })");
 		expect(config).toContain("logRocket({ appId: 'org-slug/app-slug' })");

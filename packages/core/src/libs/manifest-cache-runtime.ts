@@ -4,6 +4,7 @@ import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
 
 import { c15tProtocolHeaders } from '../transports/version-header';
 import { parseCacheDirectiveSeconds } from './cache-directive';
+import { failedResponseError } from './failed-response';
 
 export { parseCacheDirectiveSeconds } from './cache-directive';
 
@@ -924,11 +925,9 @@ const revalidateManifest = async function revalidateManifest(input: {
 	if (!response.ok) {
 		// `status` lets a host tell a backend without `/manifest` (404) from
 		// one that is failing, including through a `backoff` error's `cause`.
-		throw Object.assign(
-			new Error(
-				`c15t manifest cache: backend /manifest responded ${response.status} ${response.statusText}`
-			),
-			{ status: response.status }
+		throw await failedResponseError(
+			'c15t manifest cache: backend /manifest',
+			response
 		);
 	}
 

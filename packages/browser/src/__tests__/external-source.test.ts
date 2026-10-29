@@ -27,6 +27,7 @@ test('browser client delegates preferences and loads scripts only for external g
 	};
 
 	const client = createConsentClient({
+		acknowledgeNoRecords: true,
 		consentSource: source,
 		iframeBlocker: false,
 		scripts: [script],

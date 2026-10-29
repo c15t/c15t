@@ -39,8 +39,9 @@ covers a vendor without one.
 ## What happens when consent changes
 
 - **Allowed.** The script loads, or its SDK starts, the first time its category
-  is allowed. With an awaited root loader, a returning visitor's allowed
-  scripts start right after hydration.
+  is allowed. With a server-rendered state, most vendor helper entries that
+  the visitor's consent or `alwaysLoad` already allows start before hydration. With a streamed state, they start when the state arrives;
+  see [Rendering](/docs/frameworks/tanstack-start/rendering).
 - **Denied later.** The script element is removed. Code that already ran keeps
   running, so after the visitor turns off a category they had allowed, the page
   reloads once the save finishes. Set `reloadOnConsentRevoked: false` in

@@ -35,7 +35,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 ## Prerequisites
 
 - A page where you can add a `<script>` tag
-- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development
+- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests
 
 ## Installation
 
@@ -49,7 +49,7 @@ Paste before `</head>`, with the backend URL from your Inth project:
 ></script>
 ```
 
-A URL without a version loads the newest release, so pin an exact version, such as `@c15t/browser@3.0.0`, in production. The default `c15t.js` requires a backend URL. Load `dist/c15t.offline.js` for offline mode or `dist/c15t.headless.js` for the runtime without any UI.
+A URL without a version loads the newest release, so pin an exact version, such as `@c15t/browser@3.2.0`, in production. The default `c15t.js` requires a backend URL. Load `dist/c15t.local.js` for local mode or `dist/c15t.headless.js` for the runtime without any UI.
 
 For bundled apps:
 
@@ -92,7 +92,7 @@ See the [documentation](https://c15t.com/docs/frameworks/html/quickstart) for gu
 | File | Use it for |
 | --- | --- |
 | `c15t.js` | Inth or a self-hosted backend. Set `data-backend-url`. A self-hosted backend also serves a preconfigured script at `/c15t.js` |
-| `c15t.offline.js` | Offline mode: choices stay in the browser, with local policy rules |
+| `c15t.local.js` | Local mode, for development and tests: choices stay in the browser, with local policy rules, and c15t keeps no server-side record of consent. Before 3.2.0 this file was `c15t.offline.js` |
 | `c15t.headless.js` | The runtime without UI, for your own banner. Can inline or fetch the backend's cacheable `/manifest` |
 | `c15t.iab.js` | IAB TCF 2.4. Configure `iab` with your registered CMP ID and vendor list. See the [IAB example](https://c15t.com/docs/frameworks/html/iab) |
 | `c15t.devtools.js` | A DevTools panel, with a Location tab to try policies by region |

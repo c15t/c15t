@@ -12,8 +12,33 @@ import { expect, test } from 'vitest';
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
 import scriptsPackage from '../packages/integrations/package.json';
+import {
+	BUILT_IN_INTEGRATION_KINDS,
+	builtInScriptIntegrations,
+} from '../packages/integrations/src/registry';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
+
+const getIntegrationOverviewGroups = () =>
+	readFileSync(resolve(docsRoot, 'integrations/overview.mdx'), 'utf8')
+		.split(/^## /mu)
+		.slice(1)
+		.map((section) => ({
+			pages: Array.from(
+				section.matchAll(
+					/^\| \[[^\]]+\]\((?<route>\/docs\/integrations\/[a-z0-9-]+)\)/gmu
+				),
+				(match) => {
+					const route = match.groups?.route;
+					if (!route) {
+						throw new Error('Missing integration route in overview row');
+					}
+					return route;
+				}
+			),
+			title: section.slice(0, section.indexOf('\n')),
+		}))
+		.filter((group) => group.pages.length > 0);
 
 test('documented umbrella imports exist in the package export map', async () => {
 	const exports = Object.keys(umbrellaPackage.exports);
@@ -172,7 +197,7 @@ test('installation tabs flatten to usable umbrella-package commands', async () =
 	expect(markdown).not.toContain('package-install');
 });
 
-test('integration navigation covers every vendor helper and both embeds', async () => {
+test('integration navigation covers every vendor helper, both embeds and Shopify', async () => {
 	const navigation = await resolveDocsNavigation({
 		groups: docsConfig.groups,
 		nav: docsConfig.navigation,
@@ -181,21 +206,26 @@ test('integration navigation covers every vendor helper and both embeds', async 
 	const integrations = navigation.groups.find(
 		(group) => group.slug === 'integrations'
 	);
-	expect(integrations?.children.map((group) => group.slug)).toEqual([
-		'embeds',
-		'tag-managers',
-		'analytics',
-		'chat-and-support',
-		'email-and-sms',
-		'ads-and-pixels',
-	]);
+	expect(
+		integrations?.children.map((group) => ({
+			pages: group.pages.map((page) => page.urlPath),
+			title: group.title,
+		}))
+	).toEqual(getIntegrationOverviewGroups());
 	const vendors = Object.entries(scriptsPackage.exports)
 		.filter(([, entry]) => entry.types.includes('/vendors/'))
 		.map(([subpath]) => subpath.slice(2));
+	// Every vendor helper has its own guide, and the registry links to it.
+	expect(
+		builtInScriptIntegrations
+			.filter((entry) => vendors.includes(entry.packageSubpath))
+			.filter((entry) => entry.docsSlug !== entry.packageSubpath)
+	).toEqual([]);
 	const expectedRoutes = [
 		...vendors,
 		'google-maps',
 		'youtube',
+		'shopify',
 		'overview',
 		'building-integrations',
 	].map((slug) => `/docs/integrations/${slug}`);
@@ -206,6 +236,23 @@ test('integration navigation covers every vendor helper and both embeds', async 
 	expect(pages.map((page) => page.urlPath).sort()).toEqual(
 		expectedRoutes.sort()
 	);
+});
+
+test('each registry integration kind matches its overview group', () => {
+	const groupOf = new Map<string, string>(
+		getIntegrationOverviewGroups().flatMap((group) =>
+			group.pages.map((route) => [route, group.title])
+		)
+	);
+	const labels = new Map(
+		BUILT_IN_INTEGRATION_KINDS.map((kind) => [kind.key, kind.label])
+	);
+	for (const integration of builtInScriptIntegrations) {
+		expect(
+			groupOf.get(`/docs/integrations/${integration.docsSlug}`),
+			integration.docsSlug
+		).toBe(labels.get(integration.integrationKind));
+	}
 });
 
 test('vendor registration tabs survive package Markdown conversion', async () => {

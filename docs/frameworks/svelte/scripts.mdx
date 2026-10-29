@@ -23,7 +23,7 @@ it from the server-rendered page; the SvelteKit scripts guide shows how.
 
 ## Send your own analytics events
 
-`getEventDispatcher()` from `@c15t/svelte` returns the provider's event
+`getEventDispatcher()` from `c15t/svelte` returns the provider's event
 dispatcher. It sends to the provider's `scripts` and checks consent when an
 event goes out. Call it while a component inside `ConsentProvider`
 initializes, and send a pageview when your router's path changes:

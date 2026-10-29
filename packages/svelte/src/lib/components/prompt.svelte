@@ -98,14 +98,6 @@
 		class?: string;
 	} = $props();
 
-	/** Corner mirror for right-to-left text when the host set no position. */
-	const MIRRORED_POSITIONS: Partial<Record<PromptPosition, PromptPosition>> = {
-		'bottom-left': 'bottom-right',
-		'bottom-right': 'bottom-left',
-		'top-left': 'top-right',
-		'top-right': 'top-left',
-	};
-
 	const consent = getConsentContext();
 	const theme = getThemeContext();
 
@@ -277,12 +269,6 @@
 	const primaryActions = $derived(presentation.primaryActions);
 	// Additional buttons that open preferences, styled as underlined text.
 	const preferenceControls = $derived(presentation.preferenceControls);
-	// A notice offers dismiss alone; with no primary resolved it takes the lead.
-	const dismissIsPrimary = $derived(
-		primaryActions.length === 0 &&
-			presentation.orderedActions.length === 1 &&
-			presentation.orderedActions[0] === 'dismiss'
-	);
 	const promptKind = $derived(consent.snapshot.policyRule.prompt);
 	const isNotice = $derived(promptKind === 'notice');
 	const direction = $derived(presentation.direction);
@@ -291,17 +277,7 @@
 	const shouldScrollLock = $derived(presentation.scrollLock);
 	const resolvedVariant = $derived(presentation.variant);
 	const isBlocking = $derived(presentation.blocking);
-	// A defaulted corner follows the text direction; a host position is
-	// physical and stays put.
-	const resolvedPosition = $derived.by(() => {
-		const { position: resolved, positionSource } = presentation;
-		const corner =
-			resolvedVariant === 'floating' || resolvedVariant === 'widget';
-		if (textDirection === 'rtl' && positionSource === 'default' && corner) {
-			return MIRRORED_POSITIONS[resolved] ?? resolved;
-		}
-		return resolved;
-	});
+	const resolvedPosition = $derived(presentation.position);
 
 	$effect(() => {
 		if (
@@ -499,7 +475,7 @@
 								<ConsentButton
 									action="dismiss-notice"
 									variant={themedActions.dismiss.variant ??
-										(isPrimary || dismissIsPrimary ? 'primary' : 'neutral')}
+										(isPrimary ? 'primary' : 'neutral')}
 									mode={themedActions.dismiss.mode ?? 'stroke'}
 									data-action="dismiss"
 									data-testid="consent-banner-dismiss-button"

@@ -31,6 +31,7 @@ const mount = async function mount(
 }> {
 	const client = createConsentClient(
 		{
+			acknowledgeNoRecords: true,
 			consentCategories: ['measurement', 'marketing'],
 			legalLinks: { privacyPolicy: { href: '/privacy' } },
 			policyRules: [
@@ -237,6 +238,21 @@ describe('mountConsentUI', () => {
 		expect(client.getSnapshot().effectivePermissions).toEqual(before);
 	});
 
+	it('styles the lone dismiss on a notice as primary', async () => {
+		const { root } = await mount(
+			{},
+			{
+				overrides: { country: 'US', region: 'CA' },
+				policyRules: [
+					{ ...policyRulePresets.usPrivacyStatesOptOut(), prompt: 'notice' },
+				],
+			}
+		);
+		expect(query(root, 'consent-banner-dismiss-button').dataset.variant).toBe(
+			'primary'
+		);
+	});
+
 	it('uses prompt geometry and blocking from presentation', async () => {
 		const { root } = await mount(
 			{},
@@ -248,6 +264,19 @@ describe('mountConsentUI', () => {
 			'true'
 		);
 		expect(document.body.style.overflow).toBe('hidden');
+	});
+
+	it('keeps the default corner for right-to-left text', async () => {
+		const { root } = await mount(
+			{},
+			{
+				i18n: { messages: { he: { cookieBanner: { title: 'פרטיות' } } } },
+				overrides: { language: 'he' },
+			}
+		);
+		const banner = query(root, 'consent-banner-root');
+		expect(banner.getAttribute('dir')).toBe('rtl');
+		expect(banner.dataset.position).toBe('bottom-left');
 	});
 
 	it('replaces light DOM customization when remounted and removes it on disposal', async () => {

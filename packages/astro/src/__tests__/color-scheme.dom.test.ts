@@ -56,7 +56,10 @@ const start = function start(
 	colorScheme?: C15tColorScheme,
 	extra: Partial<C15tAstroOptions> = {}
 ): AstroConsentClient {
-	const options: C15tAstroOptions = { mode: offlineMode(), ...extra };
+	const options: C15tAstroOptions = {
+		mode: offlineMode({ acknowledgeNoRecords: true }),
+		...extra,
+	};
 	if (colorScheme) {
 		options.colorScheme = colorScheme;
 	}
@@ -197,7 +200,12 @@ describe('colorScheme: null', () => {
 	it("leaves the site's class alone like 'none'", () => {
 		stubMatchMedia(true);
 		document.documentElement.classList.add('dark');
-		client = boot(resolveOptions({ colorScheme: null, mode: offlineMode() }));
+		client = boot(
+			resolveOptions({
+				colorScheme: null,
+				mode: offlineMode({ acknowledgeNoRecords: true }),
+			})
+		);
 		expect(isDark()).toBe(false);
 		expect(media.listeners.size).toBe(0);
 	});
@@ -210,7 +218,10 @@ describe('opening the React dialog', () => {
 		registerDialogAdapter('react', () => Promise.resolve(reactDialogAdapter));
 		registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
 		const opened = start(colorScheme, {
-			mode: offlineMode({ policyRules: [testRule] }),
+			mode: offlineMode({
+				acknowledgeNoRecords: true,
+				policyRules: [testRule],
+			}),
 			ui: 'react',
 		});
 		await opened.openDialog();

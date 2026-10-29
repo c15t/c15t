@@ -3,7 +3,79 @@
  * Framework-agnostic.
  */
 
-const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ku', 'dv'];
+/**
+ * Primary language subtags written right to left by default. `iw` and `ji`
+ * are the deprecated codes for Hebrew and Yiddish that some systems still
+ * emit. `ku` is absent: it usually means Kurmanji, which uses Latin script.
+ * Sorani is `ckb`, and `ku-Arab` resolves through its script subtag.
+ */
+const RTL_LANGUAGES = new Set([
+	'ar',
+	'ckb',
+	'dv',
+	'fa',
+	'he',
+	'iw',
+	'ji',
+	'nqo',
+	'ps',
+	'sd',
+	'syr',
+	'ug',
+	'ur',
+	'yi',
+]);
+
+/**
+ * ISO 15924 script subtags written right to left: the scripts CLDR marks RTL,
+ * plus the variant codes it leaves out (`Aran` Nastaliq, the `Syre`, `Syrj`
+ * and `Syrn` Syriac forms, and `Phlv` Book Pahlavi). A script subtag
+ * overrides the language default, so `ku-Arab` is RTL and `sd-Deva` is LTR.
+ */
+const RTL_SCRIPTS = new Set([
+	'adlm',
+	'arab',
+	'aran',
+	'armi',
+	'avst',
+	'chrs',
+	'cprt',
+	'elym',
+	'gara',
+	'hatr',
+	'hebr',
+	'hung',
+	'khar',
+	'lydi',
+	'mand',
+	'mani',
+	'mend',
+	'merc',
+	'mero',
+	'narb',
+	'nbat',
+	'nkoo',
+	'orkh',
+	'ougr',
+	'palm',
+	'phli',
+	'phlp',
+	'phlv',
+	'phnx',
+	'prti',
+	'rohg',
+	'samr',
+	'sarb',
+	'sidt',
+	'sogd',
+	'sogo',
+	'syrc',
+	'syre',
+	'syrj',
+	'syrn',
+	'thaa',
+	'yezi',
+]);
 
 let lastFocusedElement: HTMLElement | null = null;
 
@@ -25,14 +97,29 @@ if (typeof document !== 'undefined') {
 
 /**
  * Gets text direction based on the language.
+ *
+ * @param language - A BCP 47 language tag, such as `ar`, `yi-US` or `ku-Arab`.
+ * @returns `'rtl'` when the tag's script subtag, or its language when it has
+ * no script subtag, is written right to left. Otherwise `'ltr'`.
  */
 export const getTextDirection = function getTextDirection(
 	language?: string
 ): 'rtl' | 'ltr' {
-	const normalizedLanguage = language
-		? language.split('-')[0]?.toLowerCase()
-		: 'en';
-	return RTL_LANGUAGES.includes(normalizedLanguage || '') ? 'rtl' : 'ltr';
+	if (!language) {
+		return 'ltr';
+	}
+	const parts = language.toLowerCase().split('-');
+	// Extensions and private use start at a single-letter subtag, and their
+	// values (`en-u-nu-arab`, `x-arab`) can look like scripts. Stop before
+	// them. A tag that starts with one has no language to read.
+	const extensionStart = parts.findIndex((part) => part.length === 1);
+	const [primary = '', ...subtags] =
+		extensionStart === -1 ? parts : parts.slice(0, extensionStart);
+	const script = subtags.find((subtag) => /^[a-z]{4}$/u.test(subtag));
+	if (script) {
+		return RTL_SCRIPTS.has(script) ? 'rtl' : 'ltr';
+	}
+	return RTL_LANGUAGES.has(primary) ? 'rtl' : 'ltr';
 };
 
 /**
@@ -125,6 +212,13 @@ const supportsScrollbarGutter = (): boolean =>
 	CSS.supports('scrollbar-gutter', 'stable');
 
 /**
+ * Converts a width measured in viewport pixels into a length for `element`'s
+ * own styles, which CSS `zoom` on it or an ancestor scales again.
+ */
+const toCSSPixels = (element: HTMLElement, width: number): number =>
+	width / (element.currentCSSZoom || 1);
+
+/**
  * Locks document scrolling.
  *
  * Hides overflow on whichever element scrolls the page: `<body>` when its
@@ -136,7 +230,22 @@ const supportsScrollbarGutter = (): boolean =>
  * and scrollbars styled with `::-webkit-scrollbar`), `<body>` gets
  * `padding-right` instead, which keeps in-flow content still.
  *
+ * Padding cannot hold fixed-position elements, so the lock also sets
+ * `--c15t-scroll-lock-gap` on `<html>` to the width the viewport gained.
+ * A page offsets its own fixed elements with it, such as
+ * `right: calc(1rem + var(--c15t-scroll-lock-gap, 0px))`. The variable is
+ * only set while the lock pads `<body>`.
+ *
  * @returns Cleanup function to restore scroll
+ *
+ * @example
+ * ```css
+ * .site-header {
+ * 	position: fixed;
+ * 	inset-inline: 0;
+ * 	padding-right: var(--c15t-scroll-lock-gap, 0px);
+ * }
+ * ```
  */
 export const setupScrollLock = function setupScrollLock() {
 	// Reference counted: a banner and a dialog can both hold the lock (the
@@ -180,6 +289,14 @@ export const setupScrollLock = function setupScrollLock() {
 		const hideOverflow = (element: HTMLElement) => {
 			setStyle(element, 'overflow', 'hidden', ['overflow-x', 'overflow-y']);
 		};
+		// The viewport widened by `gap`. Padding keeps in-flow content still;
+		// the variable lets the page move its own fixed elements back. Both
+		// use <body>'s zoom, which the fixed elements inside it share.
+		const fillGap = (gap: number) => {
+			const width = `${toCSSPixels(body, gap)}px`;
+			setStyle(body, 'padding-right', width);
+			setStyle(root, '--c15t-scroll-lock-gap', width);
+		};
 
 		// While <html> has visible overflow, <body>'s overflow is what the
 		// viewport uses. Hiding it there, rather than on <html>, leaves <body>
@@ -202,16 +319,16 @@ export const setupScrollLock = function setupScrollLock() {
 				) {
 					setStyle(root, 'scrollbar-gutter', 'stable');
 				}
-				// The gutter only holds for native scrollbars: Chromium reserves
-				// none for one styled with `::-webkit-scrollbar`. When the page
-				// still widened, pad <body> by the difference instead, which keeps
-				// in-flow content still (fixed elements still move).
+				// The gutter does not always hold: Chromium on macOS, where native
+				// scrollbars overlay the page, reserves none for a scrollbar
+				// styled with `::-webkit-scrollbar`. When the page still widened,
+				// fill the difference instead.
 				const growth = root.getBoundingClientRect().width - rootWidth;
 				if (growth > 0.5) {
-					setStyle(body, 'padding-right', `${growth}px`);
+					fillGap(growth);
 				}
 			} else {
-				setStyle(body, 'padding-right', `${scrollbarWidth}px`);
+				fillGap(scrollbarWidth);
 			}
 		}
 

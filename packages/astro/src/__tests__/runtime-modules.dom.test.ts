@@ -17,7 +17,7 @@ import { testResolution, testRule } from './policy-fixture';
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement'],
-	mode: offlineMode({ policyRules: [testRule] }),
+	mode: offlineMode({ acknowledgeNoRecords: true, policyRules: [testRule] }),
 	scripts: [
 		{
 			category: 'necessary',

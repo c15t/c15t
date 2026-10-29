@@ -5,6 +5,7 @@
 import type { GlobalVendorList } from '@c15t/schema/types';
 
 import { parseCacheDirectiveSeconds } from '../libs/cache-directive';
+import { failedResponseError } from '../libs/failed-response';
 
 export interface CachedGvl {
 	gvl: GlobalVendorList | null;
@@ -110,9 +111,7 @@ export const fetchCachedGvl = function fetchCachedGvl(
 					// Keep serving the last good list while the upstream misbehaves.
 					return cached.gvl;
 				}
-				throw new Error(
-					`${label}: GVL responded ${response.status} ${response.statusText}`
-				);
+				throw await failedResponseError(`${label}: GVL`, response);
 			}
 			const gvl =
 				response.status === 204

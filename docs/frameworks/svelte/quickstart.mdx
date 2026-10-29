@@ -14,7 +14,7 @@ options. The `examples/svelte` app in the c15t repository is the finished
 result.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
-Create an Inth project, then:
+[Create an Inth project](https://inth.com/dashboard/sign-up?framework=svelte), then:
 
 1. Set its policy rules, including the `measurement` category for the
    vendor below.
@@ -22,7 +22,7 @@ Create an Inth project, then:
    origins.
 3. Copy the project's backend URL.
 
-A self-hosted backend or offline mode works too; see
+A self-hosted backend or local mode works too; see
 [other setups](#other-setups).
 
 The guide uses `hosted()` mode. The browser asks your backend for each
@@ -32,12 +32,10 @@ vendor edits reach visitors on their next page load, without a rebuild.
 
 ## Install
 
-<CommandTabs command="@c15t/svelte @c15t/integrations" mode="install" />
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
 
-Svelte uses its own package, `@c15t/svelte`, which exports the components and
-the consent modes. `@c15t/integrations`
-holds the vendor helpers. The `c15t` package has no Svelte entry point, so
-you don't install it.
+The `c15t` package exports the Svelte components and consent modes from
+`c15t/svelte`. `@c15t/integrations` holds the vendor helpers.
 
 ## Add the Vite plugin
 
@@ -52,8 +50,10 @@ prefix, in `.env` or your build environment:
 VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
-If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
-too. When both are set, `VITE_C15T_BACKEND_URL` wins.
+Plain Svelte apps (with Vite) use `VITE_C15T_BACKEND_URL`. SvelteKit apps use
+`PUBLIC_C15T_BACKEND_URL` instead. If your app already sets `VITE_INTH_PROJECT_URL`
+or `PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, those work too. When both are
+set, the c15t variable wins.
 
 `consentManifest` hands the backend URL to `hosted()`. No file is written
 into your project. Without the plugin, pass the URL as
@@ -71,11 +71,11 @@ vendor scripts c15t should load:
 <include src="../../shared/examples/svelte/app.mdx" />
 
 The `<main>` element stands in for your app's content. `hosted()` from
-`@c15t/svelte` makes one `/init` request to `VITE_C15T_BACKEND_URL`, started
-early by the script in `index.html`. The backend picks the policy from the
-visitor's location and language and returns its current version. Consent choices go to the same
-backend. Vite writes the variable into the bundle at build time, so changing
-it means a rebuild.
+`c15t/svelte` makes one `/init` request to the backend URL from
+`VITE_C15T_BACKEND_URL`, started early by the script in `index.html`. The
+backend picks the policy from the visitor's location and language and returns
+its current version. Consent choices go to the same backend. Vite writes the
+variable into the bundle at build time, so changing it means a rebuild.
 
 PostHog waits for measurement permission. Replace `phc_your_project_key`
 with your PostHog project key. Remove any `<script>` tags or SDK imports that
@@ -92,7 +92,7 @@ footer.
 
 There is no stylesheet to import. Each component adds the rules it uses to
 `<head>` when it first renders. With Tailwind CSS 3, import
-`@c15t/svelte/styles.css` yourself and pass `styles={false}` to the provider;
+`c15t/svelte/styles.css` yourself and pass `styles={false}` to the provider;
 see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
 ## Verify consent
@@ -119,22 +119,22 @@ If the banner does not appear, check the `/init` request, then see
 
 ## Other setups
 
-**Offline mode** resolves policies in the browser and keeps choices in the
+**Local mode** resolves policies in the browser and keeps choices in the
 browser's cookie and local storage, with no backend and no consent records. Use it for local development
 and tests. Not recommended for production environments.
 
 {/* example: fragment */}
 
 ```ts
-import { offline } from '@c15t/svelte';
+import { local } from 'c15t/svelte';
 
-const mode = offline();
+const mode = local();
 ```
 
-With no arguments, `offline()` uses the recommended rules. They ask for
+With no arguments, `local()` uses the recommended rules. They ask for
 opt-in in Europe and unknown locations, use opt-out in US privacy states, and
-show no banner where no consent law applies. Pass `offline({ policyRules })` to use your own.
-[Data fetching](/docs/concepts/data-fetching#when-should-i-use-offline-mode)
+show no banner where no consent law applies. Pass `local({ policyRules })` to use your own.
+[Data fetching](/docs/concepts/data-fetching#when-should-i-use-local-mode)
 explains the trade-offs.
 
 **A self-hosted backend** uses the same setup with your own backend URL. See
@@ -172,7 +172,7 @@ visitors the browser resolves this way. Swap the mode in `src/App.svelte`:
 
 ```svelte title="src/App.svelte (partial)"
 <script lang="ts">
-	import { ConsentProvider, manifest } from '@c15t/svelte';
+	import { ConsentProvider, manifest } from 'c15t/svelte';
 </script>
 
 <ConsentProvider mode={manifest()} {scripts}>

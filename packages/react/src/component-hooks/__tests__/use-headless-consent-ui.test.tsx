@@ -24,7 +24,7 @@ const createWrapper = function createWrapper(ui: {
 			<ConsentProvider
 				options={{
 					initialUI: ui?.mode,
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: {
 						...policyFixture(undefined, {

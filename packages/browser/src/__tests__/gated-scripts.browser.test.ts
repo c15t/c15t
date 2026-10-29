@@ -60,7 +60,10 @@ describe('gated script execution in Chromium', () => {
 			root,
 			"document.body.dataset.observedVendor = document.body.dataset.vendor ?? 'missing';"
 		);
-		const client = createConsentClient({ ui: false });
+		const client = createConsentClient({
+			acknowledgeNoRecords: true,
+			ui: false,
+		});
 		activateGatedScripts(client.getSnapshot(), root);
 		client.dispose();
 
@@ -78,7 +81,10 @@ describe('gated script execution in Chromium', () => {
 		// Browsers hide the content attribute when a nonced script is connected.
 		expect(script.getAttribute('nonce')).toBe('');
 		expect(script.nonce).toBe(nonce);
-		const client = createConsentClient({ ui: false });
+		const client = createConsentClient({
+			acknowledgeNoRecords: true,
+			ui: false,
+		});
 		activateGatedScripts(client.getSnapshot(), root);
 		client.dispose();
 
@@ -89,7 +95,10 @@ describe('gated script execution in Chromium', () => {
 describe("gated scripts under 'strict-dynamic'", () => {
 	const openStrictDynamic = async () => {
 		const root = await createFrame('/__c15t-test__/strict-dynamic');
-		const client = createConsentClient({ ui: false });
+		const client = createConsentClient({
+			acknowledgeNoRecords: true,
+			ui: false,
+		});
 		return { client, root };
 	};
 	const settle = () =>

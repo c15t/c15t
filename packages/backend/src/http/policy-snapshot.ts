@@ -27,8 +27,9 @@ const DEFAULT_TTL_SECONDS = 1800;
 /** Matches how long the browser keeps a failed save for replay. */
 const DEFAULT_REPLAY_WINDOW_SECONDS = 7 * 24 * 60 * 60;
 /**
- * Slack for a client clock that disagrees with the server's when a late save
- * says when the visitor decided.
+ * Slack for a client clock that disagrees with the server's when a save says
+ * when the visitor decided: a late save's `givenAt` against its token, and
+ * any save's timestamps against the server clock.
  */
 export const DECISION_CLOCK_TOLERANCE_SECONDS = 600;
 

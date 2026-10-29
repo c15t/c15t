@@ -4,6 +4,10 @@ import { policyRulePresets, resolvePolicyRules } from '@c15t/schema/types';
 /** @vitest-environment jsdom */
 import { afterEach, expect, it, vi } from 'vitest';
 
+import { reactBrowserBudgetsForScenario } from './budgets';
+import { evaluateBudget } from './reporting';
+import { summarizeMetric } from './utils';
+
 afterEach(() => {
 	localStorage.clear();
 	vi.useRealTimers();
@@ -26,10 +30,23 @@ it('measures the real cookie projections and hydrates without writes', async () 
 	expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
 	vi.advanceTimersByTime(0);
 	const cookies = document.cookie.split('; ').sort();
+	// The acknowledgement carries the subject ID in a companion cookie, so
+	// the v1 notice cookie keeps its format. The companion repeats the
+	// notice fields it is bound to and adds the ID.
 	expect(cookies.map((cookie) => cookie.split('=')[0]).sort()).toEqual([
 		'c15t',
 		'c15t-notice',
+		'c15t-notice-subject',
+		'c15t-sid',
 	]);
+	const cookieValue = (name: string) =>
+		cookies
+			.find((cookie) => cookie.startsWith(`${name}=`))
+			?.slice(name.length + 1);
+	const subjectId = kernel.getSnapshot().subject?.subjectId;
+	expect(cookieValue('c15t-notice-subject')).toBe(
+		`${cookieValue('c15t-notice')}&sid=${subjectId}`
+	);
 	const bytes = Object.fromEntries(
 		cookies.map((cookie) => {
 			const [name, ...value] = cookie.split('=');
@@ -43,6 +60,23 @@ it('measures the real cookie projections and hydrates without writes', async () 
 			cookieValueBytes: bytes,
 		})
 	);
+	const budget = reactBrowserBudgetsForScenario('policy-notice').find(
+		(entry) => entry.metric === 'c15tCookieBytes'
+	);
+	expect.assert(budget);
+	const headerBytes = new TextEncoder().encode(cookies.join('; ')).length;
+	expect(
+		evaluateBudget(
+			budget,
+			summarizeMetric('c15tCookieBytes', 'bytes', [headerBytes])
+		).pass
+	).toBe(true);
+	expect(
+		evaluateBudget(
+			budget,
+			summarizeMetric('c15tCookieBytes', 'bytes', [budget.threshold + 1])
+		).pass
+	).toBe(false);
 	const repeated = createConsentKernel({ initialPolicyResolution: resolution });
 	const repeatedPersistence = createPersistence({
 		kernel: repeated,

@@ -13,12 +13,12 @@ first paint. For prerendered pages, a static site or SPA mode, follow this
 guide and then [rendering and deployment](/docs/frameworks/sveltekit/rendering).
 The `examples/sveltekit` app in the c15t repository is the finished result.
 
-`@c15t/svelte` supports SvelteKit 2.63 and later, including SvelteKit 3,
+`c15t/svelte` supports SvelteKit 2.63 and later, including SvelteKit 3,
 with Svelte 5.20 and later. The examples use SvelteKit 3. On SvelteKit 2, keep
 the adapter in `svelte.config.js` instead of passing it to `sveltekit()`.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
-Create an Inth project, then:
+[Create an Inth project](https://inth.com/dashboard/sign-up?framework=sveltekit), then:
 
 1. Set its policy rules, including the `measurement` category for the
    vendor below.
@@ -35,11 +35,11 @@ production setup. Rebuild after changing policies, translations or vendors.
 
 ## Install
 
-<CommandTabs command="@c15t/svelte @c15t/integrations" mode="install" />
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
 
-SvelteKit uses `@c15t/svelte`: components from `@c15t/svelte`, server
-helpers from `@c15t/svelte/kit` and the Vite plugin from `@c15t/svelte/vite`.
-The `c15t` package has no Svelte entry point, so you don't install it.
+The `c15t` package exports components from `c15t/svelte`, server helpers
+from `c15t/svelte/kit` and the Vite plugin from `c15t/svelte/vite`.
+`@c15t/integrations` holds the vendor helpers.
 
 ## Set the backend URL
 
@@ -88,7 +88,7 @@ without a stylesheet request. Add it to `src/hooks.server.ts`:
 
 With no options, the mode is `manifest()`: the server resolves each visitor
 from the bundled policy. [Rendering and deployment](/docs/frameworks/sveltekit/rendering)
-covers `hosted()`, `offline()` and the other options.
+covers `hosted()`, `local()` and the other options.
 
 Type `event.locals.c15t` with one line in `src/app.d.ts`:
 

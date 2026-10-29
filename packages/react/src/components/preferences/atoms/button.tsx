@@ -1,7 +1,7 @@
 import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
-import { useTranslations } from '~/component-hooks/use-translations';
+import { useConsentLabels } from '~/component-hooks/use-consent-labels';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/components/shared/primitives/button.types';
 
@@ -17,7 +17,7 @@ const ConsentWidgetAcceptAllButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -30,7 +30,7 @@ const ConsentWidgetAcceptAllButton = createForwardRef<
 			closeConsentBanner={true}
 			closeConsentDialog={true}
 		>
-			{children ?? common.acceptAll}
+			{children ?? labels.actions.accept}
 		</ConsentButton>
 	);
 });
@@ -40,7 +40,7 @@ const ConsentWidgetCustomizeButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -50,7 +50,7 @@ const ConsentWidgetCustomizeButton = createForwardRef<
 			slotKey="button.secondary"
 			data-testid="consent-widget-footer-customize-button"
 		>
-			{children ?? common.customize}
+			{children ?? labels.actions.customize}
 		</ConsentButton>
 	);
 });
@@ -60,7 +60,7 @@ const ConsentWidgetSaveButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -71,7 +71,7 @@ const ConsentWidgetSaveButton = createForwardRef<
 			slotKey="button.primary"
 			data-testid="consent-widget-footer-save-button"
 		>
-			{children ?? common.save}
+			{children ?? labels.actions.save}
 		</ConsentButton>
 	);
 });
@@ -89,7 +89,7 @@ const ConsentWidgetRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
-	const { common } = useTranslations();
+	const labels = useConsentLabels();
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
@@ -102,7 +102,7 @@ const ConsentWidgetRejectButton = createForwardRef<
 			closeConsentBanner={true}
 			closeConsentDialog={true}
 		>
-			{children ?? common.rejectAll}
+			{children ?? labels.actions.reject}
 		</ConsentButton>
 	);
 });

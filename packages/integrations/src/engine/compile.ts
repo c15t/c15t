@@ -188,6 +188,10 @@ export const compileManifest = function compileManifest(
 				) as ResolvedManifest['consentMapping'])
 			: undefined,
 		consentSignal: manifest.consentSignal,
+		consentSignalDefaults: interpolateValue(
+			manifest.consentSignalDefaults,
+			config
+		) as ResolvedManifest['consentSignalDefaults'],
 		consentSignalTarget:
 			typeof manifest.consentSignalTarget === 'string'
 				? (interpolateValue(manifest.consentSignalTarget, config) as string)
@@ -213,7 +217,7 @@ export const compileManifest = function compileManifest(
 				: (interpolateValue(
 						manifest.persistAfterConsentRevoked,
 						config
-					) as boolean),
+					) as ResolvedManifest['persistAfterConsentRevoked']),
 		schemaVersion: manifest.schemaVersion,
 		setupSteps,
 		vendor: manifest.vendor,

@@ -26,9 +26,8 @@ import { Effect } from 'effect';
 import { SqlClient } from 'effect/sql';
 import type { SqlError } from 'effect/sql';
 
-import { currentTenantId } from '../db/tenant';
 import type { Tenant } from '../db/tenant';
-import { encodeRow, encoder } from '../db/values';
+import { encodeTenantRow } from '../db/values';
 import { record } from './consent';
 import type { ConsentPurposeConflictError, ConsentSubmission } from './consent';
 import { recordDecision } from './runtime-policy-decision';
@@ -99,20 +98,14 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 	SubmissionResult
 > {
 	const sql = yield* SqlClient.SqlClient;
-	// From the scope, never from the request. The reads filter on the scope's
-	// tenant, so a write that took its tenant from anywhere else can disagree
-	// with them — and did: the route never passed one, so every row was
-	// written with a NULL tenant that the instance's own reads then could not
-	// see. Deriving it here is what makes the two halves the same value by
-	// construction rather than by the caller remembering.
-	const tenantId = yield* currentTenantId;
+	// No tenant is passed below: every insert takes it from the scope, the
+	// value the reads filter on. See `../db/tenant.ts`.
 
 	const subject = yield* findOrCreate({
 		externalId: request.externalId,
 		externalIdVerified: request.externalIdVerified,
 		identityProvider: request.identityProvider,
 		subjectId: request.subjectId,
-		tenantId,
 	});
 
 	// `recordDecision` takes its own tenant from the scope and namespaces the
@@ -138,7 +131,6 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		runtimePolicySource: decision ? request.runtimePolicySource : undefined,
 		subjectId: subject.id,
 		tcString: request.tcString,
-		tenantId,
 		timeToDecisionMs: request.timeToDecisionMs,
 		uiSource: request.uiSource,
 		userAgent: request.userAgent,
@@ -154,7 +146,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		// twice, which is precisely the claim the trail exists to get right.
 		yield* sql`
 			insert into ${sql('auditLog')} ${sql.insert(
-				encodeRow(yield* encoder, {
+				yield* encodeTenantRow({
 					actionType: 'consent_given',
 					changes: JSON.stringify({
 						choice: request.choice ?? null,
@@ -172,7 +164,6 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 						policyId: request.policyId ?? null,
 					}),
 					subjectId: subject.id,
-					tenantId: tenantId ?? null,
 					userAgent: request.userAgent,
 				})
 			)}

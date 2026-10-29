@@ -62,7 +62,12 @@ export const createObservedRuntime = function createObservedRuntime(
 	}
 	return createConsentRuntime({
 		iframeBlocker: false,
-		mode: custom(createOfflineTransport({ policyRules: [OBSERVED_RULE] })),
+		mode: custom(
+			createOfflineTransport({
+				acknowledgeNoRecords: true,
+				policyRules: [OBSERVED_RULE],
+			})
+		),
 		persistence: false,
 		prefetch,
 		windowDebug: false,

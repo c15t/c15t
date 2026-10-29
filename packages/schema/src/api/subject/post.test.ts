@@ -69,3 +69,30 @@ describe('postSubjectInputSchema addtlConsent', () => {
 		expect(parseAddtlConsent(addtlConsent).success).toBe(false);
 	});
 });
+
+describe('postSubjectInputSchema domain', () => {
+	const parseDomain = (domain: string) =>
+		v.safeParse(postSubjectInputSchema, {
+			...baseInput,
+			domain,
+			givenAt: 1_735_689_600_000,
+		});
+
+	it.each([
+		['a host name', 'example.com'],
+		['a host with a port', 'localhost:3000'],
+		['an IPv6 literal', '[::1]'],
+		['a 253-character name', `${'a'.repeat(249)}.com`],
+	])('accepts %s', (_label, domain) => {
+		expect(parseDomain(domain).success).toBe(true);
+	});
+
+	it.each([
+		['an empty string', ''],
+		['a 254-character name', `${'a'.repeat(250)}.com`],
+		['a newline', 'example.com\nother'],
+		['a NUL character', 'example.com\u0000'],
+	])('rejects %s', (_label, domain) => {
+		expect(parseDomain(domain).success).toBe(false);
+	});
+});

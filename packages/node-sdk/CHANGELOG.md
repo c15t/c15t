@@ -1,3 +1,37 @@
+## @c15t/node-sdk@3.2.0-canary.0 (canary)
+
+### Errors say what the backend said
+
+When a backend refuses a request with a JSON body, the error now carries its
+message and code. Over HTTP/2 an error used to read
+`c15t hosted transport: /init responded 402 ` with nothing after the status.
+It now reads
+`c15t hosted transport: /init responded 402: <message> (<CODE>)` and has
+`status` and `code` properties. Bodies that are not JSON keep the old message.
+This covers `/init`, `/manifest`, `/subjects`, the manifest cache, the static
+manifest and the GVL. The dev warning for a failed init now includes the
+message too.
+
+A consent save refused with 402 (payment required) is no longer resent. The
+choice stays in the browser, as it does for other permanent rejections. A 402
+on init is not retried. A 409 or 422 save is also no longer resent when its
+permanent code, such as `SUBJECT_CONFLICT`, is at the top level of the body
+instead of under `cause`.
+
+`@c15t/node-sdk` now reads a top-level `code` when the body has no
+`cause.code`, so `serverCode` is set for `{ message, code }` bodies.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/node-sdk@3.1.0
 
 ### Clearer npm descriptions and keywords

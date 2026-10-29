@@ -55,7 +55,7 @@
 
 <ConsentProvider
 	options={{
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		consentCategories: categories,
 		presentation,
 		storageConfig: storageKey ? { storageKey } : undefined,
@@ -73,7 +73,7 @@
 </ConsentProvider>
 
 {#if multiple}
-	<ConsentProvider options={{ mode: offline() }}>
+	<ConsentProvider options={{ mode: offline({ acknowledgeNoRecords: true }) }}>
 		<ConsentDevToolsComponent position="bottom-right" />
 	</ConsentProvider>
 {/if}

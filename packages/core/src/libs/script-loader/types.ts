@@ -27,6 +27,32 @@ export interface ScriptCallbackInfo {
 	 * @internal
 	 */
 	readonly registration?: symbol;
+	/**
+	 * Read this registration's current whole-script gate, effective categories
+	 * and vendor permission, including changes awaiting callback delivery.
+	 * During disposal, retains declaration context while reading current consent.
+	 * After disposal, returns the last state evaluated for that registration.
+	 * Non-enumerable; lifecycle event fields retain their original meaning.
+	 * @returns Current permission info for this script registration.
+	 * @internal
+	 */
+	readonly getCurrentConsent?: () => ScriptCallbackInfo;
+
+	/**
+	 * A configuration with the same ID will register after this disposal.
+	 * Read current permission separately; replacement can include real withdrawal.
+	 * Non-enumerable and only supplied to the outgoing disposal callback.
+	 * @internal
+	 */
+	readonly replacing?: boolean;
+
+	/**
+	 * Run after the queued replacement has reconciled, or disposal aborts it.
+	 * Only present on an outgoing replacement's disposal info. Non-enumerable.
+	 * @param effect - Synchronous work that must wait for incoming membership.
+	 * @internal
+	 */
+	readonly afterReplacement?: (effect: () => void) => void;
 
 	/** The original script ID */
 	id: string;
@@ -56,6 +82,31 @@ export interface ScriptCallbackInfo {
 
 	/** Error information (for error callbacks) */
 	error?: Error;
+
+	/**
+	 * `true` in `onBeforeLoad` when the page's HTML already ran the script's
+	 * `serverStart` code and inserted the element. The callback should only
+	 * record state: the setup it would run has run.
+	 * @internal
+	 */
+	startedOnServer?: true;
+}
+
+/**
+ * Inline JavaScript that starts a script from the HTML, before hydration.
+ * @internal
+ */
+export interface ScriptServerStart {
+	/**
+	 * Setup the script needs before its element runs, such as a queue stub
+	 * and its consent default. Runs inside a `try` block of its own.
+	 */
+	code: string;
+	/**
+	 * Code shared by several scripts, emitted once ahead of every `code`.
+	 * Scripts that pass the same string share one copy.
+	 */
+	prelude?: string;
 }
 
 /**
@@ -72,6 +123,15 @@ export interface ScriptCallbackInfo {
 export interface Script {
 	/** Unique identifier for the script */
 	id: string;
+
+	/**
+	 * Validate before initial registration or configuration replacement.
+	 * Throw to reject the batch before existing registrations are changed.
+	 * Must not mutate script or SDK state. Lifecycle callback errors are isolated;
+	 * the loader does not catch validation errors.
+	 * @internal
+	 */
+	validate?: () => void;
 
 	/**
 	 * Stable identity of the DOM resource, separate from the logical script ID.
@@ -93,6 +153,12 @@ export interface Script {
 	/**
 	 * Whether this is a callback-only script that doesn't need to load an external resource.
 	 * When true, no script tag will be added to the DOM, only callbacks will be executed.
+	 * A zero-argument predicate checks the current runtime before each new mount,
+	 * when reading diagnostics, and when selecting scripts for server startup.
+	 * Keep it free of side effects and safe to call on the server. It may run
+	 * more than once and does not change an already mounted registration.
+	 * Keep the function reference stable across script updates. A new function
+	 * counts as a resource change and remounts the registration.
 	 *
 	 * This is useful for:
 	 * - Managing consent for libraries already loaded on the page
@@ -106,13 +172,14 @@ export interface Script {
 	 *
 	 * @default false
 	 */
-	callbackOnly?: boolean;
+	callbackOnly?: boolean | (() => boolean);
 
 	/**
-	 * Whether the script should persist after consent is revoked.
+	 * Keep the element after consent is revoked. `true` also keeps pending
+	 * downloads; `'loaded'` keeps only elements whose load event completed.
 	 * @default false
 	 */
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: boolean | 'loaded';
 
 	/**
 	 * Whether the script should always load regardless of consent state.
@@ -140,6 +207,23 @@ export interface Script {
 
 	/** Priority hint for browser resource loading */
 	fetchPriority?: 'high' | 'low' | 'auto';
+
+	/**
+	 * Lets a server render that already resolved consent run the script's
+	 * setup and insert its element from the HTML, for a visitor whose stored
+	 * consent lets it run. It doesn't run while the policy asks the visitor
+	 * to choose, so the banner gets the main thread. The loader then adopts
+	 * a started element and calls `onBeforeLoad` with `startedOnServer`.
+	 * Return `undefined` when the setup can't run as inline code; the loader
+	 * then starts the script.
+	 * `script` is the script being started, which may be a copy of the one
+	 * that defined `serverStart` with other callbacks.
+	 * @internal
+	 */
+	serverStart?: (
+		info: Pick<ScriptCallbackInfo, 'consents' | 'hasConsent' | 'id' | 'vendor'>,
+		script: Script
+	) => ScriptServerStart | undefined;
 
 	/** Additional attributes to add to the script element */
 	attributes?: Record<string, string>;
@@ -241,8 +325,10 @@ export interface Script {
 
 	/**
 	 * Release listeners and other resources when this configuration is removed,
-	 * replaced by a different object, or its loader is disposed. Adding this hook
-	 * opts into object-owned lifecycles; keep the config stable across rerenders.
+	 * replaced by a different resource or disposal callback, or its loader is
+	 * disposed. Recreating a DOM script config with the same resource and callback
+	 * preserves its lifecycle. Callback-only scripts with this hook retain an
+	 * object-owned lifecycle. Use a new callback when replacement needs cleanup.
 	 * Called even if the script never loaded.
 	 * Consent revocation alone does not call this hook. It does not revoke vendor
 	 * consent or undo code that has already executed. Must be safe to call before
@@ -250,6 +336,16 @@ export interface Script {
 	 * @param info - The current consent state and script identity.
 	 */
 	onDispose?: (info: ScriptCallbackInfo) => void;
+
+	/**
+	 * Keep an inserted element when this configuration is removed or disposed.
+	 * Lifecycle listeners are released; a later registration can reuse the tag
+	 * and receive its load or error completion. Use only when the SDK must stay
+	 * installed for the rest of the page. This does not stop vendor tracking.
+	 * Consent withdrawal still follows `persistAfterConsentRevoked`.
+	 * @default false
+	 */
+	persistAfterDispose?: boolean;
 
 	// ─────────────────────────────────────────────────────────────────────────
 	// IAB TCF Properties

@@ -20,14 +20,16 @@ import type {
 
 /**
  * Build the `ScriptCallbackInfo` payload exposed to user callbacks.
- * Pure: same input always produces the same output. The element ID
- * comes from the resolver passed in — keeps anonymized-ID logic out
- * of this module.
+ * The loader supplies the element ID and optional current-consent reader.
  */
 export const buildCallbackInfo = function buildCallbackInfo(
 	tools: Pick<
 		ScriptLoaderTools,
-		'deniedVendors' | 'gateState' | 'registration'
+		| 'deniedVendors'
+		| 'gateState'
+		| 'getConsentReader'
+		| 'isReplacing'
+		| 'registration'
 	>,
 	script: Script,
 	snapshot: ConsentSnapshot,
@@ -46,6 +48,15 @@ export const buildCallbackInfo = function buildCallbackInfo(
 	};
 	if (tools.registration) {
 		Object.defineProperty(info, 'registration', { value: tools.registration });
+	}
+	const getCurrentConsent = tools.getConsentReader?.(script);
+	if (getCurrentConsent) {
+		Object.defineProperty(info, 'getCurrentConsent', {
+			value: getCurrentConsent,
+		});
+	}
+	if (tools.isReplacing?.(script)) {
+		Object.defineProperty(info, 'replacing', { value: true });
 	}
 	if (script.vendor && snapshot.model !== 'iab') {
 		info.vendor = {
@@ -80,9 +91,9 @@ export const invokeCallback = function invokeCallback(
 	script: Script,
 	key: NonNullable<ScriptLoaderDebugEvent['callback']>,
 	info: ScriptCallbackInfo,
-	emit: (event: ScriptLoaderDebugEvent) => void
+	emit: (event: ScriptLoaderDebugEvent) => void,
+	fn: ((info: ScriptCallbackInfo) => void) | undefined = script[key]
 ): void {
-	const fn = script[key];
 	if (typeof fn !== 'function') {
 		return;
 	}

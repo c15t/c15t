@@ -8,6 +8,7 @@
  */
 import type { ConsentManifest } from '@c15t/schema/types';
 
+import { failedResponseError } from '../libs/failed-response';
 import type { ManifestModeInputs } from '../modes';
 import { createManifestRequestInit } from './manifest-request';
 
@@ -34,8 +35,9 @@ export const fetchManifest = async function fetchManifest(
 		createManifestRequestInit(options)
 	);
 	if (!response.ok) {
-		throw new Error(
-			`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+		throw await failedResponseError(
+			'c15t manifest transport: /manifest',
+			response
 		);
 	}
 	return (await response.json()) as ConsentManifest;

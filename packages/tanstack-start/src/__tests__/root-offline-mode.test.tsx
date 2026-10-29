@@ -30,7 +30,10 @@ describe('ConsentRoot offline mode', () => {
 			const { getByTestId } = await render(
 				<ConsentRoot
 					persistence={false}
-					state={{ initialOverrides: { country: 'DE' }, mode: offline() }}
+					state={{
+						initialOverrides: { country: 'DE' },
+						mode: offline({ acknowledgeNoRecords: true }),
+					}}
 				>
 					<PolicyStatus />
 				</ConsentRoot>

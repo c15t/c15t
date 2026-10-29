@@ -52,7 +52,7 @@ in order:
 1. **`ConsentRoot` has no server state.** Check that the root
    `+layout.server.ts` exports `loadConsent` as `load` and that
    `+layout.svelte` passes `state={data.consent}`. With
-   `manifest({ resolve: 'browser' })` or `offline()`, the browser resolves
+   `manifest({ resolve: 'browser' })` or `local()`, the browser resolves
    the policy by design.
 2. **`loadConsent` fell back.** It returns the stored choice without a policy
    when resolution fails or takes longer than `timeoutMs`, 500 ms by default.
@@ -127,24 +127,24 @@ See [customize](/docs/frameworks/sveltekit/customize).
 
 ## Server code ends up in the browser bundle
 
-**Check.** Look for imports of `@c15t/svelte/kit` or `@c15t/svelte/server` in
+**Check.** Look for imports of `c15t/svelte/kit` or `c15t/svelte/server` in
 components. They are for server files: `hooks.server.ts`,
 `+layout.server.ts`, `+page.server.ts` and `+server.ts`. Imported from a
 component, they pull the manifest resolver and every bundled translation into
 the browser bundle.
 
-**Fix.** Import the components from `@c15t/svelte` in components, and set
+**Fix.** Import the components from `c15t/svelte` in components, and set
 the mode on `c15tHandle()` in `hooks.server.ts`.
 
 ## c15tHandle() throws on `custom()`
 
 **Check.** `c15tHandle({ mode })` received `custom()`. The error reads
-"c15tHandle() takes manifest(), hosted() or offline() from @c15t/svelte/kit".
+"c15tHandle() takes manifest(), hosted() or local() from c15t/svelte/kit".
 The handle's mode must be data that can reach the browser, and a custom
 transport is code.
 
 **Fix.** Pass the `custom()` transport to `ConsentRoot`'s `mode` prop, and
-keep the handle's `mode` for one of the data modes from `@c15t/svelte/kit`.
+keep the handle's `mode` for one of the data modes from `c15t/svelte/kit`.
 
 ## Names from an earlier alpha are missing
 
@@ -160,7 +160,7 @@ the alphas renamed these with no alias.
 | `ConsentManagerProvider` with `prefetch={...}` | `<ConsentRoot state={data.consent}>` |
 | `Frame` | `ConsentGate` |
 | `createSvelteKitConsentRouteHandlers` | `createConsentRoute` |
-| `c15tPreload` | Part of `consentManifest()` from `@c15t/svelte/vite` |
+| `c15tPreload` | Part of `consentManifest()` from `c15t/svelte/vite` |
 | `ConsentManifestOptions`, `consentManifest({ outputFile })` | Removed |
 | `loadConsent(event, { backendURL, manifest, initRoute, shared })` returning `prefetch` | `c15tHandle({ mode, routePrefix, snapshot, backendURL })` in `src/hooks.server.ts`, and `export { loadConsent as load }`, which returns `{ consent }` |
 | `resolveConsent({ manifest })` from `@c15t/svelte/server` | `resolveConsent({ snapshot })` |

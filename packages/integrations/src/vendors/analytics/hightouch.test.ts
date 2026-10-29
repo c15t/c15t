@@ -38,7 +38,7 @@ describe('hightouch', () => {
 
 		expect(Array.isArray(htevents)).toBe(true);
 		expect(htevents?._writeKey).toBe('WRITE_KEY');
-		expect(htevents?._loadOptions).toEqual({});
+		expect(htevents?._loadOptions).toStrictEqual({});
 		expect(htevents?.[0]).toEqual(toArgumentsArray(['load', 'WRITE_KEY', {}]));
 		expect(htevents?.[1]).toEqual(toArgumentsArray(['page']));
 	});

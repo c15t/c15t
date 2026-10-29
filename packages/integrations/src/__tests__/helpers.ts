@@ -23,7 +23,7 @@ export interface HelperScriptSnapshot {
 	/** Whether the script should load even before optional consent is granted. */
 	alwaysLoad?: boolean;
 	/** Whether the script stays loaded after consent for its category is revoked. */
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: Script['persistAfterConsentRevoked'];
 	/** Remote script URL emitted by the helper, when applicable. */
 	src?: string;
 	/** Vendor slug the helper gates the script on. */
@@ -43,7 +43,7 @@ export interface ExpectedScriptSnapshot {
 	/** Expected `alwaysLoad` flag from the generated helper script. */
 	alwaysLoad: boolean | undefined;
 	/** Expected consent-revocation persistence flag from the generated script. */
-	persistAfterConsentRevoked: boolean | undefined;
+	persistAfterConsentRevoked: Script['persistAfterConsentRevoked'];
 	/** Expected remote script URL from the generated helper script. */
 	src: string | undefined;
 }
@@ -165,6 +165,7 @@ const cleanupMockBrowser = function cleanupMockBrowser() {
 	delete globalRef.intercomSettings;
 	delete globalRef.databuddy;
 	delete globalRef.databuddyConfig;
+	delete globalRef.databuddyReplay;
 	delete globalRef.plausible;
 	delete globalRef.ttq;
 	delete globalRef.snaptr;
@@ -293,7 +294,7 @@ export const expectScriptMatchesIntegration =
  *
  * @param create - Calls the helper under test.
  * @param script - ID and category the skipped script should keep. Its
- * vendor slug is the ID.
+ * vendor slug defaults to the ID.
  * @param problem - Expected message, without the trailing
  * `. The script will not load.`
  *
@@ -308,7 +309,7 @@ export const expectScriptMatchesIntegration =
  */
 export const expectSkippedScript = function expectSkippedScript(
 	create: () => Script,
-	script: Pick<Script, 'category' | 'id'>,
+	script: Pick<Script, 'category' | 'id'> & Partial<Pick<Script, 'vendor'>>,
 	problem: string
 ): void {
 	const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -317,7 +318,7 @@ export const expectSkippedScript = function expectSkippedScript(
 		expect(create()).toEqual({
 			callbackOnly: true,
 			...script,
-			vendor: script.id,
+			vendor: script.vendor ?? script.id,
 			vendorDetails: expect.objectContaining({ name: expect.any(String) }),
 		});
 		expect(error).toHaveBeenCalledOnce();

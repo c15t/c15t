@@ -3,7 +3,7 @@
  *
  * Most sites load `dist/c15t.js` from a CDN and never import this module.
  * This ES module takes the transport as a factory, `manifest()`, `hosted()`
- * or `offline()`, so a bundler keeps only the mode the page uses. The
+ * or `local()`, so a bundler keeps only the mode the page uses. The
  * headless subset lives at `@c15t/browser/headless`.
  *
  * @example
@@ -71,7 +71,7 @@ export type {
 	BrowserManifestModeFactory,
 	ManifestModeOptions,
 } from './transports/manifest';
-export { offline } from './transports/offline';
+export { local, offline } from './transports/offline';
 export type { OfflineModeOptions } from './transports/offline';
 export type {
 	ConsentBannerOptions,

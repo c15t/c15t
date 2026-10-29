@@ -105,14 +105,14 @@ const storageMode = (mode: C15tStorageMode | undefined, origin: string) => {
 		case 'hosted':
 			return 'Use hosted mode with the backend URL from the setup inputs or earlier steps, exactly as given. If none was given, ask for it. Never construct or invent a backend URL or integration ID.';
 		case 'offline':
-			return 'Use offline mode. Choices stay in the browser and no backend is involved, so do not add a backend URL.';
+			return 'Use local mode, `local()`. It is for development and tests: choices stay in the browser and c15t keeps no server-side record of consent. Do not add a backend URL, and tell the user to switch to hosted mode before they deploy.';
 		case 'custom':
 			return `Use \`custom(transport)\` with the app's own transport. It must implement ${transport}; v2 endpoint handlers such as \`setConsent\` do not fit. If the code does not show how the transport reaches the app's backend, ask.`;
 		default:
 			return `Use the storage mode from the setup inputs or the app's current c15t configuration. If neither settles it, ask the user to choose:
 
 - hosted: a consent backend, such as an Inth project, records each choice. It needs a provisioned HTTP or HTTPS backend URL. Ask for it; never construct or invent a backend URL or integration ID.
-- offline: choices stay in the browser and no server keeps a record.
+- offline (\`local()\`): for development and tests only. Choices stay in the browser and c15t keeps no server-side record of consent.
 - custom: the app's own transport, implementing ${transport}.
 
 Never choose offline silently. It looks like a working setup but keeps no server record of consent.`;
@@ -253,13 +253,13 @@ Show the inventory as a short checklist and continue.${askTogether}
 
 ## ${install}. Install or upgrade c15t
 
-Install only the packages the framework's quickstart installs (\`${origin}/docs/frameworks/<framework>/quickstart.md\`), and skip \`@c15t/integrations\` when no vendor helper is used. The list differs by framework: Svelte and SvelteKit use \`@c15t/svelte\` and do not install \`c15t\`, and a plain HTML site that loads c15t with a script tag installs nothing. Resolve the exact version of \`c15t\` and each \`@c15t/*\` package from the \`${distTag}\` dist-tag first. Use the command for the project's package manager; \`npm view\` also works anywhere npm is installed:
+Install only the packages the framework's quickstart installs (\`${origin}/docs/frameworks/<framework>/quickstart.md\`), and skip \`@c15t/integrations\` when no vendor helper is used. Svelte and SvelteKit install \`c15t\` and import from \`c15t/svelte\`. A plain HTML site that loads c15t with a script tag installs nothing. Resolve the exact version of \`c15t\` and each \`@c15t/*\` package from the \`${distTag}\` dist-tag first. Use the command for the project's package manager; \`npm view\` also works anywhere npm is installed:
 
 ${versionLookup(distTag)}
 
 Install other packages the quickstart lists, such as \`svelte\` or \`@astrojs/svelte\`, with the quickstart's own specifiers; the c15t dist-tag does not apply to them. The c15t packages are numbered separately, so their versions can differ. Install each at its exact resolved version with the project's package manager. Never install by tag or without a version. An untagged install resolves npm's default tag, which can be a different major version. A tagged install can resolve to an older release per package when the package manager delays new releases (pnpm's \`minimumReleaseAge\`), and mixing releases installs two copies of the consent engine. After installing, check that exactly one version of \`@c15t/core\` is installed (\`pnpm why @c15t/core\`, \`npm ls @c15t/core\`, \`yarn why @c15t/core\`, \`bun why @c15t/core\`, or the lockfile). Two copies keep two separate consent states. Do not add overrides or resolutions to force it; install the versions the dist-tag resolves instead.
 
-After installing, read \`node_modules/c15t/SKILL.md\` and \`node_modules/c15t/AGENTS.md\` (for Svelte, the same files in \`node_modules/@c15t/svelte\`). They index the bundled docs for the installed version. Read the bundled choose-your-setup page and the full quickstart for this framework before writing code. If the bundled docs are missing, use \`${origin}/docs/concepts/choose-your-setup.md\` and \`${origin}/docs/frameworks/<framework>/quickstart.md\`. Check each API you use against the installed package's exports and types.
+After installing, read \`node_modules/c15t/SKILL.md\` and \`node_modules/c15t/AGENTS.md\`. They index the bundled docs for the installed version. Read the bundled choose-your-setup page and the full quickstart for this framework before writing code. If the bundled docs are missing, use \`${origin}/docs/concepts/choose-your-setup.md\` and \`${origin}/docs/frameworks/<framework>/quickstart.md\`. Check each API you use against the installed package's exports and types.
 
 ### Storage mode
 

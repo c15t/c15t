@@ -14,6 +14,7 @@ const policy = {
 	scopeMode: 'strict' as const,
 };
 const options: ConsentClientOptions = {
+	acknowledgeNoRecords: true,
 	consentCategories: ['measurement'],
 	policyRules: [policy],
 	prefetch: {

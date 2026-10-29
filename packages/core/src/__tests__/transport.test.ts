@@ -917,6 +917,68 @@ describe('hosted transport: save refusals', () => {
 		}
 	);
 
+	test('a permanent code at the top level of the body is also a refusal', async () => {
+		const transport = createHostedTransport({
+			backendURL: 'https://backend.test',
+			domain: 'example.com',
+			fetch: (() =>
+				Promise.resolve(
+					Response.json(
+						{ code: 'SUBJECT_CONFLICT', message: 'refused' },
+						{ status: 409 }
+					)
+				)) as unknown as typeof globalThis.fetch,
+		});
+		const error = await transport
+			.save(payload)
+			.catch((caught: unknown) => caught);
+		expect(isConsentSaveRejection(error)).toBe(true);
+		expect(error).toMatchObject({ code: 'SUBJECT_CONFLICT', status: 409 });
+	});
+
+	test.each([
+		[
+			{ code: 'CONSENTS_EXHAUSTED', message: 'Out of consents.' },
+			'CONSENTS_EXHAUSTED',
+			'Out of consents.',
+			': Out of consents. (CONSENTS_EXHAUSTED)',
+		],
+		[
+			{ cause: { code: 'BILLING' }, message: 'Pay first.' },
+			'BILLING',
+			'Pay first.',
+			': Pay first. (BILLING)',
+		],
+		['not json', 'PAYMENT_REQUIRED', undefined, ' Payment Required'],
+	])(
+		'a 402 is a refusal the kernel does not retry (%j)',
+		async (body, code, reason, said) => {
+			const transport = createHostedTransport({
+				backendURL: 'https://backend.test',
+				domain: 'example.com',
+				fetch: (() =>
+					Promise.resolve(
+						typeof body === 'string'
+							? new Response(body, {
+									status: 402,
+									statusText: 'Payment Required',
+								})
+							: Response.json(body, { status: 402 })
+					)) as unknown as typeof globalThis.fetch,
+			});
+			const error = await transport
+				.save(payload)
+				.catch((caught: unknown) => caught);
+			expect(isConsentSaveRejection(error)).toBe(true);
+			expect(error).toMatchObject({
+				code,
+				message: `c15t hosted transport: /subjects responded 402${said}`,
+				reason,
+				status: 402,
+			});
+		}
+	);
+
 	test.each([
 		[400, { code: 'INPUT_VALIDATION_FAILED' }],
 		[409, { code: 'SOMETHING_ELSE' }],
@@ -1297,6 +1359,88 @@ describe('createHostedTransport: request shape', () => {
 		expect((patchInit as RequestInit).method).toBe('PATCH');
 	});
 
+	test.each(['hosted', 'manifest'] as const)(
+		'the %s transport leaves the identity for the next save when an older backend does not know the subject',
+		async (kind) => {
+			const fetchFor = (status: number) =>
+				(() =>
+					Promise.resolve(
+						Response.json({ message: 'nope' }, { status })
+					)) as unknown as typeof globalThis.fetch;
+			const transportFor = (status: number) =>
+				kind === 'hosted'
+					? createHostedTransport({
+							backendURL: 'https://backend.test',
+							fetch: fetchFor(status),
+						})
+					: createManifestTransport({
+							backendURL: 'https://backend.test',
+							domain: 'example.com',
+							fetch: fetchFor(status),
+							snapshot: MANIFEST_FIXTURE,
+						});
+			const user = { externalId: 'user-42' };
+
+			await expect(
+				transportFor(404).identify?.(user, 'sub_unsaved')
+			).resolves.toBeUndefined();
+			await expect(
+				transportFor(500).identify?.(user, 'sub_unsaved')
+			).rejects.toThrow();
+			// The backend rejects an ID of another form, and so would the save.
+			await expect(
+				transportFor(404).identify?.(user, 'canonical id/1')
+			).rejects.toThrow();
+		}
+	);
+
+	test.each(['hosted', 'manifest'] as const)(
+		'after an older backend does not know the subject, the %s transport sends the identity with the next save',
+		async (kind) => {
+			const fetchSpy = vi.fn((_url: unknown, init?: RequestInit) =>
+				Promise.resolve(
+					init?.method === 'PATCH'
+						? Response.json({ message: 'nope' }, { status: 404 })
+						: Response.json({ ok: true, subjectId: 'sub_unsaved' })
+				)
+			);
+			const fetch = fetchSpy as unknown as typeof globalThis.fetch;
+			const transport =
+				kind === 'hosted'
+					? createHostedTransport({ backendURL: 'https://backend.test', fetch })
+					: createManifestTransport({
+							backendURL: 'https://backend.test',
+							domain: 'example.com',
+							fetch,
+							snapshot: MANIFEST_FIXTURE,
+						});
+			const kernel = createConsentKernel({
+				initialRecords: { subject: { subjectId: 'sub_unsaved' } },
+				transport,
+			});
+
+			await kernel.commands.identify({
+				externalId: 'user-42',
+				identityProvider: 'app',
+			});
+			expect(
+				fetchSpy.mock.calls.filter(([, init]) => init?.method === 'PATCH')
+			).toHaveLength(1);
+			await kernel.commands.save('all');
+
+			const saves = fetchSpy.mock.calls.filter(
+				([url, init]) =>
+					init?.method === 'POST' && withoutQuery(url).endsWith('/subjects')
+			);
+			expect(saves).toHaveLength(1);
+			expect(JSON.parse(saves[0]?.[1]?.body as string)).toMatchObject({
+				externalSubjectId: 'user-42',
+				identityProvider: 'app',
+				subjectId: 'sub_unsaved',
+			});
+		}
+	);
+
 	test('initURL overrides init without changing the save endpoint', async () => {
 		const fetchSpy = vi
 			.fn()
@@ -1665,6 +1809,47 @@ describe('createHostedTransport: request shape', () => {
 		await expect(
 			transport.init?.({ overrides: {}, user: null })
 		).rejects.toThrow(/\/init responded 500/u);
+	});
+
+	test('a 402 says what the backend said and is not retried', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(
+				Response.json(
+					{
+						code: 'CONSENT_SESSIONS_EXHAUSTED',
+						message: 'This project is out of consent sessions.',
+					},
+					{ status: 402 }
+				)
+			)
+		);
+		const kernel = createConsentKernel({
+			initialPolicyPending: true,
+			transport: createHostedTransport({
+				backendURL: 'https://backend.test',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			}),
+		});
+		const failures: { error: unknown; nextRetryMs: number | null }[] = [];
+		kernel.events.on('init:failed', ({ error, nextRetryMs }) => {
+			failures.push({ error, nextRetryMs });
+		});
+
+		await kernel.commands.init();
+
+		expect(failures).toHaveLength(1);
+		expect(failures[0]?.nextRetryMs).toBeNull();
+		expect(failures[0]?.error).toMatchObject({
+			code: 'CONSENT_SESSIONS_EXHAUSTED',
+			message:
+				'c15t hosted transport: /init responded 402: This project is out of consent sessions. (CONSENT_SESSIONS_EXHAUSTED)',
+			status: 402,
+		});
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('This project is out of consent sessions.')
+		);
+		kernel.dispose();
 	});
 });
 

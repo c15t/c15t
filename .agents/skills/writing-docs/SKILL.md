@@ -108,11 +108,12 @@ signals. Never infer a recorded grant from `useConsent()` or turn hydration into
 a visitor action. Do not claim a banner automatically blocks existing scripts.
 
 Lead installation with `c15t` and use its actual exports: `c15t/react`,
-`c15t/next`, `c15t/vue`, `c15t/tanstack-start`, `c15t/astro`, and `c15t` for the
-headless engine. The installed package name is `c15t`, not the import subpath.
+`c15t/next`, `c15t/vue`, `c15t/tanstack-start`, `c15t/astro`, `c15t/svelte`,
+and `c15t` for the headless engine. The installed package name is `c15t`, not
+the import subpath.
 Use separate packages only for adapters and add-ons absent from its export map.
-Svelte currently requires `@c15t/svelte`, and the HTML script tag uses
-`@c15t/browser`. Install commands use bare c15t package names, with no dist-tag;
+The HTML script tag uses `@c15t/browser`. Install commands use bare c15t
+package names, with no dist-tag;
 `scripts/docs-validation.test.ts` enforces it. Never invent an umbrella
 subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
@@ -196,8 +197,10 @@ the information architecture reference. Confirm
 the host's framework list includes every variant. Do not flatten frameworks
 into separate root groups to shorten the config.
 Keep integrations under one `integrations` navigation group. Its children are
-the service types: Embeds, Tag managers, Analytics, Chat and support, Email
-and SMS, and Ads and pixels. Vendor consent and clear on revocation are framework pages in each
+the kinds of tool, by what each does, not by consent category: Web analytics,
+Product analytics, Replay and monitoring, Experimentation and personalization,
+Ads and growth, Data and tags, and Chat and embeds. Keep the overview's tables in the same groups and order, with
+the consent category in each table's Category column. Vendor consent and clear on revocation are framework pages in each
 framework's Scripts and embeds group.
 Every exported vendor helper needs a discoverable guide. Preserve old vendor
 routes during rewrites and compare against the existing integration inventory.

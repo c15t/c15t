@@ -151,7 +151,10 @@ const renderVariants = async function renderVariants(
 			const astroOptions: Record<string, unknown> = {
 				colorScheme: variant.options?.colorScheme ?? 'light',
 				consentCategories: variant.options?.consentCategories,
-				mode: mode.offline({ policyRules: [storybook.storybookPolicy] }),
+				mode: mode.offline({
+					acknowledgeNoRecords: true,
+					policyRules: [storybook.storybookPolicy],
+				}),
 				presentation: {
 					...storybook.storybookPresentation,
 					prompt: {
@@ -168,6 +171,7 @@ const renderVariants = async function renderVariants(
 				astroOptions.iab = { cmpId: 160, gvl: mockGVL };
 				astroOptions.consentCategories = ['necessary', 'marketing'];
 				astroOptions.mode = mode.offline({
+					acknowledgeNoRecords: true,
 					policyRules: [storybook.storybookIABPolicy],
 				});
 			}

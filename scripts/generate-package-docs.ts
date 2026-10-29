@@ -145,8 +145,9 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/svelte',
 		outDir: 'packages/svelte',
 		skill: {
-			install: '`npm install @c15t/svelte`',
+			install: '`npm install c15t` and import `c15t/svelte`',
 			topic: 'the project is a Svelte or SvelteKit app',
+			umbrella: true,
 		},
 		summary:
 			'Svelte and SvelteKit v3 providers, request loading and static hosting with Inth.',
@@ -206,17 +207,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		},
 		summary:
 			'c15t v3 framework integration and consent management. Install c15t and use its framework subpaths; adapters and add-ons absent from its exports use separate packages.',
-	},
-	{
-		include: ['concepts/**/*.mdx', 'guides/**/*.mdx', 'self-host/**/*.mdx'],
-		name: '@c15t/backend',
-		outDir: 'packages/backend',
-		skill: {
-			install: '`npm install @c15t/backend`',
-			topic: 'the project runs its own c15t consent backend',
-		},
-		summary:
-			'Self-hosted v3 backend configuration, SQL storage, migrations and HTTP contracts.',
 	},
 	{
 		include: [
@@ -281,24 +271,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		},
 		summary:
 			'c15t for plain HTML sites from one script tag, and for bundled JavaScript apps with the stock UI: data attributes, the window.c15t API, customization, script and iframe gating, IAB and integrations.',
-	},
-	{
-		include: [
-			'frameworks/*/upgrade-v3.mdx',
-			'self-host/upgrade-v3.mdx',
-			'concepts/**/*.mdx',
-			'guides/**/*.mdx',
-			'cli/**/*.mdx',
-		],
-		name: '@c15t/cli',
-		outDir: 'packages/cli',
-		skill: {
-			install: '`npx @c15t/cli`',
-			topic:
-				'the task is scaffolding c15t, running codemods or migrating a self-hosted backend',
-		},
-		summary:
-			'c15t v3 setup, codemods, project commands and self-hosted migrations.',
 	},
 ];
 

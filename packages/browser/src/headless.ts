@@ -45,7 +45,13 @@ export const init = function init(
 	return client;
 };
 
-export { custom } from '@c15t/core';
+export {
+	custom,
+	resolveActionLabels,
+	resolveConsentPresentation,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from '@c15t/core';
 export { ACTION_ATTRIBUTE, PREFERENCES_HASH } from './client';
 export type { PageAction } from './client';
 export { resolveRules } from './policy-rules';
@@ -67,7 +73,7 @@ export type {
 	BrowserManifestModeFactory,
 	ManifestModeOptions,
 } from './transports/manifest';
-export { offline } from './transports/offline';
+export { local, offline } from './transports/offline';
 export type { OfflineModeOptions } from './transports/offline';
 export type {
 	ConsentClient,
@@ -83,6 +89,10 @@ export { version } from './version';
 export type {
 	ConsentSnapshot,
 	ConsentState,
+	PreferenceControl,
+	PresentationAction,
+	PromptCopy,
+	ResolvedConsentPresentation,
 	ResolvedVendor,
 	Vendor,
 	VendorChoice,

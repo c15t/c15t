@@ -33,7 +33,10 @@ const experiment: ConsentExperiment = {
 const createTransport = function createTransport(): Required<
 	Pick<KernelTransport, 'init' | 'save'>
 > {
-	const offline = createOfflineTransport({ policyRules });
+	const offline = createOfflineTransport({
+		acknowledgeNoRecords: true,
+		policyRules,
+	});
 	return {
 		init: vi.fn((context) => offline.init(context)),
 		save: vi.fn().mockResolvedValue({ ok: true }),

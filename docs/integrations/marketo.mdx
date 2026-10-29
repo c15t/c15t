@@ -1,0 +1,72 @@
+---
+title: Marketo Munchkin
+description: Load Adobe Marketo Munchkin after marketing consent, configure its account and cookie options, and verify tracking and revocation with c15t.
+seoTitle: Marketo Munchkin cookie consent with c15t
+seoDescription: Wait for marketing consent before loading Marketo Munchkin. Set your account ID, configure cookies and check revocation with c15t.
+icon: chart-line
+group: integrations
+---
+
+Munchkin is Adobe Marketo's script for tracking known and anonymous leads on
+your site. The c15t `marketoMunchkin` helper waits for `marketing` consent
+before it requests Munchkin or initializes tracking. Until then, it creates no
+Munchkin global, cookie or browser storage.
+
+Munchkin has no API to stop tracking. When the visitor withdraws, c15t removes
+the loader and reloads the page, and the reload ends tracking.
+
+## Configure Marketo Munchkin
+
+Copy your Munchkin account ID from Marketo's installation snippet. Then remove
+the Munchkin tag from your site, so that c15t controls when it loads.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/marketo-configuration.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `munchkinId` | Required | Public account ID. Whitespace is trimmed. If it's missing or blank, c15t logs an error and never loads Munchkin. |
+| `initOptions` | `{}` | Passed to `Munchkin.init`, for example `cookieAnon`, `anonymizeIP`, `apiOnly` and `cookieLifeDays`. |
+| `category` | `marketing` | Consent condition that gates the whole loader. |
+| `scriptUrl` | `https://munchkin.marketo.net/munchkin.js` | Custom or proxied loader URL. Blank values use the default. Other Munchkin requests need their own proxy configuration. |
+
+`cookieAnon: false` stops Munchkin from creating cookies for new anonymous
+visitors and tracking them. It is not a consent switch. Visitors who already
+have a tracking cookie are still tracked.
+
+## Loading and revocation
+
+After consent, c15t downloads the SDK and calls `Munchkin.init` once with the
+account ID and `initOptions`. If the visitor withdraws while the SDK
+downloads, the helper skips initialization. Changes to other categories don't
+initialize Munchkin again.
+
+Keep `reloadOnConsentRevoked` enabled. Removing the loader doesn't stop the
+running SDK or its listeners. The next page doesn't load Munchkin while its
+consent is denied.
+
+## Cookies and storage
+
+Munchkin can set `_mkto_trk` for two years by default. The reload doesn't
+remove it. Marketo's separate `marketo_opt_out=true` URL flow sets
+`mkto_opt_out` and turns tracking off. The helper doesn't set that opt-out,
+because it would also block tracking after a later consent grant.
+
+## Verify Marketo Munchkin
+
+Filter the Network panel by `munchkin.marketo.net`. Before consent, check that
+there is no loader request, no `window.Munchkin`, no `_mkto_trk` cookie and no
+vendor browser storage. Allow the category set in `category`, which defaults
+to `marketing`, and check that the SDK loads and initializes. Reject that
+category again and check that the reloaded page makes no Munchkin request. For
+example, with `category: 'experience'`, allow and reject `experience`.
+
+Sources: Adobe's [async installation snippet](https://experienceleague.adobe.com/en/docs/marketo-developer/marketo/javascriptapi/leadtracking/lead-tracking)
+and [configuration reference](https://experienceleague.adobe.com/en/docs/marketo-developer/marketo/javascriptapi/leadtracking/configuration).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

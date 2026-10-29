@@ -97,3 +97,12 @@ links land on the framework list. Do not mention React Native, Expo or
 | `/docs/frameworks/sveltekit/components/consent-manager-provider` | `/docs/frameworks/sveltekit/components/consent-root` | SvelteKit layouts render `ConsentRoot`, which wraps `ConsentProvider` |
 | `/docs/frameworks/sveltekit/rendering#serve-the-manifest-route` | `/docs/frameworks/sveltekit/rendering#fetch-the-manifest-at-runtime` | Runtime fetching is a `c15tHandle` mode; the route moved to `#serve-the-consent-route`. Anchor links cannot redirect server-side |
 | `/docs/upgrade-v3` | `/docs/self-host/upgrade-v3` | Split up. Client steps live in the Next.js, React and JavaScript upgrade guides, which the self-host guide links to; the backend and Node.js SDK steps moved to the self-host guide. Keep the target free of a fragment so browsers carry over the old `#upgrade-a-self-hosted-backend` and `#update-the-nodejs-sdk` anchors, which published v3 alpha changelogs link to |
+| `/docs/cli/automation` | `/docs/cli/overview` | Hosted setup moved to the Inth CLI. JSON output and non-interactive runs are covered in the overview |
+| `/docs/cli/global-flags` | `/docs/cli/commands/setup#options` | Hosted setup moved to the Inth CLI; its options live on the `inth c15t` page |
+| `/docs/cli/commands/hosted` | `/docs/cli/commands/setup` | Hosted setup moved to the Inth CLI as `inth c15t` |
+| `/docs/cli/commands/boilerplate` | `/docs/cli/commands/setup#what-scaffold-writes` | Quickstart files are written by `inth c15t scaffold` |
+| `/docs/integrations/other-analytics` | `/docs/integrations/overview#analytics` | Split back into vendor guides: `lucky-orange`, `pendo`, `rb2b` and `statable-analytics` |
+| `/docs/integrations/other-experience` | `/docs/integrations/overview#experimentation-and-personalization` | Split back into vendor guides: `adobe-target`, `appcues`, `dynamic-yield`, `optimizely` and `wisepops` |
+| `/docs/integrations/other-chat-and-support` | `/docs/integrations/overview#chat-and-support` | Split back into vendor guides: `ada`, `gorgias` and `zendesk` |
+| `/docs/integrations/other-email-and-sms` | `/docs/integrations/overview#email-and-sms` | Split back into vendor guides: `attentive`, `customer-io`, `insider`, `marketo` and `salesforce-pardot` |
+| `/docs/integrations/other-ads-and-pixels` | `/docs/integrations/overview#ads-and-pixels` | Split back into vendor guides: `adroll`, `liveintent`, `the-trade-desk` and `vector` |

@@ -20,8 +20,8 @@ import type { ConsentRootProps } from '../root';
 import type { ConsentState } from '../types';
 import { policyFixture } from './policy-fixture';
 
-/** These tests are not about the backend; an explicit offline() needs none. */
-const OFFLINE_CONFIG = { mode: offline() };
+/** These tests are not about the backend; an explicit offline({ acknowledgeNoRecords: true }) needs none. */
+const OFFLINE_CONFIG = { mode: offline({ acknowledgeNoRecords: true }) };
 
 const loads = vi.hoisted(() => ({ created: 0, evaluated: 0 }));
 

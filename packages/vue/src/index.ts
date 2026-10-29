@@ -14,6 +14,16 @@ import type { RuntimeConsentConfig } from './runtime/kernel';
 import { mountTokensStyle } from './runtime/theme-tokens';
 
 export type { AllConsentNames, ClearOnRevocationConfig } from '@c15t/core';
+export {
+	resolveActionLabels,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from '@c15t/core';
+export type {
+	PreferenceControl,
+	PresentationAction,
+	PromptCopy,
+} from '@c15t/core';
 export type * from '@c15t/schema/config';
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 export * from './runtime/components/index';
@@ -29,6 +39,7 @@ export type {
 export {
 	custom,
 	hosted,
+	local,
 	manifest,
 	offline,
 	type BrowserManifestModeFactory,
@@ -61,7 +72,7 @@ export type C15tVuePluginOptions = C15tVuePluginConfig &
 		| {
 				/**
 				 * Where the visitor's policy comes from: `manifest()`, `hosted()`,
-				 * `offline()` or `custom()` from `c15t/vue/vue-plugin`.
+				 * `local()` or `custom()` from `c15t/vue/vue-plugin`.
 				 *
 				 * @example
 				 * ```ts

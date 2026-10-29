@@ -14,16 +14,18 @@ group: reference
   and none of the connection options below it. The script-tag builds and the
   `@c15t/browser/hosted` and `@c15t/browser/offline` entries take the rest of
   the table: `c15t.js` and `@c15t/browser/hosted` accept hosted mode only and
-  require a backend URL or hosted factory, and `c15t.offline.js` and
-  `@c15t/browser/offline` accept offline mode only.
+  require a backend URL or hosted factory, and `c15t.local.js` and
+  `@c15t/browser/offline` accept local mode only. The script-tag name for
+  local mode is `'offline'`.
 
   | Option | Type | Default | What it does |
   | --- | --- | --- | --- |
-  | `mode` | A transport factory. Script-tag builds also take `'hosted'`, `'offline'` or `'manifest'`. | Required in the ES modules. Script-tag builds pick it from the other options. | A factory from `manifest()`, `hosted()`, `offline()` or `custom()` is used as is; see [consent modes](/docs/concepts/modes). In the script-tag builds, `manifest` when `manifest` or `manifestURL` is set, `hosted` when `backendURL` is set, otherwise `offline`. Hosted mode without `backendURL` throws. |
+  | `mode` | A transport factory. Script-tag builds also take `'hosted'`, `'offline'` or `'manifest'`. | Required in the ES modules. Script-tag builds pick it from the other options. | A factory from `manifest()`, `hosted()`, `local()` or `custom()` is used as is; see [consent modes](/docs/concepts/modes). In the script-tag builds, `manifest` when `manifest` or `manifestURL` is set, `hosted` when `backendURL` is set, otherwise `offline`. Hosted mode without `backendURL` throws. |
   | `backendURL` | `string` | none | Script-tag builds, `/hosted` and `/offline` entries. Your Inth or self-hosted backend URL, for hosted and manifest modes. In the ES modules, pass it to the factory, such as `hosted({ backendURL })`. |
   | `manifest` | `ConsentManifest` | none | Script-tag builds. The backend's policy manifest, inlined in the page, for manifest mode. In the ES modules, `manifest({ snapshot })`. |
   | `manifestURL` | `string` | none | Script-tag builds. Where manifest mode fetches the manifest. A URL that ends in `/manifest` also gives the backend URL; any other URL needs `backendURL` too. In the ES modules, `manifest({ manifestURL })`. |
-  | `policyRules` | array of policy rules or preset names | recommended rules | Script-tag builds and the `/hosted` and `/offline` entries. Offline mode only. A preset name such as `'europeOptIn'` stands for that preset in `policyRulePresets`. An unknown name throws. In the ES modules, `offline({ policyRules })` with rule objects. |
+  | `policyRules` | array of policy rules or preset names | recommended rules | Script-tag builds and the `/hosted` and `/offline` entries. Local mode only. A preset name such as `'europeOptIn'` stands for that preset in `policyRulePresets`. An unknown name throws. In the ES modules, `local({ policyRules })` with rule objects. |
+  | `acknowledgeNoRecords` | `boolean` | `false` | Script-tag builds and the `/offline` entry. Local mode only. `true` hides the warning that c15t keeps no server-side record of consent, which the script-tag builds log once per page on development hosts such as `localhost`. The `data-acknowledge-no-records` attribute sets it. In the ES modules, `local({ acknowledgeNoRecords: true })`. See [the development warning](/docs/concepts/modes#the-development-warning). |
   | `overrides` | `{ country?, region?, language?, gpc? }` | none | The visitor's location, language or GPC signal, when the page knows it. Policy matching uses these instead of detection. |
   | `prefetch` | kernel configuration | none | A server-resolved init answer. When it carries a resolved policy, the client renders from it and does not call `/init`. |
   | `enabled` | `boolean` | `true` | `false` grants every category, shows no UI and loads every configured script at once. |

@@ -60,7 +60,7 @@ option replaces the earlier value.
 
 With `data-manual` on the tag, the bundle installs `window.c15t` and waits.
 `c15t.js` still requires a backend URL or hosted factory when `init()` runs.
-Use `c15t.offline.js` for browser-only policy resolution. Manifest and custom
+Use `c15t.local.js` for browser-only policy resolution. Manifest and custom
 modes need the `@c15t/browser` ES module, a headless script with your own UI,
 or the IAB script for an IAB policy.
 
@@ -141,7 +141,7 @@ the choice stays in effect, and c15t retries the request later.
 | `showBanner()` | Shows the banner. Records nothing. |
 | `openDialog()` | Opens the preference dialog. Records nothing. |
 | `closeDialog()` | Closes the dialog, or the banner when no dialog is open. Closing the dialog brings the banner back while the policy still owes a choice. Records nothing. |
-| `setLanguage(code)` | Switches language and re-renders with that language's copy, from the backend or, in offline mode, from the bundled copy and `i18n.messages`. See [translations](/docs/frameworks/html/translations). |
+| `setLanguage(code)` | Switches language and re-renders with that language's copy, from the backend or, in local mode, from the bundled copy and `i18n.messages`. See [translations](/docs/frameworks/html/translations). |
 | `mountUI(options?)` | Removes the stock UI and mounts it again, with new UI options or the configured ones. Throws in `c15t.headless.js`. |
 
 In `c15t.headless.js`, `showBanner`, `openDialog` and `closeDialog` still
@@ -164,12 +164,13 @@ can follow them.
 | Property | What it holds |
 | --- | --- |
 | `version` | The `@c15t/browser` version. |
-| `pkg` | `@c15t/browser`, `@c15t/browser/offline`, `@c15t/browser/headless` or `@c15t/browser/iab`, by bundle. |
-| `mode` | `hosted`, `offline`, `manifest` or `custom` once started, else `null`. A transport factory passed as `mode` reports `custom`, except `hosted()` and `offline()`. |
-| `hosting` | `'inth'` or `'self-hosted'` once `/init` reports who runs the backend, else `null`. Stays `null` in `offline` mode and with backends older than the field. |
+| `pkg` | `@c15t/browser`, `@c15t/browser/offline`, `@c15t/browser/headless` or `@c15t/browser/iab`, by bundle. `c15t.local.js` reports `@c15t/browser/offline`. |
+| `mode` | `hosted`, `offline`, `manifest` or `custom` once started, else `null`. Local mode reports `offline`. A transport factory passed as `mode` reports `custom`, except `hosted()` and `local()`. |
+| `hosting` | `'inth'` or `'self-hosted'` once `/init` reports who runs the backend, else `null`. Stays `null` in local mode and with backends older than the field. |
 | `client` | The started client, or `null`. It has the same methods plus `kernel`, `runtime`, `options`, `consentCategories`, `ui` and `setOverrides()`. |
 | `devtools` | The DevTools panel once `c15t.devtools.js` mounted it, else `null`. |
-| `hosted`, `offline`, `manifest`, `custom` | Transport factories. `c15t.js` exports only `hosted`; `c15t.offline.js` exports only `offline`. Headless and IAB export all four, for calls such as `c15t.init({ mode: c15t.manifest({ … }) })` with `data-manual`. |
+| `hosted`, `local`, `manifest`, `custom` | Transport factories. `c15t.js` exports only `hosted`; `c15t.local.js` exports only `local`. Headless and IAB export all four, for calls such as `c15t.init({ mode: c15t.manifest({ … }) })` with `data-manual`. `c15t.local({ acknowledgeNoRecords: true })` hides the [development warning](/docs/concepts/modes#the-development-warning). |
+| `offline` | Deprecated. The old name for `local`, next to it in the same bundles. c15t v4 removes it. |
 
 `c15t.js` reports `pkg: '@c15t/browser'` and `mode: 'hosted'` once started.
 

@@ -25,7 +25,7 @@ const c15tStyles = () =>
 	].map((element) => element.dataset.href);
 
 const fixture = (options: Partial<ComponentFixtureOptions> = {}) => ({
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	...options,
 });
 

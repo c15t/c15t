@@ -51,7 +51,7 @@ test.each([
 		<ConsentProvider
 			options={{
 				consentCategories: ['necessary', 'measurement', 'marketing'],
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(
 					{ marketing: true },

@@ -1,0 +1,126 @@
+---
+title: RB2B
+description: Load RB2B only after marketing consent with the c15t rb2b helper, and check its loader URL, page views and revocation.
+seoTitle: RB2B consent with c15t
+seoDescription: Load RB2B visitor identification only after marketing consent with c15t, with domain setup, loader URL rules and page-view guidance.
+icon: radar
+group: integrations
+---
+
+RB2B identifies the companies and US visitors behind your site traffic for
+sales outreach. The c15t `rb2b` helper keeps RB2B off the page until
+`marketing` consent is granted. RB2B has no documented stop API, so on
+withdrawal c15t reloads the page to stop it.
+
+## Configure RB2B
+
+Authorize your domain first. Open [Script in RB2B](https://app.rb2b.com/script),
+choose **Add a Domain**, enter the site's domain and save it. RB2B's script
+doesn't run on domains you haven't added. A root domain includes its
+subdomains; an individual hostname authorizes only that hostname.
+
+Copy the account key from Script Setup, where the snippet calls `reb2b.load`.
+This helper uses marketing consent even though some RB2B guidance calls its
+cookies functional. Remove the direct snippet and any tag manager copy so they
+can't bypass c15t.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/rb2b-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `accountKey` | Required | Public account key, trimmed and URL-encoded. Invalid or blank values log an error and skip loading. |
+| `scriptUrl` | `https://ddwl4m2hdecbv.cloudfront.net/b/<key>/<key>.js.gz` | Override for the URL in your dashboard snippet. Blank values use the default. Unsupported URLs log an error and skip loading. |
+
+Supported HTTPS prefixes are `ddwl4m2hdecbv.cloudfront.net/b/`,
+`s3-us-west-2.amazonaws.com/b2bjsstore/b/` and
+`b2bjsstore.s3.us-west-2.amazonaws.com/b/`. The account segment in the URL
+pathname must appear immediately after the supported base path and match the
+`accountKey` exactly after percent-decoding once. Account keys are
+case-sensitive; percent-escape hex digits can use either case. The pathname
+must end with a nonempty filename after the account separator. Custom
+filenames, including extensionless names, are allowed, as are query strings
+and fragments. A query or fragment cannot supply the filename. An unchanged
+SDK served from an arbitrary proxy fails RB2B's check of
+`document.currentScript.src`.
+
+## Loading and revocation
+
+After consent, the helper loads the account script asynchronously. It defines
+no `reb2b` global or queue before that script runs. The account script creates
+`window.reb2b` itself and ignores calls queued before it runs, so don't add
+your own `reb2b` stub to send `identify` or `collect` calls early. The helper
+sends no identification calls and sets no `rb2bConfig`.
+
+RB2B can delay startup by three seconds. It sends once per script execution.
+
+The loader stays registered across withdrawal and regrant to avoid duplicate
+execution. RB2B has no documented stop or opt-out API. Keep c15t's default page
+reload on revocation enabled. With reload disabled, existing timers, identity
+lookups and tracking can continue until navigation, including an in-flight
+load. The reload doesn't clear RB2B's storage.
+
+CSP depends on account configuration. Observed hosts include the account's
+CloudFront or S3 loader, `b-code.liadm.com`, `pro.ip-api.com`,
+`a.usbrowserspeed.com`, `alocdn.com` and account-specific
+`*.execute-api.us-west-2.amazonaws.com` endpoints.
+
+## Page views in client-routed apps
+
+[RB2B's installation guide](https://support.rb2b.com/en/articles/10126115-installing-your-rb2b-tracking-script)
+asks modern apps to run its script on every page view. This helper runs once
+per page load and does not rerun on client-side route changes.
+
+To count a new page view, use full-page navigation, such as a plain
+`<a href="/pricing">`. In Next.js, use the native anchor instead of
+`next/link` for these links. In Vue or Nuxt, use a native anchor instead of a
+router link. For a button or other imperative navigation, call
+`window.location.assign('/pricing')` from its click handler.
+
+Register c15t and the same `rb2b` configuration on every destination. Keep the
+framework quickstart's consent persistence. On each new page, c15t checks
+marketing permission and any vendor choice before it loads the SDK. Visitors
+who deny permission can still navigate; RB2B stays blocked on their
+destination pages.
+
+Full-page navigation resets page-local application state. Hash-only changes
+and back/forward cache restores don't load a new page, so they don't produce
+a new RB2B page view. If you keep client-side navigation, this helper covers
+only the initial page load. Don't change `accountKey` or `scriptUrl`, delete
+`window.reb2b`, or call `reb2b.collect()` in a route hook to force another page
+view. The observed SDK freezes its client and keeps per-execution state; safe
+teardown and reinitialization have not been verified.
+
+## Cookies and storage
+
+RB2B documents `_reb2bgeo`, `_reb2bloaded`, `_reb2bref`, `_reb2sessionID`,
+`_reb2buid`, `_reb2bfxf`, `_reb2btd`, `_reb2bli`, `_reb2bresolve` and `_reb2butk`.
+Served scripts can differ, including `_reb2bsessionID`, `_reb2bsha`, `_reb2bec`
+and `_reb2beid`. Some builds mirror `_reb2buid`, `_reb2bref`, `_reb2bec`,
+`_reb2butk` and `_reb2beid` in local storage. Check the current account script
+rather than treating this list as exhaustive.
+
+## Verify RB2B
+
+In a fresh browser profile, deny consent and allow only an unrelated category.
+Confirm that no vendor requests, `reb2b` global, cookies, local storage or
+session storage appear. Grant `marketing` and check the loader URL against
+your account snippet. Withdraw consent and confirm the page reloads. RB2B must
+stay blocked on the new page. Inspect storage in DevTools as well as Network.
+
+The scheduled monitor uses a fake account key and checks consent gating and
+loader reachability only. An access-denied response can pass that check. It
+does not verify SDK execution, domain authorization or visitor identification.
+Collection remains blocked in the monitor.
+
+Sources: [RB2B TypeScript installation](https://support.rb2b.com/en/articles/9503690-rb2b-install-guide-for-typescript),
+[cookie information](https://support.rb2b.com/en/articles/9910029-rb2b-cookie-information),
+[consent guidance](https://support.rb2b.com/en/articles/9611828-considerations-when-controlling-rb2b-s-functionality-with-your-cookie-policy-banner),
+and [Next.js installation](https://support.rb2b.com/en/articles/9116902-rb2b-install-guide-for-next-js).
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

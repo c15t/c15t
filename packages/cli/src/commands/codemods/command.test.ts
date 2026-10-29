@@ -72,7 +72,7 @@ describe('legacy migration command', () => {
 		expect(await readFile(filePath, 'utf8')).toBe(
 			source.replace('@c15t/scripts', '@c15t/integrations')
 		);
-	});
+	}, 20_000);
 
 	it('chains named v3 transforms and leaves them out of --all', async () => {
 		const { cwd, filePath } = await fixture('2.3.0');

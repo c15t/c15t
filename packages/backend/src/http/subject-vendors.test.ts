@@ -189,7 +189,7 @@ for (const engine of ENGINES) {
 				...base,
 				givenAt: T0,
 				vendorChoice: {
-					confirmedAt: Date.now() + 60_000,
+					confirmedAt: Date.now() + 11 * 60_000,
 					grants: { 'google-analytics': true, 'meta-pixel': false },
 					version: 1,
 				},

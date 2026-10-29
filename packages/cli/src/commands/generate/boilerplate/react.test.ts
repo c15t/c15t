@@ -63,22 +63,22 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 		);
 	});
 
-	it('offline React keeps offline() and skips the build fetch and early /init', () => {
+	it('offline React uses local() and skips the build fetch and early /init', () => {
 		const template = generated('react', 'offline', []);
 		const consent = template.files['src/consent.tsx'];
-		expect(consent).toContain("\toffline,\n} from 'c15t/react';");
-		expect(consent).toContain('mode: offline(),');
+		expect(consent).toContain("\tlocal,\n} from 'c15t/react';");
+		expect(consent).toContain('mode: local(),');
 		expect(template.files['vite.config.ts']).toContain(
 			"plugins: [react(), consentManifest({ initPrefetch: false, onBuildError: 'runtime' })],"
 		);
 		expect(template.files['.env']).toBeUndefined();
 	});
 
-	it('offline JavaScript uses the browser offline() with its recommended policy', () => {
+	it('offline JavaScript uses the browser local() with its recommended policy', () => {
 		const template = generated('javascript', 'offline', []);
 		const main = template.files['src/main.ts'];
-		expect(main).toContain("import { init, offline } from '@c15t/browser';");
-		expect(main).toMatch(/mode: offline\(\),/u);
+		expect(main).toContain("import { init, local } from '@c15t/browser';");
+		expect(main).toMatch(/mode: local\(\),/u);
 		expect(template.files['.env']).toBeUndefined();
 		expect(template.files['vite.config.ts']).toContain(
 			"consentManifest({ initPrefetch: false, onBuildError: 'runtime' })"

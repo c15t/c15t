@@ -27,8 +27,8 @@ the CMP ID, the vendor list and publisher restrictions.
 - Reject All and Accept All, plus a Customize button that opens the IAB
   preference center.
 
-The banner sits in the bottom-left corner, or bottom-right for right-to-left
-languages. It does not read the `presentation.prompt` variant or position.
+The banner stays in the same place in every language. It does not read the
+`presentation.prompt` variant or position.
 
 The summary comes from the same model the React, Svelte and Vue IAB banners
 read, so every framework names the same purposes.
@@ -40,7 +40,7 @@ of its copy counts from the list.
 
 - With server output, `manifest()` and `hosted()` get the vendor list through
   `/init`, and the banner is part of the first HTML.
-- In `offline()` mode, set `iab.gvl` or `iab.gvlURL`, or the server has no
+- In `local()` mode, set `iab.gvl` or `iab.gvlURL`, or the server has no
   list to render from.
 - On a prerendered page, or while the list has not arrived, the server renders
   a hidden placeholder. The browser renders the banner into it once it has

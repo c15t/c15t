@@ -547,6 +547,7 @@
 		<ConsentProvider
 			options={{
 				mode: offline({
+					acknowledgeNoRecords: true,
 					policyRules: [
 						{
 							id: 'demo-theme',

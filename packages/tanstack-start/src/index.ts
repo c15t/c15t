@@ -46,7 +46,7 @@
  * `createConsentRoute({ proxy: true })`, also pass `proxy: true` there;
  * init and saves then both go through the route.
  *
- * `manifest()`, `hosted()` and `offline()` here are plain data for
+ * `manifest()`, `hosted()` and `local()` here are plain data for
  * `createConsentStateHandler({ mode })`. `ConsentRoot` loads the code for a
  * mode only when the browser runs it.
  *
@@ -68,7 +68,7 @@ export type {
 } from '@c15t/core/modes';
 // These data factories replace the transport implementations of the same
 // names that the re-export of `@c15t/react` below would otherwise provide.
-export { hosted, manifest, offline } from '@c15t/core/modes';
+export { hosted, local, manifest, offline } from '@c15t/core/modes';
 // oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from '@c15t/react';
 export { consentPrefetchHead } from './libs/prefetch-head';

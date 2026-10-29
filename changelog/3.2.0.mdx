@@ -1,0 +1,297 @@
+---
+title: "v3.2.0 - Fast script loading, shadcn registry and new integrations"
+version: "3.2.0"
+date: 2026-10-28
+description: "Start allowed scripts before hydration, add shadcn consent UI and 18 languages, and connect more analytics, marketing and support tools."
+group: changelog
+tags:
+  - release
+  - stable
+  - performance
+  - react
+  - nextjs
+  - tanstack-start
+  - vue
+  - svelte
+  - astro
+  - browser
+  - headless
+  - translations
+  - integrations
+  - backend
+  - iab
+  - cli
+type: release
+breaking: false
+draft: true
+authors: [KayleeWilliams]
+---
+
+In c15t 3.2, consent no longer makes your scripts late. Scripts that a visitor
+already allowed now start before the page hydrates. This release also adds a
+shadcn registry, 18 languages, and integrations for HubSpot, FullStory, Amazon
+Ads, and more.
+
+## Fast script loading
+
+When a visitor already gave consent, c15t starts their allowed scripts from
+the server HTML, before the page hydrates. This works in Next.js, TanStack
+Start, Nuxt, and SvelteKit. See
+[Loading scripts from the server](https://inth.com/blog/loading-scripts-from-the-server)
+for the benchmarks and implementation details.
+
+Vendor helpers in `@c15t/integrations` that support early starts run before
+hydration. Other helpers load after hydration. Nothing starts early while the
+policy asks the visitor to choose, or when the page comes from prerendered or
+cached HTML. To turn the early start off, set `scriptLoader: { serverStart:
+false }`. See [Start allowed scripts before
+hydration](/docs/frameworks/next/rendering#start-allowed-scripts-before-hydration).
+
+Browser manifest mode also does less work. With `manifest({ resolve: 'browser'
+})`, c15t skips the `/manifest` request when the server state already holds the
+visitor's policy. It also skips the policy resolver, which is about 20 KB
+gzipped.
+
+## shadcn registry
+
+Your consent banner can now use the same components as the rest of your app. Add
+it with the shadcn CLI:
+
+```bash
+npx shadcn add @c15t/next-consent-manager
+```
+
+Each item renders your project's own shadcn components, and the markup is yours
+to change. c15t keeps the consent logic, so you still get its fixes when you
+update `c15t`.
+
+Follow the [Next.js shadcn guide](/docs/frameworks/next/shadcn) to connect
+your Inth project and add the components to your app.
+
+| Item | What it gives you |
+| --- | --- |
+| `consent-manager` | The provider setup for your framework |
+| `consent-banner` | The banner, also as a consent wall that blocks the page |
+| `consent-dialog`, `consent-sheet` | The preference center in a dialog or a sheet |
+| `consent-preferences` | The category and vendor switches |
+| `consent-dialog-trigger` | A button that floats on the page and opens the preference center again |
+| `consent-widget` | The preference center inline on a page |
+| `consent-gate` | A gate that holds an embed until the visitor allows its category |
+| `consent-branding` | The "Secured by" link and the trigger mark |
+
+Each item has a `next-`, `react-`, and `tanstack-start-` version. The registry
+has a build for all 27 shadcn styles, so Radix, Base UI, and React Aria projects
+all work. It has no IAB TCF items yet. Under an IAB policy, the TCF banner from
+`<IABProvider>` shows instead of the shadcn banner.
+
+### Build your own banner
+
+The registry items use public headless hooks, so a banner in any design system
+can use them too. `useBannerCopy()` and `useConsentLabels()` return the same
+copy and button labels as the stock banner, in the active language.
+`useConsentGate()`, `useScrollLock()`, `useConsentTextDirection()`, and
+`StreamedConsentSurface` cover the rest of what the stock UI does. See [headless
+UI](/docs/frameworks/next/headless).
+
+Vue, Svelte, and the script tag get the same copy as plain functions:
+`resolvePromptCopy`, `resolveActionLabels`, and
+`resolvePreferenceControlLabels`.
+
+## 18 new languages
+
+More of your visitors can now read the banner in their own language. c15t ships
+consent copy in 53 languages, up from 35 in 3.1.
+
+- Arabic (`ar`), Urdu (`ur`), and Yiddish (`yi`), which read right to left
+- Bangla (`bn`), Haitian Creole (`ht`), Korean (`ko`), and Russian (`ru`)
+- Japanese (`ja`), Thai (`th`), Malay (`ms`), Vietnamese (`vi`), and Turkish
+  (`tr`)
+- Tamil (`ta`), Telugu (`te`), Marathi (`mr`), Kannada (`kn`), Malayalam (`ml`),
+  and Punjabi in Gurmukhi script (`pa`)
+
+With these, c15t covers all 12 languages that New York State's language access
+law names for state agencies.
+
+`manifest()` loads each language on demand, and the backend serves them from
+`/init`. To bundle them, import one with `@c15t/translations/<code>` or all of
+them with `@c15t/translations/all`. See
+[translations](/docs/customization/translations).
+
+Banners, dialogs, and preference centers also read right to left for Central
+Kurdish (`ckb`), Uyghur (`ug`), Syriac (`syr`), and N'Ko (`nqo`). A script
+subtag now sets the direction, so `ku-Arab` reads right to left.
+
+## Integrations
+
+New consent-gated helpers in `@c15t/integrations` cover:
+
+- Analytics and visitor identification: [FullStory](/docs/integrations/fullstory),
+  [Gainsight PX](/docs/integrations/gainsight-px),
+  [Lucky Orange](/docs/integrations/lucky-orange), [Pendo](/docs/integrations/pendo),
+  [Statable](/docs/integrations/statable-analytics), [RB2B](/docs/integrations/rb2b),
+  [HubSpot](/docs/integrations/hubspot), [Default](/docs/integrations/default-com),
+  and [Clay](/docs/integrations/clay).
+- Experiments and personalization: [Adobe Target](/docs/integrations/adobe-target),
+  [Appcues](/docs/integrations/appcues),
+  [Dynamic Yield](/docs/integrations/dynamic-yield),
+  [Optimizely Web Experimentation](/docs/integrations/optimizely), and
+  [Wisepops](/docs/integrations/wisepops).
+- Email and CRM: [ActiveCampaign](/docs/integrations/activecampaign),
+  [Attentive](/docs/integrations/attentive),
+  [Customer.io](/docs/integrations/customer-io), [Insider](/docs/integrations/insider),
+  [Marketo Munchkin](/docs/integrations/marketo),
+  [Oracle Eloqua](/docs/integrations/oracle-eloqua), and
+  [Salesforce Account Engagement](/docs/integrations/salesforce-pardot).
+- Ads and pixels: [AdRoll](/docs/integrations/adroll),
+  [Amazon Ads](/docs/integrations/amazon-ads),
+  [LiveIntent](/docs/integrations/liveintent),
+  [The Trade Desk](/docs/integrations/the-trade-desk), and
+  [Vector](/docs/integrations/vector).
+- Chat and support: [Ada](/docs/integrations/ada),
+  [Gorgias Chat](/docs/integrations/gorgias), and
+  [Zendesk Messaging](/docs/integrations/zendesk).
+
+Default has separate Pixel and Forms SDK helpers. Choose one per page.
+
+### Databuddy consent and session replay
+
+Databuddy now waits for measurement consent and supports optional session
+replay and tracking feature switches. See the
+[Databuddy guide](/docs/integrations/databuddy).
+
+### Shopify and Google Tag Manager
+
+- **Shopify.** `createShopifyCustomerPrivacy` sends each c15t choice to
+  Shopify's Customer Privacy API. Hydrogen holds analytics events until the
+  visitor answers the c15t banner. See the [Shopify
+  guide](/docs/integrations/shopify).
+- **Google Tag Manager.** A community template loads the c15t script tag from
+  GTM and sends each choice to Consent Mode. See the [Google Tag Manager
+  guide](/docs/integrations/google-tag-manager).
+
+## A subject ID from the first page load
+
+`snapshot.subject.subjectId` now exists before the visitor makes a choice.
+The first save keeps that ID, and clearing choices or revoking consent keeps
+it too. The ID alone grants no consent, so the banner still shows.
+
+Next.js, TanStack Start, Nuxt, Astro, and SvelteKit can set the `c15t-sid`
+cookie on the first request, so the server and browser start with the same
+ID. Other servers can use `resolveRequestSubject()` from `c15t/server`.
+See [subject IDs](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
+
+`identify()` now works before the first consent save. The backend creates the
+subject and links the identity in one transaction. Acknowledging a notice that
+offers only necessary categories also keeps the visitor's ID across reloads.
+
+## Keep fixed elements still while scrolling is locked
+
+When a blocking banner or preference dialog needs scrollbar padding, c15t now
+exposes that width as `--c15t-scroll-lock-gap`. Use it in the right offset or
+padding of fixed headers and chat buttons to keep them in place. The padding
+also accounts for CSS `zoom`. See
+[scroll lock styling](/docs/customization/stylesheets#keep-your-fixed-elements-still-during-a-scroll-lock).
+
+## Svelte and SvelteKit through `c15t`
+
+Install `c15t` and import from `c15t/svelte`, as you do for the other
+frameworks. SvelteKit helpers live at `c15t/svelte/kit`, server resolution at
+`c15t/svelte/server`, and the Vite plugin at `c15t/svelte/vite`. `c15t setup`
+writes these imports for you. See the [SvelteKit
+quickstart](/docs/frameworks/sveltekit/quickstart).
+
+## `offline()` is now `local()`
+
+We renamed `offline()` to `local()` to make clear that choices stay in the
+browser. Development builds now show the limits once per page:
+
+```txt
+[c15t] Local mode keeps consent only in this browser. c15t keeps no
+server-side record of consent. If you rely on consent under GDPR, Article
+7(1) requires you to demonstrate it. Keep your own consent records or use
+a c15t backend. Local mode also has no geolocation, so every visitor gets
+the same policy. Use it for development and tests. For production, see
+https://c15t.com/docs/concepts/modes
+Set acknowledgeNoRecords: true to hide this message.
+```
+
+`offline()` still works until v4. See [local mode](/docs/concepts/modes#local).
+
+## Clearer backend errors
+
+When the backend refuses a request, the error now says why. In 3.1, an error
+over HTTP/2 could stop at `/init responded 402`. Now it includes the backend's
+message and code, with `status` and `code` properties to match.
+
+After a 402 response, c15t no longer sends the consent save again. The choice
+stays in the browser.
+
+## Consent only from sites you trust
+
+The backend now records consent only for sites in `trustedOrigins`. A save
+naming any other site gets `400 DOMAIN_NOT_ALLOWED` and writes nothing. In
+3.1, any site could create a row in the `domain` table. Only an entry's host
+counts, so `localhost:3000` covers `localhost`, and `*` still covers every
+site. Without `trustedOrigins`, saves are not checked.
+
+`identityToken.requireVerifiedLinks` is a new option, off by default. It
+stores a link to your user ID only when an API key or identity token proves
+it. Without proof, `identify()` gets `401 IDENTITY_TOKEN_REQUIRED`, and a
+consent save is recorded without the user ID.
+
+See [origins, identity and secrets](/docs/self-host/api/configuration#origins-identity-and-secrets)
+and [verify identity links](/docs/self-host/api/endpoints#verify-identity-links).
+
+## Fixes
+
+- A preference center that a visitor opens before the backend answers now stays
+  open when the answer arrives.
+- Under an IAB policy, c15t now creates the IAB CMP once per page load. In 3.1,
+  it could create the CMP up to 100 times.
+- The backend now records the tenant on `identify_user` audit entries.
+- The script-tag banner and DevTools panel stay visible on pages whose CSS
+  hides empty elements, including Shopify's Dawn theme.
+- The c15t tab now supports Nuxt DevTools 4, including popup windows. See
+  [Nuxt DevTools](/docs/frameworks/nuxt/components/dev-tools).
+- The dialog close-button offset and small and large trigger labels now scale
+  with the visitor's text-size setting.
+- The backend now accepts consent timestamps up to 10 minutes ahead of its
+  clock and stores them unchanged. A slightly fast visitor clock no longer
+  causes a consent save to fail.
+- Invalid identity links return a validation error before the backend writes
+  anything. Retrying an unchanged link no longer adds duplicate audit entries.
+
+## Before you upgrade
+
+Update `c15t` and any `@c15t/*` packages you use to 3.2 together.
+
+If you set `trustedOrigins` on a self-hosted backend, make sure it lists every
+site that saves consent, including the site the backend is mounted on. In 3.1,
+a same-origin save worked without it. In 3.2, a save from a site not on the
+list gets `400 DOMAIN_NOT_ALLOWED`. c15t keeps a refused save and retries it
+up to 10 times over 7 days, so a site you add in that time still gets its
+consent recorded.
+
+If your cookie policy lists c15t cookies, add `c15t-sid` and
+`c15t-notice-subject`. Their prefixes follow your custom `storageKey`.
+
+If you use the Next.js proxy or SvelteKit handle, set `subjectCookie: false`
+for routes whose responses enter a shared cache. Also disable server subject
+cookies when browser persistence is off or a `consentSource` owns consent.
+Pass the same storage settings to the server helper and browser. See the
+[Next.js subject cookie setup](/docs/frameworks/next/geography-headers#give-each-visitor-a-subject-id)
+and [SvelteKit request setup](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle).
+
+If your own code calls `POST /subjects` or `PATCH /subjects/:id`, send
+`Content-Type: application/json`. Both routes now answer other body types with
+`415 UNSUPPORTED_MEDIA_TYPE`, as 2.x did. A save's `domain` must also be 1 to
+253 characters with no control characters. The c15t clients and
+`@c15t/node-sdk` already meet both rules.
+
+Two changes can move things on a page:
+
+- The banner now stays in its corner for right-to-left languages. In 3.1, a
+  `bottom-left` banner moved to the bottom right for Hebrew. To put the banner
+  on the right for right-to-left pages, set `position`.
+- Plain `ku` now reads left to right, because it usually means Kurmanji. For
+  Sorani, use `ckb` or `ku-Arab`.

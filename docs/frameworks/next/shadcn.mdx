@@ -1,0 +1,137 @@
+---
+title: shadcn/ui
+description: Install editable shadcn consent components in a Next.js App Router app with an Inth backend and server-resolved consent.
+seoTitle: shadcn cookie consent for Next.js with c15t
+seoDescription: Add a shadcn cookie banner and preference dialog to Next.js. Keep your own markup while c15t handles consent and records choices to Inth.
+group: frameworks
+---
+
+Use your project's shadcn components for the consent banner and preferences.
+The registry copies the markup into your app. c15t's headless hooks handle
+consent state, policy actions and translations.
+
+This setup is for the Next.js App Router with a server. For the Pages Router
+or static export, keep the setup from the
+[Pages Router](/docs/frameworks/next/pages-router) or
+[static export](/docs/frameworks/next/static-export) guide and follow
+[Use an existing ConsentRoot](#use-an-existing-consentroot).
+
+## Before you start
+
+Initialize [shadcn/ui for Next.js](https://ui.shadcn.com/docs/installation/next).
+The registry supports Radix, Base UI and React Aria styles and installs
+`c15t` 3.2 or later as a dependency.
+
+The generated setup uses an Inth backend. Create an
+[Inth project](https://inth.com/dashboard/sign-up?framework=next), configure
+its policy rules, add your site's origin to its trusted origins, and copy
+its backend URL. A [self-hosted backend](/docs/self-host/quickstart) works
+with the same setup and your own URL. For browser-only storage without
+consent records, see [consent modes](/docs/concepts/modes).
+
+## Install the consent manager
+
+```bash
+npx shadcn add @c15t/next-consent-manager
+```
+
+This installs `c15t.config.ts` at the project root and a `ConsentManager`
+component, usually under `components/c15t/`. Its dependencies include the
+banner, preference dialog, floating preferences button and the shadcn UI
+components they use. You do not need to install the banner separately.
+
+If the CLI cannot find the `@c15t` namespace, merge this entry into
+`components.json` and rerun the command:
+
+{/* example: fragment */}
+
+```json title="components.json"
+{
+  "registries": {
+    "@c15t": "https://c15t.com/r/{style}/{name}.json"
+  }
+}
+```
+
+## Set your backend URL
+
+The installer adds a demo backend URL. Replace it in `.env.local` and set
+the same value in your host's build settings:
+
+```sh title=".env.local"
+NEXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+Use the URL from your Inth project. It is public configuration. Next.js
+inlines it at build time, so rebuild after changing it.
+
+The generated `c15t.config.ts` leaves `mode` unset, which defaults to
+`manifest()`. Next.js resolves each visitor's consent from the policy
+bundled during the build. Choices are sent to your Inth backend for
+recording.
+
+## Connect Next.js
+
+Wrap your existing Next.js config with `withConsentManifest`:
+
+<include src="../../shared/examples/nextjs/quickstart-next-config.mdx" />
+
+The plugin discovers the generated `c15t.config.ts`. Keep that file's
+default export and add consent-gated scripts there using the
+[scripts guide](/docs/frameworks/next/scripts). Rebuild after changing
+policy rules, translations or vendors in Inth.
+
+In `app/layout.tsx`, import `ConsentManager` from your generated component.
+With the default components alias, its import path is
+`@/components/c15t/consent-manager`. If `aliases.components` in
+`components.json` differs, use your configured alias. Inside `<body>`, wrap
+`{children}` in `<ConsentManager>{children}</ConsentManager>`. Keep the
+layout and the generated manager as Server Components.
+
+The manager already renders `ConsentRoot`, the banner, the dialog and a
+floating button that reopens preferences after the banner closes. It passes
+`resolveConsent()` without awaiting it, so the page can stream while consent
+resolves. See [rendering and deployment](/docs/frameworks/next/rendering)
+for cached pages and other rendering options.
+
+Location-based policies need
+[trusted geography headers](/docs/frameworks/next/geography-headers).
+Without location data, c15t applies your unknown-location rule.
+
+## Use an existing ConsentRoot
+
+If c15t already runs in your app, keep your existing root and config. Install
+the UI items directly:
+
+```bash
+npx shadcn add @c15t/next-consent-banner @c15t/next-consent-dialog @c15t/next-consent-dialog-trigger
+```
+
+Import these components from your generated `components/c15t/` files and
+render them inside the existing `ConsentRoot`, replacing the stock banner,
+dialog and preferences control. Do not nest another `ConsentRoot` or
+`ConsentProvider`.
+
+## Customize and verify
+
+Edit the files in `components/c15t/` to change markup or Tailwind classes.
+They use your project's shadcn components and theme. Keep the headless
+hooks' policy actions and a way to reopen preferences. Updating `c15t`
+updates consent logic; the copied markup remains yours to maintain.
+
+The registry also includes a preference sheet, an inline widget and an
+embed gate. Install them as `@c15t/next-consent-sheet`,
+`@c15t/next-consent-widget` or `@c15t/next-consent-gate`. For custom controls,
+see the [headless guide](/docs/frameworks/next/headless).
+
+There are no shadcn IAB TCF components yet. For IAB policies, use the
+[IAB setup](/docs/frameworks/next/iab) and its TCF UI.
+
+Run your app and open a fresh browser session under an opt-in policy.
+Check that the banner appears, saving a choice closes it, and the floating
+button reopens preferences. Reload and confirm the choice persists. In the
+Network panel, choices should post to your backend's `/subjects` endpoint.
+Also [verify vendor requests and consent signals](/docs/guides/verify-consent),
+including loaders already in your app. The banner does not block scripts
+loaded outside c15t. Remove or migrate loaders that bypass your consent
+policy.

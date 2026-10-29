@@ -25,13 +25,13 @@ Add `gpp` to the provider in `src/App.svelte`, keeping your existing `mode`,
 `gpp={{ usFallback: 'none' }}`; the options are listed below. Omit `gpp`, or
 pass `gpp={false}`, to leave it off.
 
-`@c15t/svelte` loads the GPP code from `@c15t/iab/gpp`, which it installs as a
+`c15t/svelte` loads the GPP code from `@c15t/iab/gpp`, which it installs as a
 dependency. It is a separate chunk that apps without `gpp` never download.
 The provider installs `__gpp` once that chunk arrives and removes it when the
 provider unmounts.
 
 The US section follows the policy and location your Inth project resolves for
-the visitor. With `offline()` mode, pass the location yourself, for example
+the visitor. With `local()` mode, pass the location yourself, for example
 `overrides={{ country: 'US', region: 'CA' }}`.
 
 The TCF EU section needs IAB TCF as well. Set it up with

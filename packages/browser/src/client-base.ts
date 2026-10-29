@@ -93,6 +93,11 @@ export interface CreateConsentClientContext {
 	publishDevToolsLauncher?: PublishDevToolsLauncher;
 	/** Package name reported on `window.c15t`. */
 	pkg?: string;
+	/**
+	 * Set by the script-tag global. Script-tag files are always production
+	 * builds, so their development diagnostics key off the page's host.
+	 */
+	scriptTag?: boolean;
 }
 
 /** Transport already selected by an entry point. */

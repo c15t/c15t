@@ -4,6 +4,7 @@
  * `index.ts` is the public entry and passes the shared implementations.
  */
 import type { ConsentSnapshot } from '../../types';
+import { isCallbackOnly } from './callback-only';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
 import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
@@ -25,6 +26,7 @@ import type {
 	NormalizedScript,
 	PendingMount,
 	Script,
+	ScriptCallbackInfo,
 	ScriptLoaderHandle,
 	ScriptLoaderOptions,
 	ScriptLoaderDebugEvent,
@@ -32,6 +34,12 @@ import type {
 } from './types';
 
 const MAX_RECONCILE_PASSES = 100;
+
+const validateScripts = (scripts: Script[]): void => {
+	for (const script of scripts) {
+		script.validate?.();
+	}
+};
 
 /**
  * Create a script loader from the tools it calls.
@@ -75,13 +83,14 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const ownerSource = Symbol('script-loader');
-	const callbackTools = { ...tools, registration: ownerSource };
+	let replacingScript: Script | undefined;
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) => categoriesOf(script.category))
 		);
 		declareOwners(kernel, scripts, ownerSource);
 	};
+	validateScripts(options.scripts);
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(
 		options.scripts,
@@ -94,6 +103,91 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	const elementIds = createElementIdResolver();
 	const eligibilityByScriptId = new Map<string, boolean>();
 	const consentByScriptId = new Map<string, boolean>();
+	const consentReaders = new Map<
+		Script,
+		{ read: () => ScriptCallbackInfo; frozen?: ScriptCallbackInfo }
+	>();
+	let cleaningUp = false;
+	const replacementEffects = new Set<() => void>();
+	// Another source can sweep this loader's slugs out of the declared set: a
+	// provider replacing its own script entries, or a backend init dropping a
+	// vendor a script here still names. A mounted loader's scripts own their
+	// slugs for as long as they are configured, so put them back before the
+	// gate runs; a stored denial for one of them would otherwise be ignored
+	// for the pass. Idempotent: nothing missing means no commit.
+	const declareMissingVendors = (snapshot: ConsentSnapshot): void => {
+		const declared = new Set(
+			snapshot.vendors?.declared.map((vendor) => vendor.id)
+		);
+		const missing = normalized.some(
+			({ vendor }) => vendor !== null && !declared.has(vendor)
+		);
+		if (missing) {
+			declareOwners(
+				kernel,
+				normalized.map(({ script }) => script),
+				ownerSource
+			);
+		}
+	};
+
+	const callbackTools: ScriptLoaderTools = {
+		...tools,
+		getConsentReader: (script) => {
+			const existing = consentReaders.get(script);
+			if (existing) {
+				return existing.read;
+			}
+			if (!normalized.some((entry) => entry.script === script)) {
+				return;
+			}
+			const reader: {
+				read: () => ScriptCallbackInfo;
+				frozen?: ScriptCallbackInfo;
+			} = {
+				read: () => {
+					if (reader.frozen) {
+						return reader.frozen;
+					}
+					const entry = normalized.find(
+						(candidate) => candidate.script === script
+					);
+					if (!entry) {
+						throw new Error('Script consent reader outlived its registration');
+					}
+					// Another source can remove declarations while callbacks are
+					// running. Repair our active ownership just as reconcile does.
+					declareMissingVendors(kernel.getSnapshot());
+					if (reader.frozen) {
+						return reader.frozen;
+					}
+					const snapshot = kernel.getSnapshot();
+					return buildCallbackInfo(
+						callbackTools,
+						script,
+						snapshot,
+						hasScriptConsent(entry, buildReconcilePass(snapshot, tools)),
+						elementIds.resolve(script),
+						loadedElements.get(script.id) ?? retainedElements.get(script.id)
+					);
+				},
+			};
+			consentReaders.set(script, reader);
+			return reader.read;
+		},
+		isReplacing: (script) => script === replacingScript,
+		registration: ownerSource,
+	};
+	const freezeConsentReader = (script: Script): void => {
+		if (!consentReaders.has(script) && !script.onDispose) {
+			return;
+		}
+		const current = callbackTools.getConsentReader?.(script)?.();
+		const reader = consentReaders.get(script);
+		if (reader) {
+			reader.frozen = current;
+		}
+	};
 
 	let unsubscribe: (() => void) | undefined;
 	let disposed = false;
@@ -158,28 +252,6 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			snapshot.vendorChoice === lastVendorChoice &&
 			snapshot.vendors === lastVendors
 		);
-	};
-
-	// Another source can sweep this loader's slugs out of the declared set: a
-	// provider replacing its own script entries, or a backend init dropping a
-	// vendor a script here still names. A mounted loader's scripts own their
-	// slugs for as long as they are configured, so put them back before the
-	// gate runs; a stored denial for one of them would otherwise be ignored
-	// for the pass. Idempotent: nothing missing means no commit.
-	const declareMissingVendors = (snapshot: ConsentSnapshot): void => {
-		const declared = new Set(
-			snapshot.vendors?.declared.map((vendor) => vendor.id)
-		);
-		const missing = normalized.some(
-			({ vendor }) => vendor !== null && !declared.has(vendor)
-		);
-		if (missing) {
-			declareOwners(
-				kernel,
-				normalized.map(({ script }) => script),
-				ownerSource
-			);
-		}
 	};
 
 	const reconcile = function reconcile(force = false): void {
@@ -270,13 +342,16 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 					status = 'retained';
 				} else if (loadedElements.has(script.id)) {
 					status = statuses.get(script.id) ?? 'present';
-					if (!script.src && status === 'loading') {
+					if (
+						(!script.src || loadedElements.get(script.id) === null) &&
+						status === 'loading'
+					) {
 						status = 'loaded';
 					}
 				}
 				return {
 					alwaysLoad: script.alwaysLoad ?? false,
-					callbackOnly: script.callbackOnly ?? false,
+					callbackOnly: isCallbackOnly(script),
 					category: script.category,
 					elementId,
 					eligible,
@@ -303,32 +378,55 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		if (!script.onDispose) {
 			return;
 		}
-		const snapshot = kernel.getSnapshot();
-		invokeCallback(
+		const current = kernel.getSnapshot();
+		const snapshot = cleaningUp
+			? {
+					...current,
+					vendors: {
+						declared: tools.withoutOwners(kernel, ownerSource),
+						listVersion: current.vendors?.listVersion ?? null,
+					},
+				}
+			: current;
+		const hasConsent = consentByScriptId.get(script.id) ?? false;
+		const info = buildCallbackInfo(
+			callbackTools,
 			script,
-			'onDispose',
-			buildCallbackInfo(
-				callbackTools,
-				script,
-				snapshot,
-				consentByScriptId.get(script.id) ?? false,
-				elementIds.resolve(script),
-				element
-			),
-			emit
+			snapshot,
+			hasConsent,
+			elementIds.resolve(script),
+			element
 		);
+		if (info.replacing) {
+			Object.defineProperty(info, 'afterReplacement', {
+				value: (effect: () => void) =>
+					replacementEffects.add(() =>
+						invokeCallback(script, 'onDispose', info, emit, effect)
+					),
+			});
+		}
+		invokeCallback(script, 'onDispose', info, emit);
 	};
 
 	const cleanup = (): void => {
-		// Clear registrations before user callbacks. Each object owns one cleanup
-		// per registration, even if it appears more than once in the input.
+		// Each object owns one cleanup per registration, even if repeated.
 		const scripts = new Set(normalized.map(({ script }) => script));
-		normalized = [];
+		const persistentIds = new Set(
+			[...scripts]
+				.filter((script) => script.persistAfterDispose)
+				.map((script) => script.id)
+		);
+		// Keep declarations and readers live through every disposal callback:
+		// an earlier onDispose can save a withdrawal before a later one runs.
+		cleaningUp = true;
 		pendingScripts = undefined;
-		forgetOwners(kernel, ownerSource);
 		for (const script of scripts) {
 			disposeScript(script);
+			freezeConsentReader(script);
 		}
+		normalized = [];
+		forgetOwners(kernel, ownerSource);
+		cleaningUp = false;
 		diagnostics?.dispose();
 		diagnostics = undefined;
 		for (const [scriptId, element] of new Map([
@@ -336,7 +434,13 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			...loadedElements,
 		])) {
 			if (element) {
-				releaseScriptElement(mountDeps, scriptId, element);
+				releaseScriptElement(
+					mountDeps,
+					scriptId,
+					element,
+					persistentIds.has(scriptId),
+					true
+				);
 			}
 		}
 		loadedElements.clear();
@@ -345,11 +449,13 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		elementIds.clear();
 		eligibilityByScriptId.clear();
 		consentByScriptId.clear();
+		consentReaders.clear();
 		lastEvents.clear();
 		statuses.clear();
 	};
 
 	const replaceScripts = (next: Script[]): void => {
+		validateScripts(next);
 		const nextScripts = new Set(next);
 		const nextById = new Map(next.map((script) => [script.id, script]));
 		const previous = new Set(normalized.map(({ script }) => script));
@@ -360,22 +466,40 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			}
 			const replacement = nextById.get(script.id);
 			// Existing vendor helpers are recreated on framework rerenders. Keep
-			// their resource mounted unless it changed. onDispose opts into an
-			// object-owned lifecycle, used by integrations with attached listeners.
+			// their resource mounted unless it or the disposal callback changed.
+			// A stable disposer retains a DOM resource's registration lifecycle.
+			// A mounted registration keeps the mode it mounted with: callback-only
+			// predicates can turn true once the SDK they load has started. An
+			// element retained after revocation is still a DOM registration.
+			let mountedCallbackOnly = isCallbackOnly(script);
+			if (loadedElements.has(script.id)) {
+				mountedCallbackOnly = loadedElements.get(script.id) === null;
+			} else if (retainedElements.has(script.id)) {
+				mountedCallbackOnly = false;
+			}
 			if (
 				replacement &&
-				!script.onDispose &&
-				!replacement.onDispose &&
+				script.onDispose === replacement.onDispose &&
+				(!script.onDispose || !mountedCallbackOnly) &&
 				hasSameResource(script, replacement)
 			) {
+				freezeConsentReader(script);
+				consentReaders.delete(script);
 				continue;
 			}
 			// Resource replacement starts a fresh lifecycle, even for the same ID.
 			// Persistence applies to consent revocation, not config replacement.
 			const element =
 				loadedElements.get(script.id) ?? retainedElements.get(script.id);
-			unmountScript(mountDeps, script, snapshot, false, true);
-			disposeScript(script, element);
+			replacingScript = replacement ? script : undefined;
+			try {
+				unmountScript(mountDeps, script, snapshot, false, true);
+				disposeScript(script, element);
+			} finally {
+				replacingScript = undefined;
+			}
+			freezeConsentReader(script);
+			consentReaders.delete(script);
 			retainedElements.delete(script.id);
 			eligibilityByScriptId.delete(script.id);
 			consentByScriptId.delete(script.id);
@@ -434,6 +558,11 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				cleanup();
 			}
 			processing = false;
+			const effects = [...replacementEffects];
+			replacementEffects.clear();
+			for (const effect of effects) {
+				effect();
+			}
 		}
 	};
 	unsubscribe = kernel.subscribe(() => {

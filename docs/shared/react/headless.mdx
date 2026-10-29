@@ -22,8 +22,10 @@ group: reference
 <section id="banner-api">
   `banner.actionGroups` is the resolved layout: reject and accept share a group
   at equal prominence, and the rest follow. `banner.orderedActions` is the same
-  list flattened. Under a notice the only action is `dismiss`, and
-  `banner.preferenceControls` recommends additional buttons for opening
+  list flattened. `banner.primaryActions` lists the actions to style as
+  primary. Under a notice the only action is `dismiss`, and
+  `banner.primaryActions` contains it. `banner.preferenceControls` recommends
+  additional buttons for opening
   preferences. Under a notice it contains `opt-out`, which selects the
   "Do not sell or share my data" label. The example renders that button and
   an "OK" button. Both controls keep their own command: opening
@@ -31,6 +33,20 @@ group: reference
 
   The list is a rendering helper. It does not establish that your UI implements
   all policy rights. Provide disclosure and persistent preferences access.
+
+  `useBannerCopy()` returns the `title` and `description` for the active
+  prompt. A notice reads `cookieBanner.noticeTitle` and
+  `cookieBanner.noticeDescription`, then falls back to the choice copy in the
+  same language before English. `useConsentLabels()` returns
+  `actions`, a label for each action, and `preferenceControls`, a label for
+  each preference control. `dismiss` reads `common.acknowledge`, then
+  `common.dismiss`. Both hooks follow the active language and fill missing
+  keys from English, and they are the same strings the pre-built banner
+  renders.
+
+  The hooks wrap `resolvePromptCopy`, `resolveActionLabels`, and
+  `resolvePreferenceControlLabels`. Those take a translations object and
+  are exported from `c15t`, so code outside React can produce the same copy.
 
   `performAction` saves all categories for `accept`, none for `reject`, the
   current draft for `save`, records a dismissal for `dismiss`, and opens the
@@ -40,6 +56,89 @@ group: reference
 
   `banner.variant`, `banner.position`, and `banner.blocking` carry the resolved
   shape from `presentation.prompt`, so a headless surface can follow the same
-  bar, widget, or wall choice the pre-built banner would make, and can trap
-  focus and lock scroll exactly when `blocking` is true.
+  bar, widget, or wall choice the pre-built banner would make. The pre-built
+  banner traps focus and locks page scroll while `blocking` is true. To do
+  the same, call `useFocusTrap(blocking, ref)` and `useScrollLock(blocking)`
+  from the headless entry, with `blocking` set to
+  `banner.isVisible && banner.blocking` and `ref` attached to your banner's
+  root element. Scroll locks are counted, so the page scrolls again once the
+  banner and any open dialog have both let go.
+
+  c15t can show consent copy in the visitor's browser language, which may run
+  right to left on a left-to-right page. `useConsentTextDirection()` returns
+  `'rtl'` or `'ltr'` for the language the copy is in. Set it as `dir` on your
+  banner and preference center roots, as the pre-built ones do.
+
+  The pre-built banner and dialog render nothing under the IAB model, and
+  the TCF surfaces inside `<IABProvider>` take over. A
+  custom surface that handles only opt-in and opt-out should do the same:
+  return `null` when `useModel()` is `'iab'`. Call `useIABPolicyGuard()` in
+  it as well. It throws `IABUnavailableError` while rendering when the
+  policy needs IAB and the app never loaded `<IABProvider>`, so the gap
+  shows up in your error boundary instead of as a missing banner.
+</section>
+
+<section id="consent-gate">
+  `useConsentGate(category)` tells a custom gate what to render for one
+  consent category, with translated copy and an action that opens the
+  preference center. Use it when the stock `ConsentGate` placeholder does not
+  fit your design, for example a design system card in front of a video or
+  map embed. `ConsentGate` runs on the same hook, so both gates follow the
+  same rules.
+
+  This gate renders its children once `marketing` is granted and the page has
+  hydrated, the policy message when the policy blocks `marketing`, and
+  otherwise a placeholder with a button that opens the preference center:
+</section>
+
+<section id="consent-gate-api">
+  | Field | Type | Description |
+  | --- | --- | --- |
+  | `state` | `ConsentGateState` | `'granted'`, `'pending'`, `'denied'` or `'policy-blocked'`. |
+  | `categoryTitle` | `string` | `consentTypes.<category>.title` from your translations, or the category name when they have none. |
+  | `title` | `string` or `undefined` | `consentGate.title`, `Accept {category} consent to view this content.`, with `{category}` replaced by `categoryTitle`. |
+  | `actionLabel` | `string` or `undefined` | `consentGate.actionButton`, `Enable {category} consent`, with `{category}` replaced by `categoryTitle`. |
+  | `policyBlockedMessage` | `string` | `consentGate.policyBlocked`, or the English message when your translations have none. |
+  | `requestConsent` | `() => void` | Opens the preference center. |
+
+  The result type is exported as `UseConsentGateResult` and the state type as
+  `ConsentGateState`. Render from `state`:
+
+  - `'granted'`: the effective permission for the category is granted and
+    the page has hydrated. Render the content.
+  - `'pending'`: permission is granted but the page has not hydrated yet.
+    Render nothing.
+  - `'denied'`: permission is not granted. Render a placeholder with a
+    button that calls `requestConsent`.
+  - `'policy-blocked'`: the policy has `scopeMode: 'strict'` and its scope
+    leaves the category out, so the visitor cannot grant it. Render
+    `policyBlockedMessage` without a button. `necessary` is never blocked.
+
+  Permission is the value `useConsent(category)` returns. An opt-out policy
+  can grant it before the visitor chooses, and a privacy signal such as GPC
+  can withdraw a stored grant.
+
+  Granted content never appears in the server HTML. When the server snapshot
+  grants the category, `state` is `'pending'` in the server HTML and during
+  hydration, then turns `'granted'`, so an iframe inside a streamed
+  `Suspense` boundary loads once. Server rendering and hydration evaluate the
+  snapshot at its own evaluation time and never read the clock, so the gate
+  works in a statically prerendered page.
+
+  `requestConsent` does not grant the category, because the visitor still has
+  to save. The preference center opens on its usual view, not on the
+  category. Mount a `ConsentDialog` in the same provider so it has something
+  to open. The stock gate button starts loading the pre-built dialog's code
+  on hover, focus and idle time. `requestConsent` doesn't, so without a
+  banner or dialog trigger on the page, the first open waits for that
+  download.
+
+  When it mounts, the hook registers the category with the provider, as
+  `ConsentGate` does, so the preference center can list it. If you set
+  `options.consentCategories` on the provider, list the category there too,
+  so the preference center shows it before a gate mounts, including on pages
+  without one.
+
+  The hook renders no wrapper element. Reserve the embed's space in your own
+  markup so the page does not shift when the placeholder is replaced.
 </section>

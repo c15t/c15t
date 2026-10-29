@@ -622,6 +622,7 @@ const createSubject = defineEndpoint({
 		'CHOICE_PREFERENCE_MISMATCH',
 		'CONFLICT',
 		'DATABASE_ERROR',
+		'DOMAIN_NOT_ALLOWED',
 		'INPUT_VALIDATION_FAILED',
 		'POLICY_SNAPSHOT_EXPIRED',
 		'POLICY_SNAPSHOT_INVALID',
@@ -663,6 +664,7 @@ const identifySubject = defineEndpoint({
 		'EXTERNAL_ID_REQUIRED',
 		'IDENTITY_CONFLICT',
 		'IDENTITY_TOKEN_INVALID',
+		'IDENTITY_TOKEN_REQUIRED',
 		'NOT_FOUND',
 	],
 	// Linking the same external id again leaves the subject unchanged.

@@ -21,7 +21,7 @@ next to `@vitejs/plugin-vue`, and set `VITE_C15T_BACKEND_URL` (or
 **Check.** The plugin options have no `mode`. Earlier v3 alphas took
 `backendURL`, `manifest`, `manifestURL` and `manifestSnapshot` on the plugin.
 
-**Fix.** Pass `mode: hosted()`, `manifest()` or `offline()` from
+**Fix.** Pass `mode: hosted()`, `manifest()` or `local()` from
 `c15t/vue/vue-plugin`. Move `backendURL` into the mode, such as
 `hosted({ backendURL })`, or let `consentManifest()` supply it.
 

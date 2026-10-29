@@ -1,45 +1,19 @@
 {
 	"name": "c15t",
-	"version": "3.1.0",
-	"description": "The open standard for cookie banners. Open-source cookie consent management platform (CMP) for React, Next.js, Vue and more, with GDPR, Google Consent Mode v2 and IAB TCF support.",
+	"version": "3.2.0-canary.0",
+	"description": "c15t: The open standard for cookie banners. Cookie banner and cookie consent manager for React, Next.js, Vue and JavaScript. Cookie consent banner and consent management platform (CMP) with GDPR cookie consent, GDPR consent records, Google Consent Mode v2 and IAB TCF.",
 	"keywords": [
-		"astro",
-		"banner",
-		"ccpa",
 		"cmp",
 		"consent",
-		"consent-banner",
-		"consent-management",
-		"consent-management-platform",
 		"consent-manager",
-		"consent-mode-v2",
 		"cookie",
 		"cookie-banner",
 		"cookie-consent",
-		"cookies",
-		"eu-cookie-law",
 		"gdpr",
-		"global-privacy-control",
-		"google-consent-mode",
-		"headless",
-		"iab",
 		"iab-tcf",
 		"javascript",
-		"lgpd",
-		"next-cookie-banner",
 		"nextjs",
-		"nuxt",
-		"preference-center",
-		"privacy",
 		"react",
-		"react-cookie-banner",
-		"self-hosted-cmp",
-		"server-side-rendering",
-		"ssr",
-		"tanstack-start",
-		"tcf",
-		"tracking-consent",
-		"typescript",
 		"vue"
 	],
 	"homepage": "https://c15t.com",
@@ -214,6 +188,11 @@
 			"types": "./shims/runtime/provider.d.ts",
 			"import": "./shims/runtime/provider.js",
 			"default": "./shims/runtime/provider.js"
+		},
+		"./runtime/script-server-start": {
+			"types": "./shims/runtime/script-server-start.d.ts",
+			"import": "./shims/runtime/script-server-start.js",
+			"default": "./shims/runtime/script-server-start.js"
 		},
 		"./build": {
 			"types": "./shims/build.d.ts",
@@ -709,6 +688,41 @@
 			"import": "./shims/astro/components/iab-panel.astro.js",
 			"default": "./shims/astro/components/iab-panel.astro.js"
 		},
+		"./svelte/styles.css": "./dist/svelte/styles.css",
+		"./svelte/iab/styles.css": "./dist/svelte/iab/styles.css",
+		"./svelte/headless": {
+			"types": "./shims/svelte/headless.d.ts",
+			"svelte": "./shims/svelte/headless.js",
+			"default": "./shims/svelte/headless.js"
+		},
+		"./svelte/devtools": {
+			"types": "./shims/svelte/devtools.d.ts",
+			"svelte": "./shims/svelte/devtools.js",
+			"default": "./shims/svelte/devtools.js"
+		},
+		"./svelte/kit": {
+			"types": "./shims/svelte/kit.d.ts",
+			"import": "./shims/svelte/kit.js",
+			"default": "./shims/svelte/kit.js"
+		},
+		"./svelte/kit/locals": {
+			"types": "./shims/svelte/kit/locals.d.ts"
+		},
+		"./svelte/server": {
+			"types": "./shims/svelte/server.d.ts",
+			"import": "./shims/svelte/server.js",
+			"default": "./shims/svelte/server.js"
+		},
+		"./svelte/vite": {
+			"types": "./shims/svelte/vite.d.ts",
+			"import": "./shims/svelte/vite.js",
+			"default": "./shims/svelte/vite.js"
+		},
+		"./svelte": {
+			"types": "./shims/svelte.d.ts",
+			"svelte": "./shims/svelte.js",
+			"default": "./shims/svelte.js"
+		},
 		"./postcss-tailwind3": {
 			"types": "./shims/postcss-tailwind3.d.ts",
 			"import": "./shims/postcss-tailwind3.js",
@@ -732,6 +746,7 @@
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
+		"@c15t/svelte": "workspace:*",
 		"@c15t/tanstack-start": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/vue": "workspace:*"

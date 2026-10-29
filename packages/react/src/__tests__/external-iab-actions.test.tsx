@@ -57,7 +57,7 @@ const fixture = () => {
 	const runtime = createConsentRuntime({
 		createIAB: () => handle,
 		iab: { cmpId: 42 },
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false,
 		prefetch: {
 			...policyFixture({}, { model: 'iab' }),

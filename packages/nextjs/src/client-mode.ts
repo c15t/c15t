@@ -52,7 +52,7 @@ export interface NextClientModeOptions {
  *   first init, reading `${routePrefix}/manifest`, else
  *   `${backendURL}/manifest`.
  * - `hosted()`: the hosted transport, loaded on first init.
- * - `offline()`: the offline transport, loaded on first init.
+ * - `local()`: the offline transport, loaded on first init.
  *
  * @param mode - The mode as data, or a transport factory, used as is.
  * @param options - Backend URL, route prefix and `proxy`.
@@ -83,7 +83,13 @@ export const createClientMode = function createClientMode(
 	const { routePrefix } = options;
 	const data: ConsentMode = mode ?? { type: 'manifest' };
 	if (data.type === 'offline') {
-		return Object.assign(lazyOffline({ policyRules: data.policyRules }), data);
+		return Object.assign(
+			lazyOffline({
+				acknowledgeNoRecords: data.acknowledgeNoRecords,
+				policyRules: data.policyRules,
+			}),
+			data
+		);
 	}
 	// Saves never fall back to `routePrefix`: the route takes writes only
 	// with `proxy`. Of the modes left, only `hosted()` has a `backendURL`.

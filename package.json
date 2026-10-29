@@ -14,7 +14,12 @@
 		"configs/*",
 		"packages/*",
 		"internals/**",
-		"examples/*"
+		"examples/*",
+		"!**/dist/**",
+		"!**/.next/**",
+		"!**/.nuxt/**",
+		"!**/.output/**",
+		"!**/storybook-static/**"
 	],
 	"type": "module",
 	"scripts": {

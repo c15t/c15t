@@ -20,7 +20,7 @@ const createRuntime = function createRuntime(
 			'measurement',
 			'marketing',
 		],
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		pkg: '@c15t/react-external-test',
 		prefetch: policyFixture({ measurement: false }),
 	});
@@ -198,7 +198,9 @@ describe('ConsentProvider with an external runtime', () => {
 	test('still owns the kernel when no runtime is passed', async () => {
 		const seen = vi.fn();
 		const { unmount } = await render(
-			<ConsentProvider options={{ mode: offline() }}>
+			<ConsentProvider
+				options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+			>
 				<KernelProbe onKernel={seen} />
 			</ConsentProvider>
 		);

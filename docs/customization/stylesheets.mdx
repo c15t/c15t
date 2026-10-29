@@ -66,7 +66,7 @@ render. The elements stay after the surface unmounts. The Svelte dialog's
 sheets, its rules and the primitives, load with the dialog's code.
 
 On a server-rendered SvelteKit page, the banner leaves a
-`<meta name="c15t-styles">` marker, and `c15tHandle` from `@c15t/svelte/kit`
+`<meta name="c15t-styles">` marker, and `c15tHandle` from `c15t/svelte/kit`
 writes the sheets into the HTML `<head>` as `<style>` elements. The banner is
 styled before hydration with no stylesheet request. Without `c15tHandle` in
 `src/hooks.server.ts`, a server-rendered banner shows unstyled until
@@ -106,7 +106,7 @@ need control over the file:
 | Next.js | `options.styles` in `c15t.config.ts` or on `ConsentRoot` | `c15t/next/styles.css`, and `c15t/next/iab/styles.css` for IAB TCF |
 | TanStack Start | `options.styles` on `ConsentRoot` | `c15t/tanstack-start/styles.css`, and `c15t/tanstack-start/iab/styles.css` for IAB TCF |
 | React | `options.styles` on `ConsentProvider` | `c15t/react/styles.css`, and `c15t/react/iab/styles.css` for IAB TCF |
-| Svelte, SvelteKit | `options.styles` on `ConsentProvider` or `ConsentRoot` | `@c15t/svelte/styles.css`, and `@c15t/svelte/iab/styles.css` for IAB TCF |
+| Svelte, SvelteKit | `options.styles` on `ConsentProvider` or `ConsentRoot` | `c15t/svelte/styles.css`, and `c15t/svelte/iab/styles.css` for IAB TCF |
 | Astro | `styles` in the `c15t()` integration options | See [load Astro's stylesheets yourself](#load-astros-stylesheets-yourself) |
 
 {/* example: fragment */}
@@ -131,7 +131,7 @@ the first paint. Remove the import, or add `styles: false` if you need it.
 | Next.js, TanStack Start, React | In the dialog sheet that `ConsentDialog` and `ConsentWidget` render. It ships with the dialog's lazily loaded code. With `styles: false`, in `styles.css`. No `@c15t/react` or `@c15t/ui` module imports CSS, so a Next.js app that uses only the Pages Router builds without `transpilePackages` |
 | Nuxt, Vue | The dialog component imports its stylesheet, so the rules load with the dialog's code, not the banner's |
 | Astro | In `@c15t/ui/styles/sheets/dialog.css`. The Svelte dialog, the default `ui`, also needs the primitives stylesheet. c15t links both when a visitor first points at, focuses or opens a control that opens the dialog, waits for them before it shows the dialog, and keeps them across `ClientRouter` navigation. On a Tailwind CSS 3 site, the dialog's rules are in `c15t/astro/styles.css`, and c15t links only the primitives stylesheet |
-| Svelte, SvelteKit | In the dialog's sheets, which load with the dialog's code. With `styles: false`, in `@c15t/svelte/styles.css` |
+| Svelte, SvelteKit | In the dialog's sheets, which load with the dialog's code. With `styles: false`, in `c15t/svelte/styles.css` |
 | HTML, JavaScript | Part of the stylesheet in the shadow root, which holds only the rules the stock surfaces use |
 
 `styles.css` still holds every stock surface's rules for apps that set
@@ -233,6 +233,43 @@ lists where each framework takes it.
 behavior. If a token seems to do nothing, check the layer order and your
 selector before you reach for `noStyle`.
 
+## Keep your fixed elements still during a scroll lock
+
+A blocking banner or preference dialog locks page scrolling in every
+framework and in the script tag. The lock hides the page's overflow and keeps
+the scrollbar's space with `scrollbar-gutter: stable`, so nothing on the page
+moves. Where that gutter does not hold, the lock pads `<body>` by the
+scrollbar's width instead. This happens in browsers without
+`scrollbar-gutter`, and in Chromium on macOS when the page styles its
+scrollbar with `::-webkit-scrollbar`. The padding keeps your content in place,
+but `position: fixed` elements, such as a fixed header or a chat button, move
+right by the scrollbar's width until the lock ends.
+
+While it pads `<body>`, the lock sets `--c15t-scroll-lock-gap` on `<html>` to
+the same width. Add it to the right offset of your fixed elements:
+
+{/* example: fragment */}
+
+```css
+.site-header {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  padding-right: var(--c15t-scroll-lock-gap, 0px);
+}
+
+.chat-button {
+  position: fixed;
+  right: calc(1rem + var(--c15t-scroll-lock-gap, 0px));
+  bottom: 1rem;
+}
+```
+
+The lock sets the variable only while it pads `<body>`. When the last lock
+releases, `<html>` gets back any `--c15t-scroll-lock-gap` value it had before,
+so the `0px` fallback applies only on pages that don't set the variable
+themselves.
+
 ## Check the result
 
 1. Open DevTools Network, clear site data and reload. No c15t stylesheet
@@ -249,3 +286,7 @@ selector before you reach for `noStyle`.
    `<style>` element appears.
 4. Select a banner part and read the Styles panel. c15t's rules appear under
    `@layer components`, and your unlayered rules for the same property win.
+5. On a page that styles its scrollbar with `::-webkit-scrollbar`, open the
+   preference dialog in Chrome on macOS. `<html>` gets
+   `--c15t-scroll-lock-gap` in its `style` attribute, and fixed elements that
+   use it stay where they were.

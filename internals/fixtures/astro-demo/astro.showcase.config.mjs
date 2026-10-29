@@ -54,10 +54,14 @@ const { url: backendURL } = testBackend('url');
 const iabOptions = iab
 	? {
 			iab: { cmpId: 160, gvl: demoGvl },
-			mode: offline({ policyRules: [demoIabPolicy] }),
+			mode: offline({
+				acknowledgeNoRecords: true,
+				policyRules: [demoIabPolicy],
+			}),
 		}
 	: {
 			mode: offline({
+				acknowledgeNoRecords: true,
 				policyRules: [
 					{
 						id: 'default',

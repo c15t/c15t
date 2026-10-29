@@ -13,6 +13,15 @@ const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
 
 export interface UseScriptLoaderOptions {
 	onDebug?: (event: ScriptLoaderDebugEvent) => void;
+	/**
+	 * Set `false` to start every `scripts` entry after hydration. By default
+	 * `ConsentRoot` in `c15t/next` and `c15t/tanstack-start` starts the
+	 * entries the visitor's consent already allows from the server HTML,
+	 * before the page hydrates.
+	 *
+	 * @default true
+	 */
+	serverStart?: boolean;
 }
 
 export const useScriptLoader = function useScriptLoader(

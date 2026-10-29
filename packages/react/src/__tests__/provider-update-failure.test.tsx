@@ -34,7 +34,7 @@ test('an update that rejects is not an unhandled rejection', async () => {
 	};
 	window.addEventListener('unhandledrejection', onRejection);
 	try {
-		const mode = offline();
+		const mode = offline({ acknowledgeNoRecords: true });
 		const prefetch = policyFixture();
 		const provider = (externalId: string) => (
 			<ConsentProvider

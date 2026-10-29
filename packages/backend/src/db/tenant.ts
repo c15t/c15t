@@ -22,6 +22,12 @@
  * The remaining hole is a query that simply never asks for `Tenant`. That is
  * what `tenant-isolation.test.ts` covers: it seeds two tenants and asserts
  * every read and write observes only its own.
+ *
+ * Inserts take the tenant from the same scope: `insertOnce` and
+ * `encodeTenantRow` add `tenantId` themselves, so a write cannot leave it out
+ * or name another tenant. `http/tenant.test.ts` drives every write route
+ * under a tenant beside other tenants' rows and checks each row lands under
+ * its own tenant and no other tenant's row changes.
  */
 
 import { Context, Effect, Layer } from 'effect';
@@ -86,3 +92,18 @@ export const tenantScope = Effect.fn('tenant.scope')(function* tenantScope(
 
 /** The tenant id, for writes that store it rather than filter on it. */
 export const currentTenantId = Effect.map(Tenant, (scope) => scope.tenantId);
+
+/**
+ * Column values for a row in a tenant-scoped table, without the tenant.
+ *
+ * `encodeTenantRow` and `insertOnce` add `tenantId` from the `Tenant` scope,
+ * the value reads filter on. The column defaults to NULL, so a write that
+ * supplied its own tenant could leave it out and still succeed: that is how
+ * `identify_user` audit entries were written untenanted while every other
+ * write carried the tenant.
+ *
+ * A `tenantId` here does not typecheck, rather than being silently replaced.
+ */
+export type TenantRow = Readonly<Record<string, unknown>> & {
+	readonly tenantId?: never;
+};

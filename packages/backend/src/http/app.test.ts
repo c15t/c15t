@@ -68,7 +68,8 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 		);
 		app = createApp(runtime, {
 			apiKeys: [API_KEY],
-			trustedOrigins: ['https://app.example.com'],
+			// `example.com` is the site the saves below name.
+			trustedOrigins: ['https://app.example.com', 'example.com'],
 		});
 	});
 
@@ -1196,8 +1197,179 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 			assert.strictEqual(entries[0]?.ipAddress, '203.0.113.0');
 		});
 
-		it('404s for a subject that does not exist', async () => {
+		it('creates a subject that has not saved yet and links it', async () => {
+			// A browser has its subject ID from first load, so it can identify
+			// before its first save.
 			const response = await patch('sub_absent', { externalId: 'ext_new' });
+			assert.strictEqual(response.status, 200);
+			assert.deepStrictEqual(await response.json(), {
+				subject: {
+					externalId: 'ext_new',
+					id: 'sub_absent',
+					identityProvider: 'external',
+				},
+			});
+
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ externalId: string | null }>`
+						select ${sql('externalId')} from ${sql('subject')}
+						where ${sql('id')} = ${'sub_absent'}
+					`;
+				})
+			);
+			assert.deepStrictEqual(
+				rows.map((row) => row.externalId),
+				['ext_new']
+			);
+
+			// A subject, not a choice, and not a verified identity.
+			const read = await (await app.request('/subjects/sub_absent')).json();
+			assert.deepStrictEqual(read.consents, []);
+			assert.isNull(read.subjectChoice);
+			const listed = await (
+				await app.request('/subjects?externalId=ext_new', authed)
+			).json();
+			assert.deepStrictEqual(listed.subjects, []);
+		});
+
+		/** Rows in `subject` and `auditLog`, to show what a request wrote. */
+		const written = () =>
+			runtime.runPromise(
+				Effect.gen(function* countWrites() {
+					const sql = yield* SqlClient.SqlClient;
+					const subjects = yield* sql<{ total: string }>`
+						select count(*) as total from ${sql('subject')}`;
+					const audits = yield* sql<{ total: string }>`
+						select count(*) as total from ${sql('auditLog')}`;
+					return {
+						audits: Number(audits[0]?.total),
+						subjects: Number(subjects[0]?.total),
+					};
+				})
+			);
+
+		it('refuses a body that is not strings before creating anything', async () => {
+			const bodies = [
+				{ externalId: 123 },
+				{ externalId: { id: 'ext_new' } },
+				{ externalId: 'ext_new', identityProvider: 7 },
+			];
+			const responses = await Promise.all(
+				bodies.map((body) => patch('sub_absent', body))
+			);
+			const codes = await Promise.all(
+				responses.map(async (response) => [
+					response.status,
+					(await response.json()).cause.code,
+				])
+			);
+			for (const code of codes) {
+				assert.deepStrictEqual(code, [400, 'INPUT_VALIDATION_FAILED']);
+			}
+			assert.deepStrictEqual(await written(), { audits: 0, subjects: 0 });
+		});
+
+		// SQLite and MySQL store U+0000 in text. Postgres refuses it, which
+		// makes the link fail after the subject insert.
+		it.runIf(engine.name === 'pglite' || engine.name === 'postgres')(
+			'creates no subject when the link cannot be stored',
+			async () => {
+				const response = await patch('sub_absent', { externalId: 'a\u0000b' });
+				assert.strictEqual(response.status, 500);
+				assert.deepStrictEqual(await written(), { audits: 0, subjects: 0 });
+			}
+		);
+
+		it('writes no audit entry for a retry of the stored link', async () => {
+			// A browser retrying while its first request is still in flight.
+			const responses = await Promise.all(
+				Array.from({ length: 5 }, () =>
+					patch('sub_absent', { externalId: 'ext_new' })
+				)
+			);
+			assert.deepStrictEqual(
+				responses.map((response) => response.status),
+				[200, 200, 200, 200, 200]
+			);
+			assert.strictEqual(
+				(await patch('sub_absent', { externalId: 'ext_new' })).status,
+				200
+			);
+			assert.deepStrictEqual(await written(), { audits: 1, subjects: 1 });
+		});
+
+		it('links concurrent requests for an existing subject one at a time', async () => {
+			// MySQL deadlocked here when each request held a shared lock on the
+			// row and then asked for an exclusive one.
+			assert.strictEqual(
+				(await patch('sub_absent', { externalId: 'ext_0' })).status,
+				200
+			);
+
+			const changes = await Promise.all(
+				['ext_1', 'ext_2', 'ext_3', 'ext_4', 'ext_5'].map((externalId) =>
+					patch('sub_absent', { externalId })
+				)
+			);
+			assert.deepStrictEqual(
+				changes.map((response) => response.status),
+				[200, 200, 200, 200, 200]
+			);
+			// Five links, each a change from the one before it.
+			assert.deepStrictEqual(await written(), { audits: 6, subjects: 1 });
+
+			const { subject } = await (
+				await app.request('/subjects/sub_absent')
+			).json();
+			const retries = await Promise.all(
+				Array.from({ length: 5 }, () =>
+					patch('sub_absent', { externalId: subject.externalId })
+				)
+			);
+			assert.deepStrictEqual(
+				retries.map((response) => response.status),
+				[200, 200, 200, 200, 200]
+			);
+			assert.deepStrictEqual(await written(), { audits: 6, subjects: 1 });
+		});
+
+		it('records a retry that verifies or changes the provider', async () => {
+			await patch('sub_absent', { externalId: 'ext_new' });
+			// The same id, now proved.
+			await patch('sub_absent', { externalId: 'ext_new' }, withKey);
+			const listed = await (
+				await app.request('/subjects?externalId=ext_new', authed)
+			).json();
+			assert.deepStrictEqual(
+				(listed.subjects as { id: string }[]).map((item) => item.id),
+				['sub_absent']
+			);
+			await patch(
+				'sub_absent',
+				{ externalId: 'ext_new', identityProvider: 'auth0' },
+				withKey
+			);
+			const read = await (await app.request('/subjects/sub_absent')).json();
+			assert.strictEqual(read.subject.identityProvider, 'auth0');
+			assert.deepStrictEqual(await written(), { audits: 3, subjects: 1 });
+
+			// An unverified retry keeps the verified link and writes nothing.
+			const retry = await patch('sub_absent', {
+				externalId: 'ext_new',
+				identityProvider: 'auth0',
+			});
+			assert.strictEqual(retry.status, 200);
+			assert.deepStrictEqual(await written(), { audits: 3, subjects: 1 });
+			const still = await (
+				await app.request('/subjects?externalId=ext_new', authed)
+			).json();
+			assert.strictEqual(still.subjects.length, 1);
+		});
+
+		it('404s for a missing subject whose id it would not create', async () => {
+			const response = await patch('not-a-subject', { externalId: 'ext_new' });
 			assert.strictEqual(response.status, 404);
 		});
 
@@ -1208,7 +1380,7 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 		});
 
 		it('writes no audit entry when the subject is missing', async () => {
-			await patch('sub_absent', { externalId: 'ext_new' });
+			await patch('not-a-subject', { externalId: 'ext_new' });
 			const entries = await runtime.runPromise(
 				Effect.gen(function* entries() {
 					const sql = yield* SqlClient.SqlClient;
@@ -1781,11 +1953,11 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 		it('rejects a givenAt later than the server clock rather than clamping it', async () => {
 			await seed();
 			// A receipt records when the subject acted. Moving it to server time
-			// would rewrite the evidence, so a clock ahead of the server is a
-			// visible rejection instead.
+			// would rewrite the evidence, so a clock further ahead of the server
+			// than the drift tolerance is a visible rejection instead.
 			const response = await post({
 				...submission,
-				givenAt: Date.now() + 60_000,
+				givenAt: Date.now() + 11 * 60_000,
 			});
 			assert.strictEqual(response.status, 400);
 			assert.strictEqual(

@@ -10,17 +10,19 @@ This guide sets up the recommended path for a TanStack Start app with server
 rendering. On each request, a server function in the root loader reads the
 visitor's consent cookie and location headers, resolves their policy from a
 build-time policy manifest, and hands the result to `ConsentRoot`. The banner is
-part of the first HTML, and gated scripts can run right after hydration.
+part of the first HTML. Most vendor helper scripts the visitor's consent allows
+start before the page hydrates; see
+[Rendering](/docs/frameworks/tanstack-start/rendering).
 
 It needs a running Start server. For SPA mode, prerendered pages or a static
 host, or to stream the page before consent resolves, see
 [rendering](/docs/frameworks/tanstack-start/rendering).
 
-You need an [Inth](https://inth.com) project. In the project, set the policy
+You need an [Inth project](https://inth.com/dashboard/sign-up?framework=tanstack-start). In the project, set the policy
 rules for your regions, add your site's origin to the trusted origins, and copy
 the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
-covers self-hosting and offline mode.
+covers self-hosting and local mode.
 
 The setup bundles your policy into the server at build time, the
 recommended production setup. Rebuild after changing policies, translations

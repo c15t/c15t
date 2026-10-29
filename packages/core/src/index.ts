@@ -113,7 +113,12 @@ export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
 } from './transports/offline';
-export { createOfflineTransport, offline } from './transports/offline';
+export { createOfflineTransport, local, offline } from './transports/offline';
+export {
+	NO_RECORDS_WARNING,
+	warnNoConsentRecords,
+	warnNoConsentRecordsInDevelopment,
+} from './libs/no-records-warning';
 export type {
 	OfflineModeFactory,
 	OfflineModeOptions,
@@ -210,6 +215,7 @@ export type {
 	ScriptDebugScope,
 	ScriptDebugSource,
 	ScriptLifecycleCallback,
+	ScriptServerStart,
 	ScriptUpdateResult,
 	VendorDetails,
 } from './libs/script-loader/types';
@@ -350,6 +356,12 @@ export type {
 	PresentationDiagnostic,
 	ResolvedConsentPresentation,
 } from './libs/policy-actions';
+export {
+	resolveActionLabels,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from './libs/consent-copy';
+export type { PreferenceControl, PromptCopy } from './libs/consent-copy';
 
 export {
 	deniedVendorIds,

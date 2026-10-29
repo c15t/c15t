@@ -1,7 +1,8 @@
 import { createConsentClientWith } from './client-base';
-import type { CreateConsentClientContext } from './client-base';
+import type { CreateConsentClientContext, ResolvedMode } from './client-base';
+import { warnNoConsentRecordsOnDevelopmentHost } from './no-records-warning';
 import { resolveRules } from './policy-rules';
-import { offline } from './transports/offline';
+import { local } from './transports/offline';
 import type { ConsentClient, ScriptTagClientOptions } from './types';
 
 /**
@@ -35,13 +36,22 @@ export const createOfflineConsentClient = function createOfflineConsentClient(
 		throw new Error('@c15t/browser/offline: only offline mode is supported.');
 	}
 	const policyRules = resolveRules(options.policyRules);
-	return createConsentClientWith(
-		options,
-		{
-			factory: typeof mode === 'function' ? mode : offline({ policyRules }),
-			name: 'offline',
-		},
-		policyRules,
-		context
-	);
+	const resolved: ResolvedMode = {
+		factory:
+			typeof mode === 'function'
+				? mode
+				: local({
+						acknowledgeNoRecords: options.acknowledgeNoRecords,
+						policyRules,
+					}),
+		name: 'offline',
+	};
+	// The ES module entry follows its bundler's NODE_ENV, through `local()`.
+	if (context.scriptTag) {
+		warnNoConsentRecordsOnDevelopmentHost(
+			resolved,
+			options.acknowledgeNoRecords
+		);
+	}
+	return createConsentClientWith(options, resolved, policyRules, context);
 };

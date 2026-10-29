@@ -694,7 +694,11 @@ export const createQueueWorker = function createQueueWorker({
 		const subject: ConsentSubject = { ...current, subjectId: to };
 		batch(() => {
 			commit({ subject });
-			emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
+			emit({
+				previousSubjectId: from,
+				snapshot: getSnapshot(),
+				type: 'subject:resolved',
+			});
 		});
 		return to;
 	};

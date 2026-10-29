@@ -1,20 +1,13 @@
 {
 	"name": "@c15t/ui",
-	"version": "3.0.1",
-	"description": "Framework-agnostic cookie banner UI primitives, CSS and theme tokens behind the c15t React, Vue, Svelte and Astro consent components.",
+	"version": "3.0.2-canary.0",
+	"description": "Framework-agnostic UI primitives, CSS and theme tokens behind the c15t React, Vue, Svelte and Astro components.",
 	"keywords": [
 		"c15t",
-		"cmp",
-		"consent",
-		"consent-banner",
-		"cookie-banner",
-		"cookie-consent",
 		"design-system",
 		"framework-agnostic",
 		"headless-ui",
 		"primitives",
-		"privacy",
-		"react",
 		"tailwind",
 		"ui"
 	],

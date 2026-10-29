@@ -99,7 +99,7 @@ export const generateOptionsText = function generateOptionsText(
 			}),`;
 		}
 		default:
-			return `mode: offline({ policyRules: ${DEFAULT_OFFLINE_RULES} }),`;
+			return `mode: local({ policyRules: ${DEFAULT_OFFLINE_RULES} }),`;
 	}
 };
 

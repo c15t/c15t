@@ -62,7 +62,7 @@ test('useEventDispatcher keeps one dispatcher and pageview history through conse
 			options={{
 				consentCategories: ['measurement'],
 				enabled,
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(),
 				scripts: [posthog],

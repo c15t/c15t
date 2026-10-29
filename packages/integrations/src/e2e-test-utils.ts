@@ -311,7 +311,7 @@ export const installBodyProbe = function installBodyProbe(
 	return installAppendProbe(document.body, onAppend);
 };
 
-const resetVendorGlobals = function resetVendorGlobals() {
+export const resetVendorGlobals = function resetVendorGlobals() {
 	const win = window as TestWindow;
 
 	for (const key of [
@@ -324,20 +324,32 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'CRISP_TOKEN_ID',
 		'CRISP_WEBSITE_ID',
 		'Intercom',
+		'LI',
+		'__vector_manager',
+		'InsiderQueue',
+		'Insider',
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',
+		'_elqQ',
 		'_hjSettings',
 		'_paq',
 		'_satellite',
 		'_snaptr',
 		'adobeDataLayer',
+		'alloy',
+		'__alloyNS',
+		'targetGlobalSettings',
+		'adobe',
 		'amplitude',
 		'analytics',
+		'aptrinsic',
 		'clarity',
 		'dataLayer',
+		'DY',
 		'databuddy',
 		'databuddyConfig',
+		'databuddyReplay',
 		'fbq',
 		'google_tag_data',
 		'gtag',
@@ -347,6 +359,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'hj',
 		'intercomSettings',
 		'lintrk',
+		'liQ',
 		'LogRocket',
 		'mixpanel',
 		'pirsch',
@@ -357,7 +370,9 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'plausible',
 		'posthog',
 		'rdt',
+		'reb2b',
 		'oaiq',
+		'optimizely',
 		'rudderanalytics',
 		'rudderAnalyticsBuildType',
 		'RudderSnippetVersion',
@@ -365,11 +380,21 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'sil',
 		'siq',
 		'snaptr',
+		'ttdConversionEvents',
+		'ttdConversionEventsLayer',
 		'ttq',
 		'twq',
 		'uetq',
 		'va',
 		'vaq',
+		'__AdaMessagingSdkBootstrap',
+		'GorgiasChat',
+		'gorgiasChat',
+		'gorgiasChatPendingEvents',
+		'zE',
+		'zEmbed',
+		'vector',
+		'wisepops',
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}

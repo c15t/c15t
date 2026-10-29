@@ -14,6 +14,7 @@ A Nuxt app with c15t adds these to the page, and your policy must allow them:
 | The components' CSS: inline `<style>` tags Nuxt writes for the server-rendered banner, and stylesheets Nuxt bundles with your app | `style-src` |
 | On `ssr: false` pages in `hosted()` mode, an inline `<script>` in the page head that starts `/init` | `script-src` |
 | On server-rendered pages with a banner, an inline `<script>` before its buttons that holds a tap made before hydration | `script-src` |
+| On server-rendered pages when the visitor's consent or `alwaysLoad` already lets some vendor helper entries in `scripts` run, an inline `<script>` at the end of `<body>` that starts them | `script-src` |
 | Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in the default `manifest()` mode | `connect-src 'self'` |
 | Consent saves to your backend's `/subjects`, plus `/init` in `hosted()` mode | `connect-src` |
 | Chunks Nuxt splits out, such as the browser resolver with `manifest({ resolve: 'browser' })` and the copy for a language other than English | `script-src 'self'` |
@@ -68,6 +69,25 @@ It holds a tap the visitor makes before the app hydrates. It carries the
 module's `nonce` option when set, and its content is the same for every
 visitor, so a hash works too. If your policy blocks it, the banner still works
 after hydration, but a tap before then does nothing.
+
+## Allow the server start script
+
+When the visitor's consent already allows some vendor helper entries in
+`scripts`, through a stored choice or a policy that asks for none, the server
+render adds an inline `<script>` at the end of `<body>`. It runs those entries'
+setup and inserts their tags before the app hydrates, and the script loader
+adopts the tags. Entries with `alwaysLoad` start this way whatever the visitor
+chose. Its content changes with each visitor's consent, so a hash can't allow
+it.
+
+- **With `nuxt-security`**, the script and the tags it inserts carry its
+  per-request nonce. Nothing more is needed.
+- **With the module's `nonce` option**, the script and the tags it inserts
+  carry that nonce. A `nonce` on a single `scripts` entry takes precedence for
+  that entry's tag.
+
+If your policy blocks it, the script loader starts those entries after
+hydration instead.
 
 ## Allow the backend
 

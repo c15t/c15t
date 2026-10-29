@@ -130,7 +130,7 @@ const resolveManifestSource = function resolveManifestSource(
  *   usually the app's own route, so the server reads
  *   `${backendURL}/manifest` instead.
  * - `hosted()` asks `${backendURL}/init` with the mode's headers.
- * - `offline()` resolves nothing on the server; the browser does.
+ * - `local()` resolves nothing on the server; the browser does.
  *
  * @param options - Explicit overrides of the config.
  * @returns Where to resolve from.

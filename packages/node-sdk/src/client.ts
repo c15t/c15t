@@ -59,6 +59,7 @@ export interface C15tPublicSubjects {
 			| 'CHOICE_PREFERENCE_MISMATCH'
 			| 'CONFLICT'
 			| 'DATABASE_ERROR'
+			| 'DOMAIN_NOT_ALLOWED'
 			| 'INPUT_VALIDATION_FAILED'
 			| 'POLICY_SNAPSHOT_EXPIRED'
 			| 'POLICY_SNAPSHOT_INVALID'
@@ -79,7 +80,9 @@ export interface C15tPublicSubjects {
 	 *
 	 * An unverified link cannot replace a verified one: that returns
 	 * `IDENTITY_CONFLICT`. A token that fails to verify returns
-	 * `IDENTITY_TOKEN_INVALID`.
+	 * `IDENTITY_TOKEN_INVALID`. A backend set to store verified links only
+	 * returns `IDENTITY_TOKEN_REQUIRED` for a link with neither a key nor a
+	 * token.
 	 *
 	 * @param id - Subject id from the visitor's browser.
 	 * @param input - Your user id, optionally who issued it, and optionally an
@@ -96,6 +99,7 @@ export interface C15tPublicSubjects {
 			| 'EXTERNAL_ID_REQUIRED'
 			| 'IDENTITY_CONFLICT'
 			| 'IDENTITY_TOKEN_INVALID'
+			| 'IDENTITY_TOKEN_REQUIRED'
 			| 'NOT_FOUND'
 		>
 	>;

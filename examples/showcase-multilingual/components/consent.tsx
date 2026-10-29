@@ -4,7 +4,7 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentRoot,
-	offline,
+	local,
 	useSetLanguage,
 } from 'c15t/next';
 import { useEffect } from 'react';
@@ -19,7 +19,7 @@ import type { Locale } from '@/lib/locales';
 // backend reads the visitor's real location from the request instead. In
 // production, swap this line for your project's backend:
 // const mode = hosted({ backendURL: 'https://your-project.inth.app' });
-const mode = offline();
+const mode = local();
 
 /**
  * Keeps c15t's language on the route's locale. `ConsentRoot` reads `i18n`

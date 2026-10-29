@@ -90,7 +90,7 @@ const buildDocComment = function buildDocComment({
  * // React
  * generateConsentComponent({
  *   importSource: 'c15t/react',
- *   optionsText: "mode: 'offline',",
+ *   optionsText: "mode: local(),",
  * });
  *
  * // Next.js Pages
@@ -145,7 +145,7 @@ export const generateConsentComponent = function generateConsentComponent({
 		}`;
 
 	const needsDataType = initialDataProp || ssrDataOption;
-	const modeImports = ['custom', 'hosted', 'offline'].filter((name) =>
+	const modeImports = ['custom', 'hosted', 'local'].filter((name) =>
 		optionsText.includes(`${name}(`)
 	);
 	const namedImports = `ConsentDialog,

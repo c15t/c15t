@@ -1,20 +1,24 @@
 {
 	"name": "@c15t/integrations",
-	"version": "3.1.0",
-	"description": "Cookie consent integrations for 40+ analytics, advertising and chat tools, including GTM, GA4 and Meta Pixel, with Google Consent Mode v2 and script gating.",
+	"version": "3.2.0-canary.0",
+	"description": "Consent-aware integrations for c15t: 40+ analytics, advertising and chat tools, including GTM, GA4 and Meta Pixel, with Google Consent Mode v2 and script gating.",
 	"keywords": [
 		"adobe-analytics",
+		"adroll",
+		"amazon-ads",
 		"amplitude",
 		"analytics-consent",
 		"block-scripts-until-consent",
 		"c15t",
 		"ccpa",
+		"clay",
 		"clearbit",
 		"cmp",
 		"consent",
 		"consent-mode",
 		"consent-mode-v2",
 		"cookie-consent",
+		"default-com",
 		"ga4",
 		"gdpr",
 		"google-ads",
@@ -25,9 +29,11 @@
 		"gtm",
 		"heap",
 		"hightouch",
+		"hubspot",
 		"klaviyo",
 		"lgpd",
 		"linkedin-insights",
+		"liveintent",
 		"logrocket",
 		"meta-pixel",
 		"microsoft-uet",
@@ -35,11 +41,15 @@
 		"pirsch",
 		"posthog",
 		"privacy",
+		"rb2b",
 		"rudderstack",
 		"script-loader",
 		"sentry",
 		"session-replay",
+		"statable",
+		"the-trade-desk",
 		"tiktok-pixel",
+		"vector",
 		"vercel-speed-insights",
 		"x-pixel"
 	],
@@ -63,6 +73,15 @@
 	],
 	"type": "module",
 	"sideEffects": false,
+	"imports": {
+		"#inline-start": {
+			"types": "./dist-types/engine/inline-start.d.ts",
+			"edge-light": "./dist/engine/inline-start.js",
+			"workerd": "./dist/engine/inline-start.js",
+			"browser": "./dist/engine/inline-start-browser.js",
+			"default": "./dist/engine/inline-start.js"
+		}
+	},
 	"exports": {
 		"./adobe-analytics": {
 			"types": "./dist-types/vendors/analytics/adobe-analytics.d.ts",
@@ -184,6 +203,11 @@
 			"import": "./dist/vendors/analytics/rybbit-analytics.js",
 			"default": "./dist/vendors/analytics/rybbit-analytics.js"
 		},
+		"./statable-analytics": {
+			"types": "./dist-types/vendors/analytics/statable-analytics.d.ts",
+			"import": "./dist/vendors/analytics/statable-analytics.js",
+			"default": "./dist/vendors/analytics/statable-analytics.js"
+		},
 		"./umami-analytics": {
 			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
 			"import": "./dist/vendors/analytics/umami-analytics.js",
@@ -223,6 +247,11 @@
 			"types": "./dist-types/vendors/tag-managers/cloudflare-zaraz.d.ts",
 			"import": "./dist/vendors/tag-managers/cloudflare-zaraz.js",
 			"default": "./dist/vendors/tag-managers/cloudflare-zaraz.js"
+		},
+		"./shopify": {
+			"types": "./dist-types/shopify.d.ts",
+			"import": "./dist/shopify.js",
+			"default": "./dist/shopify.js"
 		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
@@ -288,6 +317,146 @@
 			"types": "./dist-types/events.d.ts",
 			"import": "./dist/events.js",
 			"default": "./dist/events.js"
+		},
+		"./hubspot": {
+			"types": "./dist-types/vendors/analytics/hubspot.d.ts",
+			"import": "./dist/vendors/analytics/hubspot.js",
+			"default": "./dist/vendors/analytics/hubspot.js"
+		},
+		"./default-com": {
+			"types": "./dist-types/vendors/analytics/default-com.d.ts",
+			"import": "./dist/vendors/analytics/default-com.js",
+			"default": "./dist/vendors/analytics/default-com.js"
+		},
+		"./oracle-eloqua": {
+			"types": "./dist-types/vendors/analytics/oracle-eloqua.d.ts",
+			"import": "./dist/vendors/analytics/oracle-eloqua.js",
+			"default": "./dist/vendors/analytics/oracle-eloqua.js"
+		},
+		"./activecampaign": {
+			"types": "./dist-types/vendors/email-and-sms/activecampaign.d.ts",
+			"import": "./dist/vendors/email-and-sms/activecampaign.js",
+			"default": "./dist/vendors/email-and-sms/activecampaign.js"
+		},
+		"./gainsight-px": {
+			"types": "./dist-types/vendors/analytics/gainsight-px.d.ts",
+			"import": "./dist/vendors/analytics/gainsight-px.js",
+			"default": "./dist/vendors/analytics/gainsight-px.js"
+		},
+		"./fullstory": {
+			"types": "./dist-types/vendors/analytics/fullstory.d.ts",
+			"import": "./dist/vendors/analytics/fullstory.js",
+			"default": "./dist/vendors/analytics/fullstory.js"
+		},
+		"./amazon-ads": {
+			"types": "./dist-types/vendors/ads-and-pixels/amazon-ads.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/amazon-ads.js",
+			"default": "./dist/vendors/ads-and-pixels/amazon-ads.js"
+		},
+		"./ada": {
+			"types": "./dist-types/vendors/functional/ada.d.ts",
+			"import": "./dist/vendors/functional/ada.js",
+			"default": "./dist/vendors/functional/ada.js"
+		},
+		"./gorgias": {
+			"types": "./dist-types/vendors/functional/gorgias.d.ts",
+			"import": "./dist/vendors/functional/gorgias.js",
+			"default": "./dist/vendors/functional/gorgias.js"
+		},
+		"./zendesk": {
+			"types": "./dist-types/vendors/functional/zendesk.d.ts",
+			"import": "./dist/vendors/functional/zendesk.js",
+			"default": "./dist/vendors/functional/zendesk.js"
+		},
+		"./the-trade-desk": {
+			"types": "./dist-types/vendors/ads-and-pixels/the-trade-desk.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/the-trade-desk.js",
+			"default": "./dist/vendors/ads-and-pixels/the-trade-desk.js"
+		},
+		"./liveintent": {
+			"types": "./dist-types/vendors/ads-and-pixels/liveintent.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/liveintent.js",
+			"default": "./dist/vendors/ads-and-pixels/liveintent.js"
+		},
+		"./adroll": {
+			"types": "./dist-types/vendors/ads-and-pixels/adroll.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/adroll.js",
+			"default": "./dist/vendors/ads-and-pixels/adroll.js"
+		},
+		"./vector": {
+			"types": "./dist-types/vendors/ads-and-pixels/vector.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/vector.js",
+			"default": "./dist/vendors/ads-and-pixels/vector.js"
+		},
+		"./pendo": {
+			"types": "./dist-types/vendors/analytics/pendo.d.ts",
+			"import": "./dist/vendors/analytics/pendo.js",
+			"default": "./dist/vendors/analytics/pendo.js"
+		},
+		"./lucky-orange": {
+			"types": "./dist-types/vendors/analytics/lucky-orange.d.ts",
+			"import": "./dist/vendors/analytics/lucky-orange.js",
+			"default": "./dist/vendors/analytics/lucky-orange.js"
+		},
+		"./rb2b": {
+			"types": "./dist-types/vendors/analytics/rb2b.d.ts",
+			"import": "./dist/vendors/analytics/rb2b.js",
+			"default": "./dist/vendors/analytics/rb2b.js"
+		},
+		"./optimizely": {
+			"types": "./dist-types/vendors/functional/optimizely.d.ts",
+			"import": "./dist/vendors/functional/optimizely.js",
+			"default": "./dist/vendors/functional/optimizely.js"
+		},
+		"./dynamic-yield": {
+			"types": "./dist-types/vendors/functional/dynamic-yield.d.ts",
+			"import": "./dist/vendors/functional/dynamic-yield.js",
+			"default": "./dist/vendors/functional/dynamic-yield.js"
+		},
+		"./adobe-target": {
+			"types": "./dist-types/vendors/functional/adobe-target.d.ts",
+			"import": "./dist/vendors/functional/adobe-target.js",
+			"default": "./dist/vendors/functional/adobe-target.js"
+		},
+		"./appcues": {
+			"types": "./dist-types/vendors/functional/appcues.d.ts",
+			"import": "./dist/vendors/functional/appcues.js",
+			"default": "./dist/vendors/functional/appcues.js"
+		},
+		"./wisepops": {
+			"types": "./dist-types/vendors/functional/wisepops.d.ts",
+			"import": "./dist/vendors/functional/wisepops.js",
+			"default": "./dist/vendors/functional/wisepops.js"
+		},
+		"./marketo": {
+			"types": "./dist-types/vendors/analytics/marketo.d.ts",
+			"import": "./dist/vendors/analytics/marketo.js",
+			"default": "./dist/vendors/analytics/marketo.js"
+		},
+		"./salesforce-pardot": {
+			"types": "./dist-types/vendors/analytics/salesforce-pardot.d.ts",
+			"import": "./dist/vendors/analytics/salesforce-pardot.js",
+			"default": "./dist/vendors/analytics/salesforce-pardot.js"
+		},
+		"./attentive": {
+			"types": "./dist-types/vendors/email-and-sms/attentive.d.ts",
+			"import": "./dist/vendors/email-and-sms/attentive.js",
+			"default": "./dist/vendors/email-and-sms/attentive.js"
+		},
+		"./customer-io": {
+			"types": "./dist-types/vendors/email-and-sms/customer-io.d.ts",
+			"import": "./dist/vendors/email-and-sms/customer-io.js",
+			"default": "./dist/vendors/email-and-sms/customer-io.js"
+		},
+		"./insider": {
+			"types": "./dist-types/vendors/email-and-sms/insider.d.ts",
+			"import": "./dist/vendors/email-and-sms/insider.js",
+			"default": "./dist/vendors/email-and-sms/insider.js"
+		},
+		"./clay": {
+			"types": "./dist-types/vendors/analytics/clay.d.ts",
+			"import": "./dist/vendors/analytics/clay.js",
+			"default": "./dist/vendors/analytics/clay.js"
 		}
 	},
 	"publishConfig": {
@@ -311,6 +480,7 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"esbuild": "0.28.1",
 		"playwright": "1.58.2",
 		"sentry-browser-v10": "npm:@sentry/browser@^10.67.0",
 		"sentry-browser-v10-min": "npm:@sentry/browser@10.67.0",

@@ -1,6 +1,6 @@
 ---
 title: Consent modes
-description: Reference for manifest(), hosted() and offline() in every c15t framework package, where each one resolves the visitor's policy, what it adds to first-load JavaScript, the build-time manifest fetch and its failure policy, and the backend URL variable each framework reads.
+description: Reference for manifest(), hosted() and local() in every c15t framework package, where each one resolves the visitor's policy, what it adds to first-load JavaScript, the build-time manifest fetch and its failure policy, and the backend URL variable each framework reads.
 group: concepts
 ---
 
@@ -8,7 +8,8 @@ group: concepts
 
 A mode decides how c15t finds the policy that applies to a visitor. Every
 framework package exports the same three factories, `manifest()`, `hosted()`
-and `offline()`. Consent choices go to the backend in `manifest()` and
+and `local()`. `local()` was called `offline()` before c15t 3.2, and the old
+name still works until c15t v4. Consent choices go to the backend in `manifest()` and
 `hosted()`, whether that backend is [Inth](https://inth.com) or a
 [self-hosted c15t backend](/docs/self-host/quickstart).
 
@@ -16,7 +17,7 @@ and `offline()`. Consent choices go to the backend in `manifest()` and
 | --- | --- | --- | --- |
 | `manifest()`, the default | Your server, from the policy the build downloaded. With `resolve: 'browser'`, or in a single-page app, the browser. | None to resolve the policy, unless the browser needs a location it doesn't have. Choices post to `/subjects`. | Server-rendered apps. Rebuild to ship policy changes, or set `source: 'runtime'`. |
 | `hosted()` | The backend's `GET /init` | One `/init` per page that resolves consent. | Single-page apps and static hosting without a server, where the backend reads each visitor's location from the request. Policy edits apply without a rebuild. |
-| `offline()` | The browser, from rules in your bundle | None. Choices stay in the browser. | Local development, tests and demos. Not recommended for production environments. |
+| `local()` | The browser, from rules in your bundle | None. Choices stay in the browser, and c15t keeps no server-side record of consent. | Local development, tests and demos. Not recommended for production environments. |
 
 `manifest()` is the default in Next.js, TanStack Start, Nuxt, Astro and
 SvelteKit. React, Vue, Svelte and `@c15t/browser` have no default: pass a
@@ -41,12 +42,12 @@ needs under the same three names.
 | TanStack Start | `c15t/tanstack-start` | `createConsentStateHandler({ mode })` | Data |
 | Nuxt | `c15t/vue` | `c15t.mode` in `nuxt.config.ts` | Data |
 | Astro | `c15t/astro` | `c15t({ mode })` in `astro.config.mjs` | Data |
-| SvelteKit | `@c15t/svelte/kit` | `c15tHandle({ mode })` in `src/hooks.server.ts` | Data |
+| SvelteKit | `c15t/svelte/kit` | `c15tHandle({ mode })` in `src/hooks.server.ts` | Data |
 | React | `c15t/react` | `ConsentProvider`'s `options.mode` | Transport |
 | Vue | `c15t/vue/vue-plugin` | `app.use(c15tVue, { mode })` | Transport |
-| Svelte | `@c15t/svelte` | `<ConsentProvider mode={...}>` | Transport |
+| Svelte | `c15t/svelte` | `<ConsentProvider mode={...}>` | Transport |
 | JavaScript | `@c15t/browser` | `init({ mode })` | Transport |
-| Script tag | none | The bundle file: `c15t.js` is hosted, `c15t.offline.js` offline. The headless and IAB scripts also take `data-mode="manifest"`. | Name |
+| Script tag | none | The bundle file: `c15t.js` is hosted, `c15t.local.js` local. The headless and IAB scripts also take `data-mode="manifest"`. | Name |
 
 **Data factories** return a plain object such as `{ type: 'manifest' }`.
 Server-rendered frameworks read their config on the server and in the
@@ -83,7 +84,7 @@ holds your policy rules and copy, and no visitor data.
 | `inputs` | none | `{ country, region }` when the page already knows the visitor's location, for example from an edge worker. Browser resolution only. |
 
 The transport `manifest()` from `c15t/react`, `c15t/vue/vue-plugin`,
-`@c15t/svelte` and `@c15t/browser` always resolves in the browser, so it has
+`c15t/svelte` and `@c15t/browser` always resolve in the browser, so they have
 no `resolve` option. It also takes `backendURL`, `headers`, `credentials`,
 `domain`, `fetch` and `initFallback`. With no options it reads the snapshot
 and the backend URL your build integration downloaded. With `manifestURL`,
@@ -95,7 +96,7 @@ know the country or region, browser resolution asks `geoURL`, then the
 backend's `/init`. Set `initFallback: false` to resolve for an unknown location
 instead. A policy with location rules therefore saves no request in a
 single-page app unless you pass `inputs` or `geoURL`. The `consentManifest()`
-plugins from `c15t/build`, `c15t/vue/vite` and `@c15t/svelte/vite` warn
+plugins from `c15t/build`, `c15t/vue/vite` and `c15t/svelte/vite` warn
 about this when a single-page app build bundles such a policy.
 
 ## hosted()
@@ -119,20 +120,73 @@ against and the backend can reject a save made against a stale policy.
 `backendURL`. The framework exports fill it in from your config or your
 build.
 
-## offline()
+## local()
 
 Not recommended for production environments.
 
-`offline()` resolves policy rules in the browser and stores choices in browser
-storage. Nothing reaches a backend, so there is no consent record, no
-cross-device history and no IP geolocation.
+`local()` resolves policy rules in the browser and stores choices in browser
+storage. Nothing reaches a backend, so c15t keeps no server-side record of
+consent. There is also no cross-device history, and with no IP geolocation
+every visitor gets the policy for an unknown location unless you pass
+`overrides`.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `policyRules` | the recommended rule pack | Rules to resolve. Passing rules replaces the pack entirely. |
+| `acknowledgeNoRecords` | `false` | `true` hides the development warning described below. It changes nothing else. |
 
 Unknown country and region are real inputs: test the missing-location case
 against your rules. See [policy rules](/docs/concepts/policies).
+
+### The development warning
+
+In a development build, local mode logs one `console.warn` per page load:
+
+```txt
+[c15t] Local mode keeps consent only in this browser. c15t keeps no
+server-side record of consent. If you rely on consent under GDPR, Article
+7(1) requires you to demonstrate it. Keep your own consent records or use
+a c15t backend. Local mode also has no geolocation, so every visitor gets
+the same policy. Use it for development and tests. For production, see
+https://c15t.com/docs/concepts/modes
+Set acknowledgeNoRecords: true to hide this message.
+```
+
+Production builds never log it, and it never blocks the banner or a save.
+The script-tag files are production builds, so `c15t.local.js`, and
+`c15t.headless.js` or `c15t.iab.js` without a backend URL, log it on
+development hosts instead:
+`localhost`, `127.0.0.1`, `[::1]`, `0.0.0.0` and names ending in
+`.localhost`, `.local` or `.test`. A script tag hides it with
+`data-acknowledge-no-records`.
+
+Set `acknowledgeNoRecords: true` once you have decided a browser-only record is
+enough, such as in tests, or on a site that keeps its own record through
+[callbacks](/docs/frameworks/javascript/callbacks) or a [`custom()` transport](/docs/concepts/data-fetching#can-i-provide-my-own-transport):
+
+{/* example: fragment */}
+
+```ts
+import { local } from 'c15t/react';
+
+const mode = local({ acknowledgeNoRecords: true });
+```
+
+c15t v4 removes the `offline()` name and makes `acknowledgeNoRecords: true`
+required in `local()`'s type.
+
+### What a consent record proves
+
+A consent record is the backend's copy of a choice: which categories the
+visitor granted or denied, when, and against which policy and copy. Under the
+GDPR, the business that relies on consent must be able to show that the
+visitor gave it (Article 7(1)). Browser storage alone cannot do that: the
+visitor can clear it, and it never leaves their device.
+
+`manifest()` and `hosted()` post each choice to the backend, which keeps the
+record. To keep records without Inth, run a
+[self-hosted backend](/docs/self-host/overview), or send each choice to your
+own API with `custom()`.
 
 ## What each mode adds to first-load JavaScript
 
@@ -143,12 +197,12 @@ runs:
 | Mode | First-load JavaScript | Loaded with `import()` when it runs |
 | --- | --- | --- |
 | `manifest()` | The code that saves choices and builds an init request | The hosted init path, if the browser has to resolve consent again |
-| `manifest({ resolve: 'browser' })` | The code that saves choices | The browser resolver, English copy and the fetch of `${routePrefix}/manifest` or `${backendURL}/manifest`. Other languages load per language. |
+| `manifest({ resolve: 'browser' })` | The code that saves choices | The browser resolver, English copy and the fetch of `${routePrefix}/manifest` or `${backendURL}/manifest`, unless the server state already holds the policy. Other languages load per language. |
 | `hosted()` | The code that saves choices | The hosted init path |
-| `offline()` | Nothing mode-specific | The offline transport, the rule pack and its copy |
+| `local()` | Nothing mode-specific | The local transport, the rule pack and its copy |
 
 With `manifest()` resolved on the server, the manifest snapshot, the resolver,
-the offline rule pack and other languages stay out of the browser bundle.
+the local rule pack and other languages stay out of the browser bundle.
 
 In a single-page app the bundle contains the mode you imported:
 
@@ -156,7 +210,7 @@ In a single-page app the bundle contains the mode you imported:
 | --- | --- |
 | `manifest()` | The snapshot, when the build downloaded one, and the code that saves choices. The resolver starts loading when `manifest()` runs, unless the policy needs a location the page does not know. English copy is bundled; other languages load the first time a visitor needs one. |
 | `hosted()` | The hosted transport |
-| `offline()` | The offline transport, the recommended rule pack and its copy |
+| `local()` | The local transport, the recommended rule pack and its copy |
 
 ## Set the backend URL
 
@@ -201,7 +255,7 @@ build integration downloads from `${backendURL}/manifest`:
 | TanStack Start | `consentManifest()` from `c15t/tanstack-start/build` | `@c15t/tanstack-start/build` |
 | React and JavaScript | `consentManifest()` from `c15t/build` | `@c15t/core/build` |
 | Vue | `consentManifest()` from `c15t/vue/vite` | `@c15t/vue/vite` |
-| Svelte and SvelteKit | `consentManifest()` from `@c15t/svelte/vite` | `@c15t/svelte/vite` |
+| Svelte and SvelteKit | `consentManifest()` from `c15t/svelte/vite` | `@c15t/svelte/vite` |
 | Nuxt | the `c15t/vue` module | `@c15t/vue` |
 | Astro | the `c15t()` integration | `@c15t/astro` |
 
@@ -265,13 +319,13 @@ snapshot:
 - The backend URL is relative, such as `/api/c15t`. With an explicit
   `onBuildError: 'fail'`, a relative URL stops the build instead.
 - Next.js builds with `output: 'export'`, which has no server.
-- The mode is `hosted()`, `offline()`, `manifest({ snapshot })` or
+- The mode is `hosted()`, `local()`, `manifest({ snapshot })` or
   `manifest({ source: 'runtime' })` in Next.js, Nuxt and Astro. Next.js reads
   the mode from `c15t.config.ts`.
 - A single-page app built with Vite (React, Vue, Svelte, JavaScript) does
   not use `manifest()`. The mode is set in app code, so the plugin downloads
   the manifest only once the bundle turns out to read it, after unused code
-  is dropped. A `hosted()` or `offline()` build never contacts the backend.
+  is dropped. A `hosted()` or `local()` build never contacts the backend.
   SvelteKit and TanStack Start choose the mode on the server at runtime, so
   their builds always download it.
 

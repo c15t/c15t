@@ -126,6 +126,7 @@ export default defineConfig({
 		'.cursor/**',
 		'.repos/**',
 		'.tmp-bun/**',
+		'apps/shadcn-registry/vendor/**',
 		'packages/c15t/shims/**',
 	],
 	overrides: [
@@ -173,6 +174,19 @@ export default defineConfig({
 			files: nextAppFiles,
 			plugins: next.plugins,
 			rules: next.rules,
+		},
+		{
+			// shadcn copies these files into users' projects, so they follow
+			// shadcn's code style. Correctness rules still apply.
+			files: ['apps/shadcn-registry/registry/**/*.{ts,tsx}'],
+			rules: {
+				curly: 'off',
+				'func-style': 'off',
+				'import/consistent-type-specifier-style': 'off',
+				'react/function-component-definition': 'off',
+				'react/jsx-handler-names': 'off',
+				'sort-keys': 'off',
+			},
 		},
 		{
 			files: [...nonReactFrameworkFiles],

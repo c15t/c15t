@@ -30,7 +30,7 @@ fixture. The Next.js 15 and webpack fixtures use the same files. The check
 confirms that c15t's banner and dialog keep their styles under Tailwind's
 preflight, that a padding utility on the banner root
 beats c15t's own padding, and that the `dark:` variant applies. The fixtures run
-without a backend, so they use `offline()` mode or a local `backendURL`. Keep the
+without a backend, so they use `local()` mode or a local `backendURL`. Keep the
 `mode` or `backendURL` from your quickstart.
 
 ## Set up Tailwind CSS 4
@@ -153,8 +153,7 @@ package that ships a stylesheet exports the plugin as
 
 | You installed | Plugin name |
 | --- | --- |
-| `c15t` (React, Next.js, TanStack Start, Vue, Nuxt, Astro) | `c15t/postcss-tailwind3` |
-| `@c15t/svelte` (Svelte, SvelteKit) | `@c15t/svelte/postcss-tailwind3` |
+| `c15t` (React, Next.js, TanStack Start, Vue, Nuxt, Astro, Svelte, SvelteKit) | `c15t/postcss-tailwind3` |
 | `@c15t/browser` (script tag in the light DOM) | `@c15t/browser/postcss-tailwind3` |
 
 They are the same plugin. A config that already lists
@@ -190,17 +189,9 @@ class. Add the important modifier to utilities you pass to c15t parts:
 `!bg-red-500`, `hover:!bg-red-500`. A bare `bg-red-500` has no effect. Theme
 tokens work the same on Tailwind 3 and 4.
 
-In React and Next.js apps, `c15t setup` adds the plugin and the stylesheet
-import when it finds Tailwind 3, but does not set `styles: false`. Add that
-yourself. It replaces an existing
-`styles.tw3.css` import from an earlier setup with `styles.css`. When it
-cannot edit your PostCSS config, it prints the step to do by hand. See
-[setup](/docs/cli/commands/setup#set-up-styles-and-tailwind-css).
-
 Create React App ignores PostCSS config files, so Tailwind 3 cannot run the
-plugin and the build fails on c15t's stylesheet. `c15t setup` warns
-about this. Add the plugin before `tailwindcss` through CRACO, eject, or move
-the app to Vite.
+plugin and the build fails on c15t's stylesheet. Add the plugin before
+`tailwindcss` through CRACO, eject, or move the app to Vite.
 
 <Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
   <Tab value="Next.js">
@@ -300,7 +291,7 @@ the app to Vite.
 
     <include src="../shared/examples/tailwind-v3/svelte/tailwind-config.mdx" />
 
-    Import `@c15t/svelte/styles.css` above the directives, import this
+    Import `c15t/svelte/styles.css` above the directives, import this
     stylesheet from `src/main.ts`, and pass `styles={false}` to
     `ConsentProvider`:
 
@@ -314,7 +305,7 @@ the app to Vite.
 
     <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-config.mdx" />
 
-    Import `@c15t/svelte/styles.css` above the directives, import this
+    Import `c15t/svelte/styles.css` above the directives, import this
     stylesheet from your root `+layout.svelte`, and pass `styles={false}` to
     `ConsentRoot`:
 

@@ -6,30 +6,34 @@ group: frameworks
 
 ## Before you start
 
-This quickstart sets up the App Router with a Next.js server, which is what
-most Next.js apps use. Your build bundles the Inth project's public policy
-manifest and your server resolves consent for each visitor, so the browser gets the answer
-with the page and makes no `/init` request. Consent choices go to Inth.
+This guide is for the App Router on a Next.js server, the setup most Next.js
+apps use. When you finish, your server works out each visitor's consent and
+sends it in the same response as the page. The browser makes no `/init`
+request, and analytics wait until consent allows them. Consent
+choices are saved to Inth.
+
+Not using Next.js? Each framework has its own guide, including React with Vite
+and plain JavaScript. Pick yours from the [framework list](/docs/frameworks).
 
 Using the Pages Router, `output: 'export'` or cached pages? Find your app in
 [Use another router or deployment](#use-another-router-or-deployment) first.
 
-You need an [Inth](https://inth.com) project. Set its policy rules, add your
+You need an [Inth project](https://inth.com/dashboard/sign-up?framework=next). Set its policy rules, add your
 site's origin to its trusted origins, and copy its backend URL. The URL is
 public configuration, not a secret. A
 [self-hosted backend](/docs/self-host/quickstart) uses the same files with its
 own URL.
 
-The setup bundles your policy into the server at build time, the
-recommended production setup. Rebuild after changing policies, translations
+This setup bundles your policy into the build. We recommend it for
+production, but it means you rebuild after you change policies, translations
 or vendors.
 
 ## Install c15t
 
 <CommandTabs command="c15t @c15t/integrations" mode="install" />
 
-There is no stylesheet to import. c15t's components render their own rules
-as `<style>` elements. With Tailwind CSS 3, import the stylesheet
+You don't need to import a stylesheet, because the components add their own
+`<style>` elements. Tailwind CSS 3 is the exception. Import the stylesheet
 yourself and set `styles: false`, as
 [Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
 shows.
@@ -47,9 +51,9 @@ If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, tha
 too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
 
 `https://example-inth.inth.app` is a demo project you can use to try the
-setup. Next.js inlines `NEXT_PUBLIC_` variables at build time, so the build,
-the server and the browser use the same URL, and changing the variable on a
-built app has no effect until you rebuild.
+setup. Next.js inlines `NEXT_PUBLIC_` variables at build time. The build, the
+server and the browser all see the same URL, and changing it on a deployed app
+does nothing until you rebuild.
 
 ## Bundle the manifest during builds
 
@@ -61,10 +65,10 @@ or function goes in as the first argument, unchanged:
 <include src="../../shared/examples/nextjs/quickstart-next-config.mdx" />
 
 `next build` and `next dev` fetch `${NEXT_PUBLIC_C15T_BACKEND_URL}/manifest`
-and write the policy to `node_modules/.cache/c15t/`, outside your source tree.
-`resolveConsent` reads it on its own, so you don't import it. `next start`
-serves the built snapshot and fetches no policy. There is nothing to keep out
-of Git.
+and write the policy to `node_modules/.cache/c15t/`. That's outside your source
+tree, so there's nothing to add to `.gitignore`. `resolveConsent` finds the
+file on its own. When the build produced a snapshot, `next start` serves it
+without fetching the policy again.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
@@ -76,18 +80,20 @@ Create `c15t.config.ts` at the project root:
 
 `withConsentManifest` finds this file, so `ConsentRoot` and `resolveConsent`
 read it without an import. Export the config as the file's default export.
-The file is bundled into the browser as well as the server, so it can hold
-`scripts` but must hold no secrets.
+The browser bundle includes this file too, so keep secrets out of it. Scripts
+are fine.
 
 The config sets no `mode`, so it uses `manifest()`: the server resolves each
 visitor from the bundled policy. [Consent modes](/docs/concepts/modes) lists
 the alternatives.
 
-PostHog waits for measurement consent here. Replace `phc_your_project_key`
-with your project key, or use the [integration](/docs/integrations/overview)
-your application needs. `cookieless_mode: 'never'` disables cookieless capture
-after rejection. Remove any existing PostHog loader, including `next/script`
-and tag-manager entries, so the integration loads once.
+The example holds PostHog back until `measurement` is allowed. Swap
+`phc_your_project_key` for your key, or use whichever
+[integration](/docs/integrations/overview) your app needs.
+`cookieless_mode: 'never'` stops PostHog from switching to cookieless capture
+after a rejection. Remove any PostHog loader you already have in `next/script`
+or your tag manager. Otherwise PostHog loads twice, and the old copy ignores
+consent.
 
 ## Resolve consent in the root layout
 
@@ -98,13 +104,13 @@ awaiting it:
 
 The layout is a Server Component. `c15t/next` gives it `ConsentRoot`,
 `ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` as client components,
-so you write no `'use client'` wrapper. `ConsentRoot` already wraps
+so you don't need a `'use client'` wrapper. `ConsentRoot` already wraps
 `ConsentProvider`, so don't mount both.
 
-Next.js renders the page without waiting for consent and sends the result
-later in the same response. Until the browser applies it, the banner stays
-hidden and optional categories stay denied. To send the banner in the first
-HTML instead, see
+Because the layout doesn't await `resolveConsent()`, Next.js sends the page
+without waiting for it and streams the consent result later in the same response. Until
+it arrives, the banner stays hidden and every optional category stays denied,
+so nothing loads early. If you want the banner in the first HTML, see
 [render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html).
 
 ## Check it works
@@ -126,8 +132,9 @@ site in a fresh browser session with DevTools open.
 If the banner does not appear, see
 [why is there no banner](/docs/guides/troubleshooting#why-is-there-no-banner)
 and [Next.js troubleshooting](/docs/frameworks/next/troubleshooting).
-[Verify consent](/docs/guides/verify-consent) has the release checklist. A
-visible banner alone does not prove that analytics wait for consent.
+[Verify consent](/docs/guides/verify-consent) has the release checklist.
+Check the Network panel, not just the banner. A banner can appear while
+analytics still load.
 
 ## Use another router or deployment
 
@@ -139,9 +146,9 @@ visible banner alone does not prove that analytics wait for consent.
 | Static, ISR or `'use cache'` pages, Cache Components, `ensureStatic`, or the banner in the first HTML | [Rendering and deployment](/docs/frameworks/next/rendering) |
 | The fewest files, with consent resolved in the browser | [Client-side initialization](/docs/frameworks/next/client-side) |
 
-`offline()` keeps policy in your code and choices in the browser, with no
+`local()` keeps policy in your code and choices in the browser, with no
 consent records. Not recommended for production environments. See
-[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
+[local configuration](/docs/frameworks/next/data-fetching-reference#local-configuration).
 
 ## Next steps
 
@@ -150,5 +157,7 @@ consent records. Not recommended for production environments. See
 - [Scripts](/docs/frameworks/next/scripts): more vendors and how each loads
   and revokes.
 - [Customize](/docs/frameworks/next/customize): theme, layout and copy.
+- [shadcn/ui](/docs/frameworks/next/shadcn): use your own shadcn components
+  for the banner and preferences.
 - [Runnable Next.js example](/docs/examples): this quickstart as an app you
   can run.

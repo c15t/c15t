@@ -80,7 +80,7 @@ records a choice.
 | `set.consentCategories(categories)` | The configured categories. Discovered categories stay. |
 | `set.registerConsentCategories(categories)` | Add categories your integrations use. They stay for the kernel's lifetime. |
 | `set.vendors(patch, options?)` | Merge declared vendors. |
-| `set.subjectId(id)` | The subject ID. |
+| `set.subjectId(id)` | The subject ID. With persistence attached, `null` replaces it with a new one. |
 | `set.iab(patch)` | Written by the IAB module. Do not call it yourself. |
 
 ## Apply stored records
@@ -107,7 +107,7 @@ listener receives the event object.
 | `vendors:set` | `snapshot` | The declared vendor list changed. |
 | `overrides:set` | `snapshot` | Decision inputs changed. |
 | `user:identified` | `snapshot` | `identify` linked a user. |
-| `subject:resolved` | `snapshot` | A save received the server's subject ID. |
+| `subject:resolved` | `snapshot`, `previousSubjectId?` | The subject ID changed to a canonical one: a save received the server's ID, a save moved to a new ID after a conflict, or another tab's ID replaced one this tab generated and never used. `previousSubjectId` is the ID it replaced. |
 | `iab:set` | `snapshot` | The IAB state changed. |
 | `records:cleared` | none | Stored records were cleared. |
 | `save:replayed` | `subjectId`, `ok`, `rejected?` | A queued save was sent again. `rejected` holds the backend's refusal code. |
@@ -180,7 +180,7 @@ fields:
 | `initialRecords`, `initialPolicyResolution` | Records and a policy a server already resolved. |
 | `initialTranslations` | Copy to start with. |
 | `translationOverrides` | Messages keyed by language, such as your `i18n.messages`. The kernel applies the entry for the active language over `initialTranslations` and over each init response, key by key. |
-| `initRetry` | Retry for a failed `init`: `{ maxAttempts, baseDelayMs, maxDelayMs }`, or `false`. Defaults to 5 attempts from 1 second up to 30 seconds. |
+| `initRetry` | Retry for a failed `init`: `{ maxAttempts, baseDelayMs, maxDelayMs }`, or `false`. Defaults to 5 attempts from 1 second up to 30 seconds. A failure with HTTP status 402 is not retried. |
 | `now` | The evaluation clock at start, for a server render and its hydration to agree. |
 
 Construction has no side effects, so a server can build a kernel and read its

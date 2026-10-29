@@ -65,7 +65,7 @@ integration uses `manifest()`.
 | `manifest({ source: 'runtime' })` | On your server, from the policy fetched and cached at runtime | A server adapter and a backend URL |
 | `manifest({ resolve: 'browser' })` | In the browser, from the manifest | A backend URL. Works on static output: the integration prerenders `${routePrefix}/manifest` |
 | `hosted()` | At your backend's `/init`, from the server on request-rendered pages and from the browser otherwise | A backend URL |
-| `offline()` | In the browser and on your server, with no backend | Nothing. Not recommended for production environments. |
+| `local()` | In the browser and on your server, with no backend | Nothing. Not recommended for production environments. |
 
 `manifest()` accepts:
 
@@ -84,7 +84,7 @@ integration uses `manifest()`.
 | `backendURL` | `string` | Backend base URL, in place of the top-level `backendURL`. Absolute, or same-origin such as `/api/self-host` |
 | `headers` | `Record<string, string>` | Extra headers sent with `/init` from the server and the browser. From the server, only geography, language and privacy-signal headers are sent |
 
-`offline()` accepts `policyRules`, the rules to resolve locally. Without them
+`local()` accepts `policyRules`, the rules to resolve locally. Without them
 it resolves the recommended rule pack. Choices persist in the visitor's cookie
 and localStorage only, and there are no consent records.
 
@@ -104,7 +104,7 @@ changes after it loads, such as after a language change, asks it again.
 
 The route renders on demand, so `astro build` with `manifest()` needs a server
 adapter. `manifest({ resolve: 'browser' })` on static output prerenders only
-`${routePrefix}/manifest`. `hosted()` and `offline()` inject nothing. Set
+`${routePrefix}/manifest`. `hosted()` and `local()` inject nothing. Set
 `routePrefix: false` to inject nothing in `manifest()` mode. The browser then
 asks the backend's `/init`, not a route of your own. See
 [serve the routes yourself](/docs/frameworks/astro/server#serve-the-routes-yourself).
@@ -173,6 +173,8 @@ field.
 | `enabled` | `boolean` | `true` | Registers the middleware that sets `Astro.locals.c15t` |
 | `skip` | `string[]` | `[]` | Path prefixes the middleware leaves alone. `'/api'` covers `/api/health` but not `/apidocs` |
 | `timeoutMs` | `number \| false` | `500` | Longest a server render waits for the policy. `false` or `Infinity` waits however long the backend takes; any other value that is not a finite, non-negative number uses the default |
+| `trustForwardedHeaders` | `boolean` | `false` | Reads the request scheme and host from `X-Forwarded-*` and `Forwarded` headers when setting the subject ID cookie's `Secure` flag and cross-subdomain domain. Set it only behind a proxy that overwrites those headers. See [the subject ID cookie](/docs/frameworks/astro/server#set-the-subject-id-cookie) |
+| `subjectCookie` | `boolean` | `true` | Set `false` when a `consentSource` in `clientEntrypoint` owns consent. The middleware then sets no subject ID cookie. A subject ID or choice the visitor's cookies already hold is still read |
 
 The integration's own route under `routePrefix` is always skipped. On a
 skipped route, `Astro.locals.c15t` is unset and `ConsentBanner` throws, so
@@ -205,7 +207,7 @@ one copy. Keep it small, because it loads on every page.
 
 | Message contains | Cause |
 | --- | --- |
-| `` `mode` must be manifest(), hosted() or offline() `` | `mode` is a transport function, or not built with a helper from `c15t/astro` |
+| `` `mode` must be manifest(), hosted() or local() `` | `mode` is a transport function, or not built with a helper from `c15t/astro` |
 | `is a function` | A serialized option, such as a `scripts` entry from `@c15t/integrations`, holds a function. Move it to `src/c15t.client.ts` |
 | `manifest() needs a backend URL` | No `backendURL`, `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL` |
 | `manifest({ snapshot }) still needs a backend URL` | A snapshot, but no `backendURL`, `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL`. Saves go to the backend whatever `routePrefix` is |

@@ -2,6 +2,7 @@ export {
 	custom,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
+	local,
 	mergeTranslationConfigs,
 	offline,
 	policyRulePresets,
@@ -121,9 +122,16 @@ export { manifest } from './transports/manifest';
 export type { BrowserManifestModeFactory } from '@c15t/core/transports/manifest-browser';
 
 export type { ConsentManagerState, ConsentDraftState } from './context.svelte';
-export { resolveConsentPresentation } from '@c15t/core';
+export {
+	resolveActionLabels,
+	resolveConsentPresentation,
+	resolvePreferenceControlLabels,
+	resolvePromptCopy,
+} from '@c15t/core';
 export type {
 	ConsentPresentation,
+	PreferenceControl,
 	PresentationAction,
+	PromptCopy,
 	ResolvedConsentPresentation,
 } from '@c15t/core';

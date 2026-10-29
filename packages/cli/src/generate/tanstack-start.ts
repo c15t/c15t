@@ -28,7 +28,7 @@ const root = (options: BoilerplateOptions): string => {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogLink,
-	ConsentRoot,${offline ? '\n\toffline,' : ''}
+	ConsentRoot,${offline ? '\n\tlocal,' : ''}
 } from 'c15t/tanstack-start';`,
 		`import {
 	consentLoaderOptions,
@@ -38,7 +38,7 @@ const root = (options: BoilerplateOptions): string => {
 
 // Start's compiler keeps the handler and the bundled policy on the server.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler(${offline ? '{ mode: offline() }' : ''})
+	createConsentStateHandler(${offline ? '{ mode: local() }' : ''})
 );
 ${scripts ? `\n${scripts}` : ''}
 const RootComponent = () => {

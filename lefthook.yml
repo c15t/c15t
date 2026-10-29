@@ -2,7 +2,7 @@ pre-commit:
   commands:
     check:
       glob: '*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}'
-      run: bun oxfmt --write {staged_files}
+      run: bun oxfmt --write --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
       env:
         PATH: '$HOME/.bun/bin:$PATH'

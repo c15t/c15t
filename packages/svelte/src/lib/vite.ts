@@ -264,7 +264,7 @@ export const createModulePreloadPlugin =
  * module `@c15t/core/generated` (also `c15t/generated`). Import `snapshot`
  * from it; no file is written into the app. `vite build` fetches the
  * manifest only when the bundle reads `snapshot`: a Svelte app that uses
- * `hosted()` or `offline()` never depends on the backend at build time.
+ * `hosted()` or `local()` never depends on the backend at build time.
  *
  * In a SvelteKit app (the `sveltekit()` plugin is present), the snapshot
  * stays on the server: in the client environment, `snapshot` is

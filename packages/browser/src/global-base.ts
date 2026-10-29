@@ -423,6 +423,7 @@ export const createGlobalWith = function createGlobalWith(
 		...context,
 		defaultGPP: true,
 		loadGPP: () => gppModule.promise,
+		scriptTag: true,
 	};
 	// Replaced on dispose, so `ready()` and `on()` after a re-init wait for
 	// the new client instead of answering from the disposed one.

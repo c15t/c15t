@@ -28,7 +28,12 @@ const providerOnlyPurpose = {
 describe('PurposeItem with Google ad tech providers', () => {
 	test('leaves stock classes off the provider rows under noStyle', async () => {
 		const screen = await render(
-			<ConsentProvider options={{ mode: offline(), noStyle: true }}>
+			<ConsentProvider
+				options={{
+					mode: offline({ acknowledgeNoRecords: true }),
+					noStyle: true,
+				}}
+			>
 				<PurposeItem
 					purpose={providerOnlyPurpose}
 					isEnabled={false}
@@ -59,7 +64,9 @@ describe('PurposeItem with Google ad tech providers', () => {
 
 	test('counts and lists providers as partners of a purpose no vendor declares', async () => {
 		const screen = await render(
-			<ConsentProvider options={{ mode: offline() }}>
+			<ConsentProvider
+				options={{ mode: offline({ acknowledgeNoRecords: true }) }}
+			>
 				<PurposeItem
 					purpose={providerOnlyPurpose}
 					isEnabled={false}

@@ -13,7 +13,7 @@ resolves its policy rules for it in the browser.
 ## The files that matter
 
 - [`components/consent.tsx`](./components/consent.tsx) sets up `ConsentRoot`
-  with the route's locale, the copy for each language and offline mode. A
+  with the route's locale, the copy for each language and local mode. A
   small `FollowLocale` component calls `useSetLanguage` when the route's
   locale changes.
 - [`lib/consent-i18n.ts`](./lib/consent-i18n.ts) imports c15t's built-in
@@ -37,13 +37,13 @@ bun run build:libs
 bun run --cwd examples/showcase-multilingual dev
 ```
 
-Open http://localhost:3116. It needs no account: offline mode resolves
+Open http://localhost:3116. It needs no account: local mode resolves
 c15t's recommended policy rules in the browser and keeps choices in this
 browser.
 
 ## Going to production
 
-In `components/consent.tsx`, replace `offline()` with
+In `components/consent.tsx`, replace `local()` with
 `hosted({ backendURL: 'https://your-project.inth.app' })`. The backend reads the
 visitor's location from the request and returns the policy for it, so the
 preview bar can go. Its copy for the visitor's language, including edits made

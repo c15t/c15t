@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/browser",
-	"version": "3.1.0",
-	"description": "Cookie consent banner and GDPR consent manager for Webflow, WordPress, Framer, Squarespace and plain HTML. One script tag, script blocking and an optional IAB TCF build.",
+	"version": "3.2.0-canary.0",
+	"description": "Script-tag build of c15t for Webflow, WordPress, Framer, Squarespace and plain HTML. One script tag, script blocking and an optional IAB TCF build.",
 	"keywords": [
 		"banner",
 		"c15t",
@@ -51,6 +51,7 @@
 	"type": "module",
 	"sideEffects": [
 		"./dist/c15t.js",
+		"./dist/c15t.local.js",
 		"./dist/c15t.offline.js",
 		"./dist/c15t.iab.js",
 		"./dist/c15t.headless.js",
@@ -95,6 +96,7 @@
 		},
 		"./styles.css": "./dist/c15t.css",
 		"./c15t.js": "./dist/c15t.js",
+		"./c15t.local.js": "./dist/c15t.local.js",
 		"./c15t.offline.js": "./dist/c15t.offline.js",
 		"./c15t.headless.js": "./dist/c15t.headless.js",
 		"./c15t.devtools.js": "./dist/c15t.devtools.js",

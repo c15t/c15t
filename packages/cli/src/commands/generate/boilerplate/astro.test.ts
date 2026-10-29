@@ -86,7 +86,7 @@ describe('Astro boilerplate', () => {
 		).toContain('c15t({ mode: hosted() })');
 		expect(
 			generate('astro-static', 'offline', []).files['astro.config.mjs']
-		).toContain('c15t({ mode: offline() })');
+		).toContain('c15t({ mode: local() })');
 		expect(generate('astro', 'hosted', []).files['src/c15t.client.ts']).toBe(
 			undefined
 		);

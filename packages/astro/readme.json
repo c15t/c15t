@@ -13,7 +13,7 @@
 		"Astro 5, 6, or 7",
 		"One of `@astrojs/svelte`, `@astrojs/react`, or `@astrojs/vue` for the preference dialog",
 		"A server adapter for server output, or none for static output",
-		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development"
+		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests"
 	],
 	"manualInstallation": [
 		"",

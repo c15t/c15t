@@ -23,6 +23,8 @@ import type {
 import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
+import { failedResponseError } from '../libs/failed-response';
+import { isValidSubjectId } from '../libs/generate-subject-id';
 import { createUnreportedJourneys } from '../libs/journey';
 import {
 	reportConsentSession,
@@ -429,8 +431,9 @@ export const createManifestTransport = function createManifestTransport(
 					});
 
 					if (!response.ok) {
-						throw new Error(
-							`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+						throw await failedResponseError(
+							'c15t manifest transport: /manifest',
+							response
 						);
 					}
 
@@ -462,9 +465,16 @@ export const createManifestTransport = function createManifestTransport(
 				headers: jsonHeaders,
 				method: 'PATCH',
 			});
+			// A backend older than first-load subject IDs only knows subjects
+			// a save created. The identity then travels with the next save.
+			// The backend rejects an ID of another form, and so would the save.
+			if (response.status === 404 && isValidSubjectId(subjectId)) {
+				return;
+			}
 			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				throw await failedResponseError(
+					'c15t manifest transport: /subjects/:id',
+					response
 				);
 			}
 		},
@@ -560,8 +570,9 @@ export const createManifestTransport = function createManifestTransport(
 				return null;
 			}
 			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				throw await failedResponseError(
+					'c15t manifest transport: /subjects/:id',
+					response
 				);
 			}
 			const record = reviveSubjectRecord(await response.json());

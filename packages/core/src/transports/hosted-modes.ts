@@ -1,7 +1,7 @@
 /**
  * Which factories `hosted()` built. A module of its own, importing nothing
  * at runtime, so a provider can ask without loading the hosted transport:
- * an app on `offline()` or `custom()` never needs it.
+ * an app on `local()` or `custom()` never needs it.
  */
 import type {
 	HostedModeFactory,

@@ -1,3 +1,8 @@
+import {
+	describeFailedResponse,
+	readFailedResponse,
+} from '../libs/failed-response';
+
 /**
  * A consent save the backend refused for good.
  *
@@ -20,6 +25,10 @@
  *   on a shared database. Resending it is refused the same way, so the
  *   kernel gives the visitor a new subject id and sends the choice again
  *   once under it.
+ *
+ * Any HTTP 402 is permanent too, whatever its code: the backend will not
+ * record consent until the account is paid for. Its code is the body's
+ * `code` or `cause.code`, else `PAYMENT_REQUIRED`.
  *
  * Transports throw a {@link ConsentSaveRejectedError} for these, and the
  * kernel drops the save instead of queueing it for replay. The choice
@@ -56,9 +65,12 @@ const PERMANENT_REJECTION_CODES: ReadonlySet<string> = new Set([
 export class ConsentSaveRejectedError extends Error {
 	/** Brand checked by {@link isConsentSaveRejection} across bundle copies. */
 	readonly c15tSaveRejected = true;
-	/** The backend's `cause.code`, for example `POLICY_SNAPSHOT_EXPIRED`. */
+	/** The backend's code, for example `POLICY_SNAPSHOT_EXPIRED`. */
 	readonly code: string;
-	/** The backend's `cause.reason`, when it gave one. */
+	/**
+	 * The backend's `cause.reason`, when it gave one. For a 402 without one,
+	 * the backend's message.
+	 */
 	readonly reason: string | undefined;
 	/** HTTP status of the refusal. */
 	readonly status: number;
@@ -113,6 +125,10 @@ export const isSubjectConflict = function isSubjectConflict(
  * {@link ConsentSaveRejectedError} for a permanent refusal, otherwise a
  * plain `Error` the kernel retries.
  *
+ * A 402 is permanent: the backend wants payment before it records
+ * anything, and resending the save on every page load will not change
+ * that.
+ *
  * @param response - The non-2xx response.
  * @param label - Prefix for the error message, naming the transport.
  * @returns The error to throw.
@@ -122,24 +138,40 @@ export const saveFailure = async function saveFailure(
 	response: Response,
 	label: string
 ): Promise<Error> {
-	const message = `${label}: /subjects responded ${response.status} ${response.statusText}`;
-	if (response.status !== 409 && response.status !== 422) {
-		return new Error(message);
+	const detail = await readFailedResponse(response);
+	const message = describeFailedResponse(
+		`${label}: /subjects`,
+		response,
+		detail
+	);
+	if (response.status === 402) {
+		return new ConsentSaveRejectedError({
+			code: detail.code ?? 'PAYMENT_REQUIRED',
+			message,
+			reason: detail.reason ?? detail.message,
+			status: response.status,
+		});
 	}
-	let cause: { code?: unknown; reason?: unknown } | undefined;
-	try {
-		cause = ((await response.json()) as { cause?: typeof cause })?.cause;
-	} catch {
-		// An unreadable body is not a refusal we can trust; retry it.
+	const { code } = detail;
+	if (
+		(response.status === 409 || response.status === 422) &&
+		code &&
+		PERMANENT_REJECTION_CODES.has(code)
+	) {
+		return new ConsentSaveRejectedError({
+			code,
+			message,
+			reason: detail.reason,
+			status: response.status,
+		});
 	}
-	const code = typeof cause?.code === 'string' ? cause.code : undefined;
-	if (!code || !PERMANENT_REJECTION_CODES.has(code)) {
-		return new Error(message);
+	// An unreadable body is not a refusal we can trust; retry it.
+	const error: Error & { code?: string; status: number } = Object.assign(
+		new Error(message),
+		{ status: response.status }
+	);
+	if (code) {
+		error.code = code;
 	}
-	return new ConsentSaveRejectedError({
-		code,
-		message: `${message} (${code})`,
-		reason: typeof cause?.reason === 'string' ? cause.reason : undefined,
-		status: response.status,
-	});
+	return error;
 };

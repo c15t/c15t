@@ -61,7 +61,8 @@ const configKeys = (value: ConfigFields): (string | symbol)[] =>
 			value[key] !== undefined
 	);
 
-const equalConfig = (
+/** Compare configuration data by value, ignoring undefined object fields. @internal */
+export const equalConfig = (
 	previous: unknown,
 	next: unknown,
 	seen = new WeakMap<ConfigFields, ConfigFields>()
@@ -156,6 +157,9 @@ export const createScriptReuse = <OptionsType extends object>() => {
 						}
 					: undefined,
 			};
+			if (info.replacing) {
+				Object.defineProperty(combined, 'replacing', { value: true });
+			}
 			registrationStates.set(combined, states);
 			return combined;
 		};
@@ -165,8 +169,20 @@ export const createScriptReuse = <OptionsType extends object>() => {
 			register();
 			return current;
 		};
-		script.onBeforeLoad = (info) =>
+		const originalBeforeLoad = script.onBeforeLoad;
+		const originalServerStart = script.serverStart;
+		const onBeforeLoad: Script['onBeforeLoad'] = (info) =>
 			activate(info).onBeforeLoad?.(combine(info));
+		script.onBeforeLoad = onBeforeLoad;
+		if (originalServerStart) {
+			script.serverStart = (info, started) =>
+				started.onBeforeLoad === onBeforeLoad
+					? originalServerStart(info, {
+							...started,
+							onBeforeLoad: originalBeforeLoad,
+						})
+					: undefined;
+		}
 		script.onConsentChange = (info) =>
 			activate(info).onConsentChange?.(combine(info));
 		script.onDispose = (info) => {

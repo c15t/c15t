@@ -44,8 +44,8 @@ When your project has no copy for the requested language, the backend
 returns its fallback language.
 
 The banner, dialog and widget set `dir` from the active language. Right-to-left
-languages such as Arabic and Hebrew render with `dir="rtl"`, and a floating
-banner you did not position yourself moves to the opposite side.
+languages such as Arabic and Hebrew render with `dir="rtl"`. The banner stays
+in the same corner.
 
 ## Change the copy in code
 
@@ -78,7 +78,7 @@ languages are not applied. `ConsentRoot` reads `i18n` once, when it mounts. In
 development it logs a warning if `i18n` changes later.
 
 `i18n.locale` sets the language of the copy when no backend or server state
-supplies one, as in offline mode. It defaults to `en`.
+supplies one, as in local mode. It defaults to `en`.
 
 ## Change one banner's copy
 

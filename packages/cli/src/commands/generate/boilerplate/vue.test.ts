@@ -172,21 +172,19 @@ try {
 		expect(nuxt.files['nuxt.config.ts']).not.toContain('initPrefetch');
 	});
 
-	it('offline mode uses the plugin entry offline() with its recommended policy', () => {
+	it('offline mode uses the plugin entry local() with its recommended policy', () => {
 		const vue = generate('vue', 'offline', []);
 		expect(vue.files['src/main.ts']).toContain(
-			"import { c15tVue, offline } from 'c15t/vue/vue-plugin';"
+			"import { c15tVue, local } from 'c15t/vue/vue-plugin';"
 		);
-		expect(vue.files['src/main.ts']).toContain('mode: offline(),');
+		expect(vue.files['src/main.ts']).toContain('mode: local(),');
 		expect(vue.files['vite.config.ts']).toContain(
 			"consentManifest({ initPrefetch: false, onBuildError: 'runtime' })"
 		);
 		const nuxt = generate('nuxt', 'offline', []);
 		expect(nuxt.files['nuxt.config.ts']).toContain(
-			"import { offline } from 'c15t/vue';"
+			"import { local } from 'c15t/vue';"
 		);
-		expect(nuxt.files['nuxt.config.ts']).toContain(
-			'c15t: { mode: offline() },'
-		);
+		expect(nuxt.files['nuxt.config.ts']).toContain('c15t: { mode: local() },');
 	});
 });

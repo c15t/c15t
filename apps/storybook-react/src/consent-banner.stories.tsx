@@ -72,6 +72,7 @@ export const Notice: Story = {
 			options={{
 				...editableConsentOptions,
 				mode: offline({
+					acknowledgeNoRecords: true,
 					policyRules: [
 						{
 							...storybookPolicy,

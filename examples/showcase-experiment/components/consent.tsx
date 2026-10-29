@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentBanner, ConsentDialog, ConsentRoot, offline } from 'c15t/next';
+import { ConsentBanner, ConsentDialog, ConsentRoot, local } from 'c15t/next';
 import type { ReactNode } from 'react';
 
 import { callbacks } from '@/lib/consent-callbacks';
@@ -11,7 +11,7 @@ import { bannerArmFromFlag, bannerExperiment } from '@/lib/experiment';
 // this browser. In production, swap this line for your project's backend,
 // which also counts impressions and choices per arm for you:
 // const mode = hosted({ backendURL: 'https://your-project.inth.app' });
-const mode = offline();
+const mode = local();
 
 export const Consent = ({ children }: { children: ReactNode }) => (
 	<ConsentRoot

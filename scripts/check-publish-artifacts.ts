@@ -297,8 +297,6 @@ export const scanKernelFreePackage = function scanKernelFreePackage(
 };
 
 const requiredPackedFilesByPackage: Record<string, string[]> = {
-	'@c15t/backend': ['AGENTS.md', 'docs/README.md'],
-	'@c15t/cli': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/core': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/integrations': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/nextjs': [

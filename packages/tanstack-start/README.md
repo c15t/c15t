@@ -33,7 +33,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Headless hooks for a fully custom design
 - Analytics, ads, and pixels follow each visitor's choice through @c15t/integrations: Google Tag Manager, Google Consent Mode v2, GA4, Meta Pixel, PostHog, and more
 - IAB TCF 2.4 banner, dialog, and hooks through the @c15t/react/iab subpath
-- Translations for 35 languages through @c15t/translations
+- Translations for 53 languages through @c15t/translations
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Vite 7 or later, or Vite 8 or later for TanStack Start 1.0
 - React 18 or 19
 - Node.js 20.19 or later, or Node.js 22.12 or later for TanStack Start 1.0
-- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or offline mode for local development
+- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests
 
 ## Installation
 

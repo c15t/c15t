@@ -5,7 +5,7 @@
  */
 
 import {
-	BUILT_IN_INTEGRATION_CATEGORIES,
+	BUILT_IN_INTEGRATION_KINDS,
 	builtInScriptIntegrations,
 } from '@c15t/integrations/registry';
 import * as p from '@clack/prompts';
@@ -89,15 +89,15 @@ export const modeSelectionActor = fromPromise<
 		message: 'How would you like to store consent decisions?',
 		options: [
 			{
-				hint: 'inth.com or self-hosted backend URL',
+				hint: 'Inth (recommended) or a self-hosted backend',
 
 				label: 'Hosted',
 				value: 'hosted',
 			},
 			{
-				hint: 'Store in browser, no backend needed',
+				hint: 'Development and tests only, no consent records',
 
-				label: 'Offline',
+				label: 'Local',
 				value: 'offline',
 			},
 			{
@@ -593,15 +593,14 @@ export const frontendOptionsActor = fromPromise<
 /**
  * Available scripts from @c15t/integrations package
  */
-export const AVAILABLE_SCRIPTS = BUILT_IN_INTEGRATION_CATEGORIES.flatMap(
-	(category) =>
-		builtInScriptIntegrations
-			.filter((integration) => integration.integrationCategory === category.key)
-			.map((integration) => ({
-				hint: integration.hint,
-				label: integration.label,
-				value: integration.packageSubpath,
-			}))
+export const AVAILABLE_SCRIPTS = BUILT_IN_INTEGRATION_KINDS.flatMap((kind) =>
+	builtInScriptIntegrations
+		.filter((integration) => integration.integrationKind === kind.key)
+		.map((integration) => ({
+			hint: integration.hint,
+			label: integration.label,
+			value: integration.packageSubpath,
+		}))
 );
 
 export type AvailableScript = (typeof AVAILABLE_SCRIPTS)[number]['value'];

@@ -26,21 +26,18 @@ describe('Svelte v3 boilerplate', () => {
 		{
 			component: 'src/App.svelte',
 			framework: 'svelte',
-			mode: ['src/App.svelte', 'mode={offline()}'],
+			mode: ['src/App.svelte', 'mode={local()}'],
 		},
 		{
 			component: 'src/routes/+layout.svelte',
 			framework: 'sveltekit',
-			mode: ['src/hooks.server.ts', 'c15tHandle({ mode: offline() })'],
+			mode: ['src/hooks.server.ts', 'c15tHandle({ mode: local() })'],
 		},
 	] as const)(
 		'generates $framework wiring and current transport factories',
 		({ component, framework, mode }) => {
 			const result = generate(framework, 'offline', ['segment']);
-			expect(result.dependencies).toEqual([
-				'@c15t/svelte',
-				'@c15t/integrations',
-			]);
+			expect(result.dependencies).toEqual(['c15t', '@c15t/integrations']);
 			const source = result.files[component];
 			expect(source).toContain(
 				'<ConsentDialogLink>Privacy settings</ConsentDialogLink>'
@@ -77,7 +74,7 @@ describe('Svelte v3 boilerplate', () => {
 	it('hosted Svelte uses hosted() and prefetches /init; SvelteKit does not', () => {
 		const svelte = generate('svelte', 'hosted', []);
 		expect(svelte.files['src/App.svelte']).toContain(
-			"\t\thosted,\n\t} from '@c15t/svelte';"
+			"\t\thosted,\n\t} from 'c15t/svelte';"
 		);
 		expect(svelte.files['src/App.svelte']).toContain(
 			'<ConsentProvider mode={hosted()}>'
@@ -93,10 +90,10 @@ describe('Svelte v3 boilerplate', () => {
 		);
 	});
 
-	it('offline Svelte keeps offline() and skips the build fetch and early /init', () => {
+	it('offline Svelte uses local() and skips the build fetch and early /init', () => {
 		const svelte = generate('svelte', 'offline', []);
 		expect(svelte.files['src/App.svelte']).toContain(
-			'<ConsentProvider mode={offline()}>'
+			'<ConsentProvider mode={local()}>'
 		);
 		expect(svelte.files['vite.config.ts']).toContain(
 			"plugins: [consentManifest({ initPrefetch: false, onBuildError: 'runtime' }), svelte()],"
@@ -112,7 +109,7 @@ describe('Svelte v3 boilerplate', () => {
 			template.merge['src/app.d.ts']
 		);
 		expect(merged).toBe(
-			`/// <reference types="@c15t/svelte/kit/locals" />\n${existing}`
+			`/// <reference types="c15t/svelte/kit/locals" />\n${existing}`
 		);
 		expect(mergeFile(merged, '', template.merge['src/app.d.ts'])).toBe(merged);
 	});

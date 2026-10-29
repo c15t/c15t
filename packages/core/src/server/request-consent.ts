@@ -57,6 +57,7 @@ import type {
 import type { StorageConfig } from '../libs/cookie/types';
 import { experimentArmRef } from '../libs/experiment';
 import type { ExperimentState, ServerExperiment } from '../libs/experiment';
+import { failedResponseError } from '../libs/failed-response';
 import { createJourneyId } from '../libs/journey';
 import type { ConsentJourneyOption, JourneyState } from '../libs/journey';
 import {
@@ -376,8 +377,12 @@ const readHeader = function readHeader(
 	if (typeof (headers as Headers).get === 'function') {
 		return (headers as Headers).get(name) ?? undefined;
 	}
-	const record = headers as Record<string, string | string[] | undefined>;
-	const value = record[name] ?? record[name.toLowerCase()];
+	// Header names are case-insensitive, and a record keeps whatever casing
+	// the runtime or the client used.
+	const lower = name.toLowerCase();
+	const value = Object.entries(
+		headers as Record<string, string | string[] | undefined>
+	).find(([key]) => key.toLowerCase() === lower)?.[1];
 	return Array.isArray(value) ? value[0] : value;
 };
 
@@ -1080,9 +1085,7 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 					init
 				);
 				if (!response.ok) {
-					throw new Error(
-						`/init responded ${response.status} ${response.statusText}`
-					);
+					throw await failedResponseError('/init', response);
 				}
 				payload = (await response.json()) as InitOutput;
 			} catch (error) {

@@ -49,6 +49,7 @@ import type { StyleSourceIndex } from './stylesheets';
 
 export {
 	hosted,
+	local,
 	manifest,
 	offline,
 	type ConsentMode,
@@ -173,14 +174,14 @@ const fillBackendURLFromEnv = (
 /**
  * The `mode` option, checked. It reaches the browser as JSON through the
  * public runtime config, so it must be the data `manifest()`, `hosted()` or
- * `offline()` from `c15t/vue` return, not a transport.
+ * `local()` from `c15t/vue` return, not a transport.
  */
 const readModuleMode = function readModuleMode(
 	options: ModuleOptions
 ): ConsentMode {
 	if (typeof options.mode === 'function') {
 		throw new TypeError(
-			"@c15t/vue: `c15t.mode` in nuxt.config.ts is a transport. Import `manifest`, `hosted` or `offline` from 'c15t/vue' (the module entry), which return plain data."
+			"@c15t/vue: `c15t.mode` in nuxt.config.ts is a transport. Import `manifest`, `hosted` or `local` from 'c15t/vue' (the module entry), which return plain data."
 		);
 	}
 	return readNuxtMode(options);

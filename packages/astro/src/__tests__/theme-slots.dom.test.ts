@@ -19,7 +19,10 @@ describe('browser-rendered banner and theme.slots', () => {
 		const locals = await resolveConsentContext({
 			headers: new Headers(),
 			options: resolveOptions({
-				mode: offlineMode({ policyRules: [testRule] }),
+				mode: offlineMode({
+					acknowledgeNoRecords: true,
+					policyRules: [testRule],
+				}),
 			}),
 		});
 		const host = document.createElement('div');
@@ -78,7 +81,10 @@ describe('browser-rendered banner and an experiment arm', () => {
 			headers: new Headers(),
 			options: resolveOptions({
 				experiment,
-				mode: offlineMode({ policyRules: [testRule] }),
+				mode: offlineMode({
+					acknowledgeNoRecords: true,
+					policyRules: [testRule],
+				}),
 			}),
 		});
 		const host = document.createElement('div');
@@ -104,6 +110,7 @@ describe('browser-rendered IAB banner and theme.slots', () => {
 				consentCategories: ['necessary', 'marketing'],
 				iab: { cmpId: 160, gvl: MINIMAL_GVL as never },
 				mode: offlineMode({
+					acknowledgeNoRecords: true,
 					policyRules: [
 						{
 							categories: ['marketing'],

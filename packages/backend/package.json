@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/backend",
-	"version": "3.1.0",
-	"description": "Self-hosted consent management platform (CMP) backend for c15t. Stores GDPR consent records and audit logs, and resolves policies and geolocation, on Postgres, MySQL or SQLite.",
+	"version": "3.2.0-canary.0",
+	"description": "Self-hosted backend for c15t. Stores consent records and audit logs, and resolves policies and geolocation, on Postgres, MySQL or SQLite.",
 	"keywords": [
 		"audit-log",
 		"backend",
@@ -38,10 +38,7 @@
 	},
 	"files": [
 		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"SKILL.md",
-		"docs"
+		"dist-types"
 	],
 	"type": "module",
 	"sideEffects": false,
@@ -84,13 +81,11 @@
 	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
-		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/backend",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"prepack": "bun run build:docs",
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
 	},

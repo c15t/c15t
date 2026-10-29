@@ -1,4 +1,4 @@
-import { custom, hosted, offline } from '@c15t/core';
+import { custom, hosted, local, offline } from '@c15t/core';
 import { manifest } from '@c15t/core/transports/manifest-browser';
 
 import type { CreateConsentClientContext } from './client-base';
@@ -13,6 +13,8 @@ export type { C15tGlobalBase, QueuedCall } from './global-base';
 export interface C15tGlobal extends C15tGlobalBase {
 	/** Transport factories, for `init({ mode: c15t.hosted({ backendURL }) })`. */
 	hosted: typeof hosted;
+	local: typeof local;
+	/** @deprecated Use `local`. c15t v4 removes `offline`. */
 	offline: typeof offline;
 	custom: typeof custom;
 	manifest: typeof manifest;
@@ -32,6 +34,7 @@ export const createGlobal = function createGlobal(
 		{
 			custom,
 			hosted,
+			local,
 			manifest,
 			offline,
 		}

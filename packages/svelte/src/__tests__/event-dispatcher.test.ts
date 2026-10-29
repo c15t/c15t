@@ -23,6 +23,7 @@ test('getEventDispatcher follows the provider scripts, live consent and one page
 		options: {
 			iframeBlocker: false,
 			mode: offline({
+				acknowledgeNoRecords: true,
 				policyRules: [{ ...TEST_OPT_IN_RULE, categories: ['measurement'] }],
 			}),
 			scripts: [

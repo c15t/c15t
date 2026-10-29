@@ -45,7 +45,7 @@ throws.
 
 **Check.** Only request-time rendering in `manifest()` or `hosted()` mode
 puts the banner in the HTML. `manifest({ resolve: 'browser' })` and
-`offline()` resolve in the browser.
+`local()` resolve in the browser.
 Prerendered routes, routes with a `prerender`, `swr`, `isr` or `cache` rule,
 `nuxt generate` output and `ssr: false` send the same HTML to every visitor,
 so the banner appears after the browser resolves the policy.
@@ -163,7 +163,7 @@ site's origin to the Inth project's trusted origins.
 
 ## The module throws "`c15t.mode` in nuxt.config.ts is a transport"
 
-**Check.** `nuxt.config.ts` imports `manifest`, `hosted` or `offline` from
+**Check.** `nuxt.config.ts` imports `manifest`, `hosted` or `local` from
 `c15t/vue/vue-plugin`. Those return browser transports, which cannot travel
 through runtime config.
 

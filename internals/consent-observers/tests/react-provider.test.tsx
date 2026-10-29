@@ -35,7 +35,7 @@ const restored = async function restored(
 const ownedOptions = async function ownedOptions(action: 'all' | 'none') {
 	return {
 		iframeBlocker: false as const,
-		mode: offline({ policyRules: [OBSERVED_RULE] }),
+		mode: offline({ acknowledgeNoRecords: true, policyRules: [OBSERVED_RULE] }),
 		persistence: false as const,
 		prefetch: {
 			initialPolicyResolution: observedPolicy(),

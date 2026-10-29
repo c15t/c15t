@@ -45,7 +45,7 @@ PostHog only after the visitor allows measurement.
 | Vue | `examples/vue` | The Vue plugin in a Vite single-page app |
 | Astro | `examples/astro` | Server output with the Node adapter |
 | Astro | `examples/astro-static` | Static output with every page prerendered |
-| Svelte | `examples/svelte` | `@c15t/svelte` in a Vite single-page app |
+| Svelte | `examples/svelte` | `c15t/svelte` in a Vite single-page app |
 | SvelteKit | `examples/sveltekit` | Server hooks and server-rendered layouts |
 | HTML | `examples/html` | The script tag on plain HTML pages |
 | JavaScript | `examples/javascript` | `@c15t/browser` with a bundler |
@@ -81,11 +81,11 @@ Next.js apps.
 | Multilingual | `examples/showcase-multilingual` | Banner language from the route and policy from the visitor's region |
 | Nuxt theme | `examples/showcase-nuxt-theme` | The stock Nuxt banner and dialog in a brand's colors, layout and dark mode, styled through module options |
 
-The Next.js showcases run in offline mode, so they work without an Inth
-project. Offline mode keeps choices in the browser and records nothing on a
+The Next.js showcases run in local mode, so they work without an Inth
+project. Local mode keeps choices in the browser and records nothing on a
 server. Not recommended for production environments. Each README shows the
 one-line swap to `hosted({ backendURL: 'https://your-project.inth.app' })`. The Nuxt
-module has no offline mode, so the Nuxt showcase talks to a demo Inth project
+module has no local mode, so the Nuxt showcase talks to a demo Inth project
 and reads `NUXT_PUBLIC_C15T_BACKEND_URL` for your own.
 
 Vendor switches are optional. The analytics showcase turns them on in the
@@ -95,6 +95,15 @@ show categories only.
 
 The IAB showcase serves a three-vendor list from `public/vendor-list.json` and
 uses a demonstration CMP ID. Its README lists what changes for production.
+
+## Integrations
+
+| Integration | Directory | What it shows |
+| --- | --- | --- |
+| Shopify | `examples/shopify-nextjs` | A Next.js store on mock.shop with a cart and Hydrogen analytics that wait for the c15t banner |
+
+The Shopify example runs against mock.shop, Shopify's public demo store. See
+the [Shopify guide](/docs/integrations/shopify) for a real shop.
 
 ## What to try
 

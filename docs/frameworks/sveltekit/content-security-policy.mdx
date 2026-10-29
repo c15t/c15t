@@ -45,6 +45,24 @@ loader and network blocker chunk takes the nonce SvelteKit put on its own
 scripts, unless the provider has a `nonce` of its own. The chunk is on your
 own origin, so `'self'` covers it too.
 
+## Allow the server start script
+
+When the visitor's consent already allows some vendor helper entries in
+`scripts`, through a stored choice or a policy that asks for none, `c15tHandle`
+adds an inline `<script>` at the end of `<body>`. It runs those entries' setup
+and inserts their tags before the page hydrates, and the script loader adopts
+the tags. Entries with `alwaysLoad` start this way whatever the visitor chose.
+Its content changes with each visitor's consent, so a hash can't allow it.
+
+The script takes the provider's `nonce`, or else the nonce SvelteKit put on
+its own scripts, and the tags it inserts carry the same nonce. Under
+`mode: 'nonce'`, or `mode: 'auto'` on a page rendered for each request, the
+policy admits it with nothing more to add. A `nonce` on a single `scripts`
+entry takes precedence for that entry's tag.
+
+If your policy blocks the script, the script loader starts those entries
+after hydration instead.
+
 ## Allow c15t's style elements
 
 c15t's components add their rules as `<style>` elements. On a server-rendered
@@ -59,8 +77,8 @@ c15t style or a page script. Your `style-src` must allow that nonce.
 
 For a prerendered page, or when your policy does not allow those nonces, set
 `styles={false}` on `ConsentRoot` and import
-`@c15t/svelte/styles.css` in your root layout. With IAB TCF, also import
-`@c15t/svelte/iab/styles.css` after it. `'self'` covers those stylesheets.
+`c15t/svelte/styles.css` in your root layout. With IAB TCF, also import
+`c15t/svelte/iab/styles.css` after it. `'self'` covers those stylesheets.
 
 ## Allow the generated theme
 

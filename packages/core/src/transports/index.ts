@@ -49,7 +49,7 @@ export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
 } from './offline';
-export { createOfflineTransport, offline } from './offline';
+export { createOfflineTransport, local, offline } from './offline';
 export type { OfflineModeFactory, OfflineModeOptions } from './offline';
 export {
 	ConsentSaveRejectedError,

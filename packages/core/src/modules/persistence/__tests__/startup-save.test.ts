@@ -38,7 +38,7 @@ test.each([false, true])(
 			})
 		);
 		const response = Promise.withResolvers<InitResponse>();
-		const offline = createOfflineTransport();
+		const offline = createOfflineTransport({ acknowledgeNoRecords: true });
 		const kernel = createConsentKernel({
 			initialPolicyPending: true,
 			now: NOW,

@@ -35,7 +35,7 @@ banner into the HTML. To apply policy updates without rebuilding, pass
 and caches it in memory. Keep the plugin: it still supplies the backend URL.
 
 `createConsentStateHandler({ mode })` takes `manifest()`, `hosted()` or
-`offline()` from `c15t/tanstack-start`. They are plain data, so the state
+`local()` from `c15t/tanstack-start`. They are plain data, so the state
 carries the mode to `ConsentRoot`, and the browser loads only that mode's
 code. A mode's `snapshot` stays on the server.
 [Consent modes](/docs/concepts/modes) compares them.
@@ -46,6 +46,23 @@ the backend. The server function waits at most 500 ms, then renders without
 consent UI and lets the browser resolve consent. Later requests read the cached
 manifest and add little time. Change the wait with `timeoutMs` in
 `createConsentStateHandler`.
+
+When the state shows that the visitor's consent already allows some `scripts`
+entries, through a stored choice or a policy that asks for none, `ConsentRoot`
+renders an inline script after your page content. After first paint, it runs
+those entries' setup and inserts their tags, so they start loading before the
+page hydrates. Entries with `alwaysLoad` start this way whatever the visitor
+chose. The script loader adopts those tags instead of inserting its own. Nothing
+starts from the HTML while the policy asks the visitor to choose, not even
+`alwaysLoad` entries, and a prerendered page starts nothing.
+
+This works on React 18 and 19. The vendor helpers from `@c15t/integrations`
+start this way, except Cloudflare Zaraz and Sentry. Those two helpers, and
+`scripts` entries you write yourself, start after hydration.
+
+To start every `scripts` entry after hydration instead, pass
+`scriptLoader={{ serverStart: false }}` to `ConsentRoot`. It then renders no
+inline script.
 
 ## Stream the page while consent resolves
 
@@ -67,6 +84,9 @@ visitor:
   arrives.
 - If the backend does not answer in time, the promise resolves to the cookie
   and header state and the browser resolves consent itself.
+- The `scripts` entries the state allows start from the chunk that carries the
+  state, as soon as it arrives. When that chunk comes after the app's
+  JavaScript, the rest of the page may already be hydrating.
 
 Stream when a slow or unreachable backend must never delay your page, for
 example on serverless hosts where many requests start with an empty manifest
@@ -134,7 +154,7 @@ resolve consent from the backend URL `consentManifest()` read:
   every optional category stays denied until the browser has the policy.
   `ConsentRoot` takes the backend URL from `consentManifest()`; without the
   plugin, an empty state throws, because there is no backend to ask. Pass
-  `state={{ mode: offline() }}` to resolve without one.
+  `state={{ mode: local() }}` to resolve without one.
 - The browser sends its `/init` request straight to your backend URL, so the
   host needs no server route or server function. Add the site's origin to
   your Inth project's trusted origins.

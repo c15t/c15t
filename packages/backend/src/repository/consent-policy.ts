@@ -70,7 +70,6 @@ export const findOrCreateRuntimePolicy = Effect.fn('policy.findOrCreate')(
 				hash: null,
 				id,
 				isActive: true,
-				tenantId: tenantId ?? null,
 				type,
 				version: RUNTIME_POLICY_VERSION,
 			},

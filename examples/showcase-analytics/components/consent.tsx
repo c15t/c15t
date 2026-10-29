@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentBanner, ConsentDialog, ConsentRoot, offline } from 'c15t/next';
+import { ConsentBanner, ConsentDialog, ConsentRoot, local } from 'c15t/next';
 import type { ClearOnRevocationConfig, ConsentRootProps } from 'c15t/next';
 import type { ReactNode } from 'react';
 
@@ -13,7 +13,7 @@ import { ConsentDevTools } from './consent-dev-tools';
 // Runs without a backend: policy rules ship with c15t and choices stay in
 // this browser. In production, swap this line for your project's backend:
 // const mode = hosted({ backendURL: 'https://your-project.inth.app' });
-const mode = offline();
+const mode = local();
 
 const options: ConsentRootProps['options'] = {
 	callbacks: {

@@ -9,11 +9,11 @@
  * `@c15t/core/runtime/client-mode`, which loads every non-default mode with
  * `import()`.
  *
- * This module has no runtime imports, so importing it adds only these three
+ * This module has no runtime imports, so importing it adds only these
  * functions to a bundle.
  *
  * Single-page apps use the implementation factories instead (`hosted()` and
- * `offline()` from `@c15t/core`, `manifest()` from
+ * `local()` from `@c15t/core`, `manifest()` from
  * `@c15t/core/transports/manifest-browser`). They carry the same `type` and
  * options, so a value of either kind satisfies {@link ConsentMode}.
  */
@@ -101,16 +101,32 @@ export interface HostedMode extends HostedModeOptions {
 	type: 'hosted';
 }
 
-/** Options for the data `offline()` from `@c15t/core/modes`. */
+/** Options for the data `local()` from `@c15t/core/modes`. */
 export interface OfflineModeOptions {
 	/**
 	 * Rules to resolve locally. Omit them to use `recommendedPolicyRules()`.
 	 * Passing rules replaces that pack entirely.
 	 */
 	policyRules?: PolicyRule[];
+	/**
+	 * Hide the development warning that local mode keeps no consent records.
+	 *
+	 * Local mode keeps consent only in the visitor's browser. c15t keeps no
+	 * server-side record of it, and with no geolocation every visitor gets
+	 * the same policy. Set this to `true` once you have decided that is
+	 * enough, such as in tests or on a site that records consent another
+	 * way. It changes nothing else. c15t v4 will require it.
+	 *
+	 * @defaultValue false
+	 * @see https://c15t.com/docs/concepts/modes
+	 */
+	acknowledgeNoRecords?: boolean;
 }
 
-/** Resolve policy rules locally, with no backend. */
+/**
+ * Resolve policy rules locally, with no backend. Its `type` stays
+ * `'offline'` until c15t v4.
+ */
 export interface OfflineMode extends OfflineModeOptions {
 	type: 'offline';
 }
@@ -160,19 +176,30 @@ export const hosted = function hosted(
 };
 
 /**
- * Resolve policy rules locally, with no backend.
+ * Resolve policy rules locally, with no backend. Consent stays in the
+ * visitor's browser, and c15t keeps no server-side record of it. Use it for
+ * development and tests. In development builds it warns once per page until
+ * you set `acknowledgeNoRecords: true`.
  *
- * @param options - Rules to resolve. Omitted, the recommended pack.
- * @returns A serializable offline mode.
+ * @param options - Rules to resolve, omitted for the recommended pack, and
+ *   `acknowledgeNoRecords`.
+ * @returns A serializable local mode.
  * @example
  * ```ts
- * import { offline } from '@c15t/core/modes';
+ * import { local } from '@c15t/core/modes';
  *
- * const mode = offline();
+ * const mode = local({ acknowledgeNoRecords: true });
  * ```
  */
-export const offline = function offline(
+export const local = function local(
 	options: OfflineModeOptions = {}
 ): OfflineMode {
 	return { ...options, type: 'offline' };
 };
+
+/**
+ * The old name for {@link local}.
+ *
+ * @deprecated Use `local()`. c15t v4 removes `offline()`.
+ */
+export const offline = local;

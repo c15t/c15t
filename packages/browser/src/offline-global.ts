@@ -2,11 +2,13 @@ import type { CreateConsentClientContext } from './client-base';
 import { createGlobalWith } from './global-base';
 import type { C15tGlobalBase } from './global-base';
 import { createOfflineConsentClient } from './offline-client';
-import { offline } from './transports/offline';
+import { local, offline } from './transports/offline';
 
 /** The global API installed by the offline browser bundle. */
 export interface OfflineC15tGlobal extends C15tGlobalBase {
-	/** Offline transport factory for `init({ mode: c15t.offline() })`. */
+	/** Local transport factory for `init({ mode: c15t.local() })`. */
+	local: typeof local;
+	/** @deprecated Use `local`. c15t v4 removes `offline`. */
 	offline: typeof offline;
 }
 
@@ -27,6 +29,6 @@ export const createOfflineGlobal = function createOfflineGlobal(
 			createOfflineConsentClient,
 			'offline'
 		),
-		{ offline }
+		{ local, offline }
 	);
 };

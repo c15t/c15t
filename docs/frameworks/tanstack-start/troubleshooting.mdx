@@ -119,9 +119,9 @@ The state names no backend URL and `consentManifest()` supplied none, for
 example on a page with `state={{}}` and no plugin in `vite.config.ts`.
 
 **Fix.** Add `consentManifest()` to `vite.config.ts` and set
-`VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`). Earlier alphas fell back to offline mode here; now
-the root throws. To run without a backend, pass `mode: offline()` to
-`createConsentStateHandler`, or `state={{ mode: offline() }}`.
+`VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`). Earlier alphas fell back to local mode here; now
+the root throws. To run without a backend, pass `mode: local()` to
+`createConsentStateHandler`, or `state={{ mode: local() }}`.
 
 ## A vendor loads before the visitor chooses
 
@@ -188,7 +188,7 @@ release, with no alias.
 | `createConsentStateHandler({ backendURL, manifest })` | `createConsentStateHandler()`, which reads both from `consentManifest()`, or `{ snapshot }` |
 | `manifestURL` on the state handler | `mode: manifest({ manifestURL })` |
 | `ConsentManifestOptions`, `resolveStrictestDefaultInit` | `ResolveConsentOptions`; `resolveUnknownLocationInit` |
-| Falling back to offline mode when no backend URL is set | `ConsentRoot` throws. Pass `mode: offline()` to run without a backend. |
+| Falling back to local mode when no backend URL is set | `ConsentRoot` throws. Pass `mode: local()` to run without a backend. |
 | `hosted`, `offline` and `manifest` from `c15t/tanstack-start` as transports | They are data for `createConsentStateHandler({ mode })` now. |
 
 The renames shared by every framework:

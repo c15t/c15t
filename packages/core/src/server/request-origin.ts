@@ -59,9 +59,12 @@ const readHeader = function readHeader(
 	if (typeof (headers as Headers).get === 'function') {
 		return (headers as Headers).get(name) ?? undefined;
 	}
-	const value = (headers as Record<string, string | string[] | undefined>)[
-		name
-	];
+	// Header names are case-insensitive, and a record keeps whatever casing
+	// the runtime or the client used.
+	const lower = name.toLowerCase();
+	const value = Object.entries(
+		headers as Record<string, string | string[] | undefined>
+	).find(([key]) => key.toLowerCase() === lower)?.[1];
 	return Array.isArray(value) ? value[0] : value;
 };
 

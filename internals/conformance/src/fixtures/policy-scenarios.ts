@@ -181,9 +181,10 @@ const hydrateScenario = function hydrateScenario(
 			{
 				expect: {
 					...quiet,
-					subject: POLICY_RECORDS[record].expected.valid
-						? POLICY_RECORDS[record].expected.subject
-						: null,
+					subject:
+						(POLICY_RECORDS[record].expected.valid &&
+							POLICY_RECORDS[record].expected.subject) ||
+						'generated',
 					...expect,
 				},
 				operation: { kind: 'hydrate' },

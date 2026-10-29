@@ -71,7 +71,7 @@ test('throws with no config and no NEXT_PUBLIC_C15T_BACKEND_URL', () => {
 test('renders an explicit offline() without a backend URL', () => {
 	const html = renderToString(
 		<ConsentRoot
-			config={{ mode: offline() }}
+			config={{ mode: offline({ acknowledgeNoRecords: true }) }}
 			state={policyFixture()}
 		>
 			<div>offline root</div>

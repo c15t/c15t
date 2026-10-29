@@ -65,6 +65,11 @@ The collector holds one `beforeSend` callback. Pass yours through the
 `beforeSend` option. Calling `window.si('beforeSend', ...)` yourself replaces
 the helper's consent check.
 
+A framework that starts allowed scripts from the server HTML starts the
+collector before the app hydrates, and the helper registers its callback at
+hydration. With a `beforeSend` option, the collector waits for hydration
+instead, so your callback sees every report.
+
 Reports only cover page loads after consent. The collector reads buffered
 paint and navigation timings, but interactions before consent are missed. The
 helper does not set `data-route`, so Vercel groups reports by URL rather than

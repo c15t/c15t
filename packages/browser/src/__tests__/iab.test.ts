@@ -395,7 +395,7 @@ describe('IAB browser entry', () => {
 		);
 	});
 	it('closes preferences on the local record when the backend save fails', async () => {
-		const factory = offline();
+		const factory = offline({ acknowledgeNoRecords: true });
 		const mode: typeof factory = Object.assign(
 			(context: Parameters<typeof factory>[0]) => ({
 				...factory(context),

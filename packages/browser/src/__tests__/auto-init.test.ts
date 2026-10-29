@@ -242,7 +242,7 @@ describe('readPageOptions', () => {
 describe('window.c15t', () => {
 	it('reuses the installed client when the script tag loads twice', async () => {
 		const first = installGlobal(createGlobal({ pkg: '@c15t/browser' }));
-		first.init({ ui: false });
+		first.init({ acknowledgeNoRecords: true, ui: false });
 		await first.ready();
 		const second = installGlobal(createGlobal({ pkg: '@c15t/browser' }));
 		expect(second).toBe(first);
@@ -255,7 +255,11 @@ describe('window.c15t', () => {
 			.mockReturnValue(script);
 		const api = createGlobal({ pkg: 'test' });
 		installGlobal(api);
-		api.config({ consentCategories: ['measurement'], ui: false });
+		api.config({
+			acknowledgeNoRecords: true,
+			consentCategories: ['measurement'],
+			ui: false,
+		});
 		try {
 			autoInit(api);
 			await api.ready();
@@ -272,7 +276,11 @@ describe('window.c15t', () => {
 		const ready = api.ready();
 		expect(() => api.getSnapshot()).toThrow(/init/u);
 
-		api.init({ consentCategories: ['measurement'], ui: false });
+		api.init({
+			acknowledgeNoRecords: true,
+			consentCategories: ['measurement'],
+			ui: false,
+		});
 
 		await expect(ready).resolves.toMatchObject({ activeUI: 'banner' });
 		await vi.waitFor(() => {
@@ -286,7 +294,14 @@ describe('window.c15t', () => {
 	it('replays calls queued before the script loaded, config included', async () => {
 		const onConsent = vi.fn();
 		testWindow.c15t = [
-			['config', { consentCategories: ['measurement'], ui: false }],
+			[
+				'config',
+				{
+					acknowledgeNoRecords: true,
+					consentCategories: ['measurement'],
+					ui: false,
+				},
+			],
 			['on', 'consent', onConsent],
 		];
 		const api = createGlobal({ pkg: '@c15t/browser/test' });
@@ -308,7 +323,10 @@ describe('window.c15t', () => {
 		installGlobal(api);
 		api.config({ consentCategories: ['marketing'], ui: false });
 
-		const client = api.init({ consentCategories: ['measurement'] });
+		const client = api.init({
+			acknowledgeNoRecords: true,
+			consentCategories: ['measurement'],
+		});
 		api.config({ consentCategories: ['functionality'] });
 
 		expect(client.options.consentCategories).toEqual(['measurement']);
@@ -320,14 +338,22 @@ describe('window.c15t', () => {
 	it('answers ready() and on() from the new client after dispose and init', async () => {
 		const api = createGlobal({ pkg: '@c15t/browser/test' });
 		installGlobal(api);
-		const first = api.init({ consentCategories: ['measurement'], ui: false });
+		const first = api.init({
+			acknowledgeNoRecords: true,
+			consentCategories: ['measurement'],
+			ui: false,
+		});
 		await api.ready();
 		api.dispose();
 
 		const onReady = vi.fn();
 		api.on('ready', onReady);
 		const ready = api.ready();
-		const second = api.init({ consentCategories: ['marketing'], ui: false });
+		const second = api.init({
+			acknowledgeNoRecords: true,
+			consentCategories: ['marketing'],
+			ui: false,
+		});
 
 		expect(second).not.toBe(first);
 		await expect(ready).resolves.toMatchObject({ activeUI: 'banner' });
@@ -341,7 +367,7 @@ describe('window.c15t', () => {
 		const api = createGlobal({ pkg: '@c15t/browser/test' });
 		installGlobal(api);
 
-		api.init({ ui: false });
+		api.init({ acknowledgeNoRecords: true, ui: false });
 
 		// `@c15t/core` writes its own frozen debug object there on start.
 		expect(testWindow.c15t).toBe(api);

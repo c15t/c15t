@@ -28,7 +28,7 @@ const CONTROLS =
 
 const optionsFor = (gvl: GlobalVendorList): ConsentProviderOptions => ({
 	iab: { cmpId: 160, cmpVersion: 1, gvl },
-	mode: offline(),
+	mode: offline({ acknowledgeNoRecords: true }),
 	prefetch: policyFixture(undefined, {
 		categories: undefined,
 		id: 'iab_features_test',

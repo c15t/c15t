@@ -8,7 +8,8 @@ import { Effect } from 'effect';
 import { SqlClient } from 'effect/sql';
 import type { SqlError } from 'effect/sql';
 
-import { encodeRow, encoder } from './values';
+import type { TenantRow } from './tenant';
+import { encodeTenantRow } from './values';
 
 export interface InsertOnceOptions {
 	/** Table to insert into. */
@@ -38,8 +39,11 @@ export interface InsertOnceOptions {
 	 * enclosing Postgres transaction, so use it only outside one.
 	 */
 	readonly fallbackToAnyUnique?: boolean;
-	/** Column values. JSON columns must already be serialised. */
-	readonly values: Record<string, unknown>;
+	/**
+	 * Column values. JSON columns must already be serialised. `tenantId` comes
+	 * from the `Tenant` scope.
+	 */
+	readonly values: TenantRow;
 }
 
 /**
@@ -85,7 +89,7 @@ export const insertOnce = Effect.fn('db.insertOnce')(function* insertOnce(
 	const sql = yield* SqlClient.SqlClient;
 	const into = sql(options.into);
 	// SQLite can bind neither a Date nor a boolean; see `./values.ts`.
-	const values = sql.insert(encodeRow(yield* encoder, options.values));
+	const values = sql.insert(yield* encodeTenantRow(options.values));
 	const conflictOn = sql(options.conflictOn);
 
 	return yield* sql.onDialectOrElse({

@@ -37,7 +37,7 @@ test('Svelte provider options share external gates and preference controls', asy
 		options: {
 			consentSource: source,
 			iframeBlocker: false,
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			scripts: [script],
 		},
 	});

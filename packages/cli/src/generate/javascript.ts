@@ -50,7 +50,7 @@ ${body}	</body>
 export const generateJavaScriptBoilerplate = (
 	options: BoilerplateOptions
 ): BoilerplateTemplate => {
-	const mode = options.mode === 'offline' ? 'offline' : 'manifest';
+	const mode = options.mode === 'offline' ? 'local' : 'manifest';
 	return {
 		dependencies: [
 			'@c15t/browser',

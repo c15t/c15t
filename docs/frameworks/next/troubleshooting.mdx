@@ -53,7 +53,7 @@ parentheses names the cause:
 means the backend URL is a path such as `/api/c15t`. With
 `onBuildError: 'fail'`, that stops the build with `build-time manifests
 require an absolute upstream URL.` The same notice ending in
-`because c15t.config.ts uses hosted()`, `uses offline()`,
+`because c15t.config.ts uses hosted()`, `uses local()`,
 `passes manifest({ snapshot })` or `sets manifest({ source: 'runtime' })` is
 expected: those modes read no build-time manifest.
 
@@ -166,9 +166,9 @@ backend URL, and neither `NEXT_PUBLIC_C15T_BACKEND_URL` nor
 **Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` (or
 `NEXT_PUBLIC_INTH_PROJECT_URL`) wherever `next build` and
 `next dev` run, and check that `withConsentManifest` finds `c15t.config.ts`
-(see the previous section). Earlier alphas fell back to offline mode here;
-now the root throws. To run without a backend, set `mode: offline()` in
-`c15t.config.ts`, or pass `options={{ mode: offline() }}` to `ConsentRoot`.
+(see the previous section). Earlier alphas fell back to local mode here;
+now the root throws. To run without a backend, set `mode: local()` in
+`c15t.config.ts`, or pass `options={{ mode: local() }}` to `ConsentRoot`.
 
 ## Why does ConsentRoot warn that a transport ships in the first-load bundle?
 
@@ -178,7 +178,7 @@ now the root throws. To run without a backend, set `mode: offline()` in
 [c15t] ConsentRoot `mode` is the hosted() transport itself, so its code ships in the first-load bundle. Use hosted() from c15t/next instead: it is plain data, and the root loads the code only when it runs.
 ```
 
-**Fix.** `options.mode` received `hosted()`, `offline()` or `manifest()` from
+**Fix.** `options.mode` received `hosted()`, `local()` or `manifest()` from
 `c15t/react`, which are transports. Import the mode from `c15t/next` and set
 it as `mode` in `c15t.config.ts`. `custom(transport)` does not warn.
 

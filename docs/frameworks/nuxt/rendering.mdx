@@ -7,7 +7,7 @@ group: frameworks
 ## Pick the setup for your deployment
 
 Two module options in `nuxt.config.ts` decide where each visitor's policy
-comes from. `mode` is `manifest()`, `hosted()` or `offline()`, imported from
+comes from. `mode` is `manifest()`, `hosted()` or `local()`, imported from
 `c15t/vue`. `routePrefix` is where the module adds its consent route.
 
 | Your deployment | `c15t` options | Banner in the first HTML |
@@ -31,11 +31,35 @@ whether the HTML belongs to one visitor or to everyone.
 
 By default, every server render reads the visitor's consent cookie and
 location headers, resolves their policy from the bundled snapshot, and sends
-the result with the page. The browser reuses it during hydration, so
-consent-gated scripts can start right after hydration and the banner needs no
-extra request. The browser bundle holds no resolver, snapshot or policy
+the result with the page. The browser reuses it during hydration, so the
+banner needs no extra request. The browser bundle holds no resolver, snapshot or policy
 rules. The [quickstart](/docs/frameworks/nuxt/quickstart) sets this up, and
 `examples/nuxt` in the c15t repository runs it.
+
+The server render also gives a visitor with no subject ID (`sub_…`) one, in
+the `c15t-sid` cookie, and sends it with the page. The browser starts with
+the same ID in `snapshot.subject.subjectId`. The cookie holds only the ID, so
+the banner still shows until the visitor makes a choice. It is named from
+`storageConfig.storageKey` and takes its domain and lifetime from
+`storageConfig`, the same as the cookie the browser writes. See
+[the subject ID](/docs/concepts/consent-state#a-subject-id-from-the-first-page-load).
+
+When the visitor's consent already allows some `scripts` entries, through a
+stored choice or a policy that asks for none, the server render adds an inline
+script at the end of `<body>`. After first paint, it runs those entries' setup
+and inserts their tags, so they start loading before the app hydrates. Entries
+with `alwaysLoad` start this way whatever the visitor chose. The script loader
+adopts those tags instead of inserting its own. Nothing starts from the HTML
+while the policy asks the visitor to choose, not even `alwaysLoad` entries, and
+a prerendered route starts nothing.
+
+The vendor helpers from `@c15t/integrations` start this way, except Cloudflare
+Zaraz and Sentry. Those two helpers, and `scripts` entries you write yourself,
+start after hydration.
+
+To start every `scripts` entry after hydration instead, set
+`scriptLoader: { serverStart: false }` under `c15t` in `nuxt.config.ts` or
+`app.config.ts`.
 
 The module adds one catch-all route at `${routePrefix}/**`, `/api/c15t/**` by
 default. It answers `GET /api/c15t/init`, the visitor's resolved policy, and
@@ -123,7 +147,8 @@ for the fetch, up to `timeoutMs`.
 A prerendered route, or one with a `prerender`, `swr`, `isr` or `cache` route
 rule, sends the same HTML to every visitor. The module renders that HTML
 without any visitor's consent record, location or request headers, so it has
-no banner. After hydration the browser requests the visitor's policy from
+no banner. It sets no `c15t-sid` cookie either, since every visitor would get
+the same ID; the browser creates one when the page loads. After hydration the browser requests the visitor's policy from
 `/api/c15t/init` and reads their stored choice, then shows the banner if the
 policy asks for one. With `hosted()`, or `routePrefix: false`, the browser
 asks the backend's `/init` instead.

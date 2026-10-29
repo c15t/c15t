@@ -36,7 +36,7 @@ const renderPage = function renderPage(
 	const { head } = render(ConsentProvider, {
 		props: {
 			options: {
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				...options,
 			} as ConsentManagerOptions,

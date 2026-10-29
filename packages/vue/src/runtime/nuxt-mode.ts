@@ -18,7 +18,7 @@ export interface NuxtConsentModeConfig {
 	backendURL?: string;
 	/**
 	 * Where the visitor's policy comes from: `manifest()`, `hosted()` or
-	 * `offline()` from `c15t/vue`. Plain data, read from `nuxt.config.ts`
+	 * `local()` from `c15t/vue`. Plain data, read from `nuxt.config.ts`
 	 * only.
 	 *
 	 * @default manifest()
@@ -78,7 +78,7 @@ export const readNuxtRoutePrefix = function readNuxtRoutePrefix(
 /**
  * Whether the server render resolves the visitor's policy: `hosted()` and
  * `manifest()`. `manifest({ resolve: 'browser' })` is for pages the server
- * does not render per visitor, and `offline()` resolves in the browser,
+ * does not render per visitor, and `local()` resolves in the browser,
  * where its rules and copy load on demand.
  *
  * @param mode - The mode.

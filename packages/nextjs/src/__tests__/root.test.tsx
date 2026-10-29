@@ -15,8 +15,8 @@ import { render } from 'vitest-browser-react';
 import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
 
-/** These tests are not about the backend; an explicit offline() needs none. */
-const OFFLINE_CONFIG = { mode: offline() };
+/** These tests are not about the backend; an explicit offline({ acknowledgeNoRecords: true }) needs none. */
+const OFFLINE_CONFIG = { mode: offline({ acknowledgeNoRecords: true }) };
 
 describe('ConsentRoot: state is honored', () => {
 	test('initial consents from state reach useConsent', async () => {

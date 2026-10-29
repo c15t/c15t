@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/svelte",
-	"version": "3.1.0",
-	"description": "Svelte and SvelteKit cookie consent banner, consent dialog and preference center. A GDPR consent management platform (CMP) with Google Consent Mode v2 and IAB TCF.",
+	"version": "3.2.0-canary.0",
+	"description": "Svelte cookie consent banner for Svelte and SvelteKit, with a consent dialog and preference center. The Svelte package for c15t.",
 	"keywords": [
 		"banner",
 		"ccpa",

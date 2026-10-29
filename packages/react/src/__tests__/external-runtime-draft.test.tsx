@@ -23,7 +23,7 @@ const createRuntime = function createRuntime(): ConsentRuntime {
 			'measurement',
 			'marketing',
 		],
-		mode: offline(),
+		mode: offline({ acknowledgeNoRecords: true }),
 		persistence: false,
 		pkg: '@c15t/react-external-draft-test',
 		prefetch: policyFixture({ experience: false, measurement: false }),

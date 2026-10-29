@@ -33,7 +33,7 @@ const gateApp = function gateApp(
 	return (
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: {
 					initialPolicyResolution: {

@@ -1,0 +1,13 @@
+{/* Generated from internals/doc-snippets/javascript/src/adobe-target-atjs.ts (docs:adobe-target-atjs) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-scripts.ts"
+import { adobeTarget } from '@c15t/integrations/adobe-target';
+
+export const scripts = [
+	adobeTarget({
+		mode: 'atjs',
+		scriptUrl: '/scripts/at.js',
+		targetGlobalSettings: { secureOnly: true },
+	}),
+];
+```

@@ -206,6 +206,40 @@ describe('saveConsentSurface', () => {
 		expect(kernel.getSnapshot().activeUI).toBe('dialog');
 	});
 
+	// A policy change no longer closes an open dialog, so the pending save
+	// decides what happens to it.
+	test.each([
+		['settles once it resolves ok', { ok: true }, 'none'],
+		['keeps the dialog when it fails', { ok: false }, 'dialog'],
+	] as const)(
+		'a save pending across a policy change %s',
+		async (_name, result, expected) => {
+			const kernel = returningVisitor({
+				transport: {
+					init: () =>
+						Promise.resolve({
+							policyResolution: {
+								...matchedResolution(optInRule({ id: 'test-opt-in-v2' })),
+								version: 1,
+							},
+						}),
+					save: pendingTransport().save,
+				},
+			});
+			showConsentSurface(kernel, 'dialog');
+			const save = unrecordedSave();
+			const pending = saveConsentSurface(kernel, save.save);
+			await kernel.commands.init();
+			expect(kernel.getSnapshot().resolution).toMatchObject({
+				policy: { id: 'test-opt-in-v2' },
+			});
+			expect(kernel.getSnapshot().activeUI).toBe('dialog');
+			save.resolve(result);
+			await pending;
+			expect(kernel.getSnapshot().activeUI).toBe(expected);
+		}
+	);
+
 	test('`canClose` vetoes the deferred close', async () => {
 		const kernel = returningVisitor();
 		showConsentSurface(kernel, 'dialog');

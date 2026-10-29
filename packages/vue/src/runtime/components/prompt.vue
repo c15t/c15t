@@ -103,8 +103,7 @@ const {
 	blocking,
 	direction,
 	position,
-	positionSource,
-	primaryActions: resolvedPrimaryActions,
+	primaryActions,
 	shouldFillActions,
 	preferenceControls,
 	variant,
@@ -127,19 +126,6 @@ const bundle = computed(
 
 const promptKind = computed(() => snapshot.value.policyRule.prompt);
 const isNotice = computed(() => promptKind.value === 'notice');
-
-/**
- * A notice offers dismiss alone. The resolver's default primary is
- * customize, which a notice never has, so the one action takes the
- * primary treatment instead of rendering every control as neutral.
- */
-const primaryActions = computed(() => {
-	if (resolvedPrimaryActions.value.length > 0) {
-		return resolvedPrimaryActions.value;
-	}
-	const ordered = actionGroups.value.flat();
-	return ordered.length === 1 && ordered[0] === 'dismiss' ? ordered : [];
-});
 
 const hasConsentUi = useHasConsentUi();
 const isOpen = computed(() => {
@@ -183,28 +169,6 @@ const bannerTitle = computed(() => {
 		return cookieBanner?.noticeTitle ?? cookieBanner?.title ?? 'Privacy notice';
 	}
 	return cookieBanner?.title ?? 'Cookie choices';
-});
-
-/**
- * A defaulted corner mirrors for right-to-left text so the card sits at
- * the reading start. A host-chosen position is kept as written.
- */
-const resolvedPosition = computed(() => {
-	const { value } = position;
-	if (
-		positionSource.value === 'host' ||
-		textDirection.value !== 'rtl' ||
-		(variant.value !== 'floating' && variant.value !== 'widget')
-	) {
-		return value;
-	}
-	if (value.endsWith('-left')) {
-		return value.replace('-left', '-right') as PromptPosition;
-	}
-	if (value.endsWith('-right')) {
-		return value.replace('-right', '-left') as PromptPosition;
-	}
-	return value;
 });
 
 /**
@@ -313,7 +277,7 @@ const onAction = function onAction(action: PresentationAction) {
 				data-testid="consent-banner-root"
 				:data-entry="entryAttribute"
 				:data-variant="variant"
-				:data-position="resolvedPosition"
+				:data-position="position"
 				:data-blocking="blocking ? 'true' : undefined"
 				:data-prompt="promptKind"
 				:data-model="snapshot.policyRule.model"

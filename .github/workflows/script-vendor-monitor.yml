@@ -62,8 +62,10 @@ jobs:
           PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./packages/integrations/package.json').devDependencies.playwright)")
           bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
 
-      - name: Build c15t core
-        run: bun turbo run build --filter=@c15t/core
+      # The probes run integrations source, which imports `#inline-start` from
+      # the package's own dist, so build integrations and its dependencies.
+      - name: Build c15t integrations
+        run: bun turbo run build --filter=@c15t/integrations
 
       - name: Run live vendor probes
         working-directory: packages/integrations

@@ -123,15 +123,58 @@ describe('getTextDirection', () => {
 		expect(getTextDirection('ps')).toBe('rtl');
 		// Sindhi
 		expect(getTextDirection('sd')).toBe('rtl');
-		// Kurdish
-		expect(getTextDirection('ku')).toBe('rtl');
 		// Divehi
 		expect(getTextDirection('dv')).toBe('rtl');
+		// Yiddish
+		expect(getTextDirection('yi')).toBe('rtl');
+		expect(getTextDirection('yi-US')).toBe('rtl');
+		// Central Kurdish (Sorani)
+		expect(getTextDirection('ckb')).toBe('rtl');
+		// Uyghur
+		expect(getTextDirection('ug')).toBe('rtl');
+		// Syriac
+		expect(getTextDirection('syr')).toBe('rtl');
+		// N'Ko
+		expect(getTextDirection('nqo')).toBe('rtl');
+	});
+
+	test('returns rtl for deprecated Hebrew and Yiddish codes', () => {
+		expect(getTextDirection('iw')).toBe('rtl');
+		expect(getTextDirection('ji')).toBe('rtl');
+	});
+
+	test('returns ltr for Kurdish without a script, which is usually Kurmanji', () => {
+		expect(getTextDirection('ku')).toBe('ltr');
+		expect(getTextDirection('ku-TR')).toBe('ltr');
+	});
+
+	test('uses the script subtag when present', () => {
+		expect(getTextDirection('ku-Arab')).toBe('rtl');
+		expect(getTextDirection('ku-Arab-IQ')).toBe('rtl');
+		expect(getTextDirection('pa-Arab')).toBe('rtl');
+		expect(getTextDirection('az-Arab')).toBe('rtl');
+		expect(getTextDirection('sd-Deva')).toBe('ltr');
+		expect(getTextDirection('uz-Latn')).toBe('ltr');
+	});
+
+	test('keeps RTL for script variants CLDR leaves out', () => {
+		// Urdu in Nastaliq
+		expect(getTextDirection('ur-Aran')).toBe('rtl');
+		expect(getTextDirection('syr-Syre')).toBe('rtl');
+		expect(getTextDirection('pal-Phlv')).toBe('rtl');
+	});
+
+	test('ignores extension values that look like scripts', () => {
+		expect(getTextDirection('en-u-nu-arab')).toBe('ltr');
+		expect(getTextDirection('ar-u-nu-latn')).toBe('rtl');
+		expect(getTextDirection('x-arab')).toBe('ltr');
+		expect(getTextDirection('en-x-arab')).toBe('ltr');
 	});
 
 	test('handles case insensitively', () => {
 		expect(getTextDirection('AR')).toBe('rtl');
 		expect(getTextDirection('Ar-SA')).toBe('rtl');
+		expect(getTextDirection('YI')).toBe('rtl');
 	});
 });
 
@@ -193,6 +236,7 @@ describe('setupScrollLock', () => {
 		pageStyle = null;
 		Reflect.deleteProperty(root, 'clientWidth');
 		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
 	});
 
 	test('hides body overflow when it controls the viewport, and restores it', () => {
@@ -249,6 +293,8 @@ describe('setupScrollLock', () => {
 		const cleanup = setupScrollLock();
 		expect(root.style.scrollbarGutter).toBe('stable');
 		expect(body.style.paddingRight).toBe('10px');
+		// Fixed elements stay still, so there is no gap to report.
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('');
 		cleanup();
 		expect(root.style.scrollbarGutter).toBe('');
 	});
@@ -282,6 +328,23 @@ describe('setupScrollLock', () => {
 		cleanup();
 	});
 
+	test('pads body by the width the page gained when the gutter does not hold', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		// A scrollbar styled with `::-webkit-scrollbar` on macOS Chromium: the
+		// gutter reserves nothing, so the page is wider once overflow is hidden.
+		const rootWidth = (width: number) => ({ width }) as DOMRect;
+		vi.spyOn(root, 'getBoundingClientRect')
+			.mockReturnValueOnce(rootWidth(1000))
+			.mockReturnValue(rootWidth(1015));
+		const cleanup = setupScrollLock();
+		expect(body.style.paddingRight).toBe('15px');
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('15px');
+		cleanup();
+		expect(body.style.paddingRight).toBe('');
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('');
+	});
+
 	test('pads body by the scrollbar width without scrollbar-gutter support', () => {
 		showRootScrollbar(15);
 		body.style.paddingRight = '10px';
@@ -290,6 +353,18 @@ describe('setupScrollLock', () => {
 		expect(root.style.scrollbarGutter).toBe('');
 		cleanup();
 		expect(body.style.paddingRight).toBe('10px');
+	});
+
+	test('reports the padded width as --c15t-scroll-lock-gap until release', () => {
+		showRootScrollbar(15);
+		root.style.setProperty('--c15t-scroll-lock-gap', '4px');
+		const first = setupScrollLock();
+		const second = setupScrollLock();
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('15px');
+		first();
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('15px');
+		second();
+		expect(root.style.getPropertyValue('--c15t-scroll-lock-gap')).toBe('4px');
 	});
 });
 

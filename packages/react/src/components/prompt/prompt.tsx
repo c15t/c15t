@@ -20,7 +20,7 @@ import { BrandingLink } from '~/components/shared/ui/branding';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useIABPolicyGuard } from '~/hooks/use-iab-policy-guard';
 
-import { StreamedSurface } from '../shared/streamed-surface';
+import { StreamedConsentSurface } from '../shared/streamed-surface';
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
@@ -36,7 +36,6 @@ import {
 	ConsentBannerTitle,
 } from './components';
 import { ErrorBoundary } from './error-boundary';
-import { resolveBannerPrimaryActions } from './resolve-banner-primary-actions';
 
 /**
  * Identifiers for the available buttons in the consent banner.
@@ -214,8 +213,8 @@ export interface ConsentBannerProps {
 	/**
 	 * Placement of the prompt. Overrides `presentation.prompt.position`.
 	 * @remarks Must be valid for the resolved variant; otherwise the variant
-	 * default is used and a development diagnostic is logged. Host-chosen
-	 * positions are never mirrored for right-to-left text.
+	 * default is used and a development diagnostic is logged. Right-to-left
+	 * text does not move the prompt.
 	 */
 	position?: PromptPosition;
 
@@ -278,10 +277,6 @@ const ConsentBannerContent: FC<ConsentBannerProps> = ({
 
 	const { orderedActions } = banner;
 	const allowedActions = new Set(orderedActions);
-	const effectivePrimaryButton = resolveBannerPrimaryActions(
-		banner.primaryActions,
-		orderedActions
-	);
 	const resolvedLayout = banner.actionGroups;
 	const resolvedDirection = banner.direction;
 	const { shouldFillActions } = banner;
@@ -291,7 +286,7 @@ const ConsentBannerContent: FC<ConsentBannerProps> = ({
 			return null;
 		}
 
-		const isPrimary = effectivePrimaryButton.includes(type);
+		const isPrimary = banner.primaryActions.includes(type);
 
 		switch (type) {
 			case 'reject':
@@ -430,12 +425,13 @@ const ConsentBannerContent: FC<ConsentBannerProps> = ({
 
 /**
  * The stock banner. It reads the policy to choose its buttons, so all of
- * it renders where the server can stream it: see `StreamedSurface`.
+ * it renders where the server can stream it: see
+ * `StreamedConsentSurface`.
  */
 export const ConsentBanner: FC<ConsentBannerProps> = (props) => (
-	<StreamedSurface>
+	<StreamedConsentSurface>
 		<ConsentBannerContent {...props} />
-	</StreamedSurface>
+	</StreamedConsentSurface>
 );
 
 /**

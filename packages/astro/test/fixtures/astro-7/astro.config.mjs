@@ -55,6 +55,7 @@ export default defineConfig({
 			endpoints: false,
 			iab: iab ? { cmpId: 160, gvl: MINIMAL_GVL } : undefined,
 			mode: offline({
+				acknowledgeNoRecords: true,
 				policyRules: [
 					{
 						categories: ['marketing'],

@@ -19,7 +19,9 @@ const renderWithConsent = function renderWithConsent(
 	{ noStyle = false }: { noStyle?: boolean } = {}
 ): void {
 	render(
-		<ComponentFixtureProvider options={{ mode: offline(), noStyle }}>
+		<ComponentFixtureProvider
+			options={{ mode: offline({ acknowledgeNoRecords: true }), noStyle }}
+		>
 			<ConsentDialog />
 			{children}
 		</ComponentFixtureProvider>

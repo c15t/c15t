@@ -72,7 +72,7 @@ const save = async (payload: SavePayload) => {
 	return { ok: true as const, subjectId: payload.subjectId };
 };
 
-const local = offline();
+const local = offline({ acknowledgeNoRecords: true });
 const mode: ProviderTransportFactory = Object.assign(
 	(context: Parameters<ProviderTransportFactory>[0]) => ({
 		...local(context),

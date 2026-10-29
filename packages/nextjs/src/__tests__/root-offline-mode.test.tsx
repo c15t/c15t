@@ -55,7 +55,7 @@ describe('ConsentRoot offline mode', () => {
 	test('an offline() root resolves the recommended rules', async () => {
 		const { getByTestId } = await render(
 			<ConsentRoot
-				config={{ mode: offline() }}
+				config={{ mode: offline({ acknowledgeNoRecords: true }) }}
 				persistence={false}
 				state={{ initialOverrides: { country: 'DE' } }}
 			>

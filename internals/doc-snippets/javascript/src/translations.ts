@@ -1,10 +1,10 @@
 // #region docs:translations title="src/main.ts"
-import { init, offline } from '@c15t/browser';
+import { init, local } from '@c15t/browser';
 import { policyRulePresets } from 'c15t';
 
 import { scripts } from './scripts';
 
-// Offline mode shows the copy in `i18n`. With a backend, the backend's copy
+// Local mode shows the copy in `i18n`. With a backend, the backend's copy
 // for the visitor's language replaces these messages.
 export const consent = init({
 	i18n: {
@@ -26,7 +26,7 @@ export const consent = init({
 			},
 		},
 	},
-	mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }),
+	mode: local({ policyRules: [policyRulePresets.europeOptIn()] }),
 	scripts,
 });
 // #endregion docs:translations

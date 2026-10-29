@@ -82,7 +82,11 @@ export interface PolicyObservation {
 	prompt?: ScenarioPrompt;
 	permissions?: Partial<Record<PolicyCategory | 'necessary', boolean>>;
 	choice?: PolicyChoiceFixture | null;
-	subject?: PolicySubjectFixture | null;
+	/**
+	 * The stored subject, or `'generated'` for the ID a runtime makes at
+	 * startup when storage holds none: a `sub_` ID with no external identity.
+	 */
+	subject?: PolicySubjectFixture | 'generated' | null;
 	resolution?: 'unconfigured' | 'matched' | 'no-match' | 'failed';
 	/**
 	 * Prior matched-policy values must not survive this transition. This is

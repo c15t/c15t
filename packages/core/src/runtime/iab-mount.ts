@@ -66,13 +66,21 @@ export const mountRuntimeIAB = function mountRuntimeIAB({
 	onHandle,
 }: RuntimeIABMountOptions): () => void {
 	let handle: ConsentRuntimeIABHandle | null = null;
+	// `createIAB` seeds the kernel synchronously, which calls this listener
+	// again before `handle` is set.
+	let mounting = false;
 	const mountWhenReady = function mountWhenReady() {
-		if (handle) {
+		if (handle || mounting) {
 			return;
 		}
 		const iabOptions = normalizeIABOptions(kernel, iab);
 		if (iabOptions) {
-			handle = createIAB({ ...iabOptions, kernel });
+			mounting = true;
+			try {
+				handle = createIAB({ ...iabOptions, kernel });
+			} finally {
+				mounting = false;
+			}
 			onHandle(handle);
 		}
 	};

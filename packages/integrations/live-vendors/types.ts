@@ -50,13 +50,16 @@ export interface LiveProbeCheckResult {
 export interface LiveVendorProbeConfig {
 	/** Vendor id matching the registry `vendor` field and emitted `Script.id`. */
 	vendor: string;
+	/** Browser user agent for vendors whose settings reject headless defaults. */
+	userAgent?: string;
 	/** Probe depth for this vendor. */
 	tier: LiveProbeTier;
 	/** Required when `tier` is `skip`; explains the coverage gap. */
 	skipReason?: string;
 	/**
-	 * Builds the vendor script with safe placeholder configuration. Required
-	 * unless `tier` is `skip`. Must not send real account identifiers.
+	 * Builds the vendor script with placeholders or explicitly authorized public
+	 * sample IDs documented in the entry. Required unless `tier` is `skip`.
+	 * Collection requests remain blocked.
 	 */
 	createScript?: () => Script;
 	/** Substring identifying the vendor loader request URL. */

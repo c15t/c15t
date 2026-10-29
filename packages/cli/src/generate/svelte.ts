@@ -15,7 +15,7 @@ import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
 
 /** The line SvelteKit's `src/app.d.ts` adds for the consent locals type. */
 export const SVELTEKIT_LOCALS_REFERENCE =
-	'/// <reference types="@c15t/svelte/kit/locals" />';
+	'/// <reference types="c15t/svelte/kit/locals" />';
 
 /** Indent each non-empty line of a block by one tab. */
 const indent = (block: string): string =>
@@ -42,7 +42,7 @@ const viteConfig = (
 	options: BoilerplateOptions,
 	kit: boolean
 ): string => `${sortImports([
-	"import { consentManifest } from '@c15t/svelte/vite';",
+	"import { consentManifest } from 'c15t/svelte/vite';",
 	kit
 		? "import adapter from '@sveltejs/adapter-auto';"
 		: "import { svelte } from '@sveltejs/vite-plugin-svelte';",
@@ -62,7 +62,7 @@ const withScripts = (
 	options.scripts.length ? [...attributes, '{scripts}'] : attributes;
 
 const svelteFiles = (options: BoilerplateOptions): Record<string, string> => {
-	const mode = options.mode === 'offline' ? 'offline' : 'hosted';
+	const mode = options.mode === 'offline' ? 'local' : 'hosted';
 	return {
 		...envFile(BACKEND_URL_ENV.vite, options),
 		'src/App.svelte': `${scriptBlock(
@@ -74,7 +74,7 @@ const svelteFiles = (options: BoilerplateOptions): Record<string, string> => {
 	ConsentDialogLink,
 	ConsentProvider,
 	${mode},
-} from '@c15t/svelte';`,
+} from 'c15t/svelte';`,
 			],
 			''
 		)}
@@ -117,12 +117,12 @@ declare global {
 
 export {};
 `,
-		'src/hooks.server.ts': `import { c15tHandle${offline ? ', offline' : ''} } from '@c15t/svelte/kit';
+		'src/hooks.server.ts': `import { c15tHandle${offline ? ', local' : ''} } from 'c15t/svelte/kit';
 
-export const handle = c15tHandle(${offline ? '{ mode: offline() }' : ''});
+export const handle = c15tHandle(${offline ? '{ mode: local() }' : ''});
 `,
 		'src/routes/+layout.server.ts':
-			"export { loadConsent as load } from '@c15t/svelte/kit';\n",
+			"export { loadConsent as load } from 'c15t/svelte/kit';\n",
 		'src/routes/+layout.svelte': `${scriptBlock(
 			options,
 			[
@@ -131,7 +131,7 @@ export const handle = c15tHandle(${offline ? '{ mode: offline() }' : ''});
 	ConsentDialog,
 	ConsentDialogLink,
 	ConsentRoot,
-} from '@c15t/svelte';`,
+} from 'c15t/svelte';`,
 			],
 			'let { children, data } = $props();\n'
 		)}
@@ -162,7 +162,7 @@ export const generateSvelteBoilerplate = (
 ): BoilerplateTemplate => {
 	const kit = options.framework === 'sveltekit';
 	return {
-		dependencies: ['@c15t/svelte', ...integrationDependencies(options)],
+		dependencies: ['c15t', ...integrationDependencies(options)],
 		files: kit ? svelteKitFiles(options) : svelteFiles(options),
 		instructions: [
 			kit
@@ -178,7 +178,7 @@ export const generateSvelteBoilerplate = (
 			? {
 					'src/app.d.ts': {
 						inserts: [{ before: '', content: SVELTEKIT_LOCALS_REFERENCE }],
-						marker: '@c15t/svelte/kit/locals',
+						marker: 'c15t/svelte/kit/locals',
 						type: 'insert',
 					},
 				}

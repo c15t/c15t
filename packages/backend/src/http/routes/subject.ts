@@ -13,10 +13,16 @@
  * `../consent-submission.ts`; this file is transport only.
  */
 
-import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
+import {
+	getSubjectOutputSchema,
+	listSubjectsOutputSchema,
+	patchSubjectInputSchema,
+	subjectIdSchema,
+} from '@c15t/schema';
 import type { ConsentItem } from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import { Effect } from 'effect';
+import { SqlClient } from 'effect/sql';
 import { describeRoute } from 'hono-openapi';
 import * as v from 'valibot';
 
@@ -27,6 +33,7 @@ import { findOrCreateDomain } from '../../repository/domain';
 import { submit } from '../../repository/record-consent';
 import {
 	findById,
+	findOrCreateForUpdate,
 	linkExternalId,
 	listByExternalId,
 } from '../../repository/subject';
@@ -41,6 +48,7 @@ import {
 	NotFoundError,
 } from '../errors';
 import { verifyIdentity } from '../identity-token';
+import { requireJsonBody } from '../json-body';
 
 /** One consent as the wire reports it, with 2.x fields plus v3 receipts. */
 const toConsentItem = (consent: ConsentRow): ConsentItem => ({
@@ -97,6 +105,49 @@ const checkIdentity = Effect.fn('subject.checkIdentity')(
 		return identity;
 	}
 );
+
+/**
+ * Checks the external id a save names and decides what the save stores.
+ *
+ * A save is a legal record, so a token that fails here does not refuse it.
+ * The link is stored unverified and the wide event says why; `PATCH` with a
+ * fresh token can verify it later. An instance set to
+ * `identityToken.requireVerifiedLinks` leaves an unproved link off instead,
+ * and the consent is recorded without it.
+ */
+const linkForSave = Effect.fn('subject.linkForSave')(function* linkForSave(
+	headers: Headers,
+	options: AppOptions,
+	input: {
+		readonly externalSubjectId?: string | undefined;
+		readonly identityProvider?: string | undefined;
+		readonly identityToken?: string | undefined;
+	}
+) {
+	const none = { externalId: null, identityProvider: null, verified: false };
+	if (input.externalSubjectId === undefined) {
+		return none;
+	}
+	const identity = yield* checkIdentity(headers, options, {
+		externalId: input.externalSubjectId,
+		identityProvider: input.identityProvider,
+		token: input.identityToken,
+	});
+	if (
+		!identity.verified &&
+		options.identityToken?.requireVerifiedLinks === true
+	) {
+		yield* setFields({
+			identity: { linkStored: false, reason: identity.reason, verified: false },
+		});
+		return none;
+	}
+	return {
+		externalId: input.externalSubjectId,
+		identityProvider: input.identityProvider ?? null,
+		verified: identity.verified,
+	};
+});
 
 export const register = function register({
 	app,
@@ -263,6 +314,7 @@ export const register = function register({
 			summary: 'Record a consent submission',
 			tags: ['Subject'],
 		}),
+		requireJsonBody,
 		async (c) => {
 			const body = await c.req.json().catch(() => undefined);
 			// One clock reading per request, so every timestamp check and every
@@ -280,20 +332,11 @@ export const register = function register({
 						policySnapshot: options.policySnapshot,
 						// The same tenant the init route scoped the token audience to.
 						tenantId: options.tenantId,
+						trustedOrigins: options.trustedOrigins,
 					});
 					const { input } = prepared;
 
-					// A save is a legal record, so a token that fails here does not
-					// refuse it. The link is stored unverified and the wide event says
-					// why; `PATCH` with a fresh token can verify it later.
-					const identity =
-						input.externalSubjectId === undefined
-							? undefined
-							: yield* checkIdentity(c.req.raw.headers, options, {
-									externalId: input.externalSubjectId,
-									identityProvider: input.identityProvider,
-									token: input.identityToken,
-								});
+					const link = yield* linkForSave(c.req.raw.headers, options, input);
 
 					const domain = yield* findOrCreateDomain(input.domain);
 					const policy = yield* findOrCreateRuntimePolicy(input.type);
@@ -309,10 +352,10 @@ export const register = function register({
 						consentAction: prepared.consentAction ?? null,
 						decision: prepared.decision?.input,
 						domainId: domain.id,
-						externalId: input.externalSubjectId ?? null,
-						externalIdVerified: identity?.verified === true,
+						externalId: link.externalId,
+						externalIdVerified: link.verified,
 						givenAt: prepared.givenAt,
-						identityProvider: input.identityProvider ?? null,
+						identityProvider: link.identityProvider,
 						ipAddress: prepared.ipAddress,
 						jurisdictionModel: prepared.jurisdictionModel ?? null,
 						metadata: prepared.metadata,
@@ -400,10 +443,12 @@ export const register = function register({
 			summary: 'Link a subject to an external identity',
 			tags: ['Subject'],
 		}),
+		requireJsonBody,
 		// No API key required: the browser links its own subject after sign-in,
 		// and the subject id is the capability. The link counts as verified,
 		// and so shows up in reads by external id, only with an API key or a
-		// signed `identityToken`. See `../identity-token.ts`.
+		// signed `identityToken`. See `../identity-token.ts`. An instance set
+		// to `identityToken.requireVerifiedLinks` refuses unverified links.
 		async (c) => {
 			const subjectId = c.req.param('id');
 			const body = await c.req.json().catch(() => undefined);
@@ -426,30 +471,70 @@ export const register = function register({
 							message: 'identityToken must be a string',
 						});
 					}
+					// Checked before anything is written: this route can create the
+					// subject, and a value the link then cannot store would leave
+					// that subject behind.
+					const parsed = v.safeParse(patchSubjectInputSchema, body);
+					if (!parsed.success) {
+						return yield* new BadRequestError({
+							code: 'INPUT_VALIDATION_FAILED',
+							message: `Invalid identity link: ${Object.keys(
+								v.flatten(parsed.issues).nested ?? {}
+							).join(', ')} must be a string`,
+						});
+					}
+					const input = parsed.output;
 
 					// Matches @c15t/backend's default: an identity supplied
 					// without a named provider is still externally sourced.
-					const identityProvider: string = body.identityProvider ?? 'external';
+					const identityProvider = input.identityProvider ?? 'external';
 					const identity = yield* checkIdentity(c.req.raw.headers, options, {
-						externalId: body.externalId,
+						externalId: input.externalId,
 						identityProvider,
-						token: body.identityToken,
+						token: input.identityToken,
 					});
 					if (!identity.verified && identity.reason === 'invalid') {
 						return yield* new IdentityTokenError({
+							code: 'IDENTITY_TOKEN_INVALID',
 							message:
 								'identityToken did not verify, or names a different identity',
 						});
 					}
+					// Before the transaction, like the token check: a refused link
+					// creates no subject either.
+					if (
+						!identity.verified &&
+						options.identityToken?.requireVerifiedLinks === true
+					) {
+						return yield* new IdentityTokenError({
+							code: 'IDENTITY_TOKEN_REQUIRED',
+							message:
+								'This backend stores verified identity links only. Send an identityToken, or link from your server with an API key.',
+						});
+					}
 
-					const linked = yield* linkExternalId({
-						externalId: body.externalId,
-						identityProvider,
-						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
-						subjectId,
-						userAgent: c.req.header('user-agent') ?? null,
-						verifiedBy: identity.verified ? identity.by : null,
-					});
+					// A browser has its subject ID from its first page load, so it
+					// can identify before it saves anything. The subject is created
+					// here then, the same way a first save creates it. One
+					// transaction, so a link that fails creates no subject; the
+					// subject row is locked for the rest of it, so concurrent links
+					// of one subject run one after another.
+					const sql = yield* SqlClient.SqlClient;
+					const linked = yield* sql.withTransaction(
+						Effect.gen(function* createAndLink() {
+							if (v.is(subjectIdSchema, subjectId)) {
+								yield* findOrCreateForUpdate({ subjectId });
+							}
+							return yield* linkExternalId({
+								externalId: input.externalId,
+								identityProvider,
+								ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
+								subjectId,
+								userAgent: c.req.header('user-agent') ?? null,
+								verifiedBy: identity.verified ? identity.by : null,
+							});
+						})
+					);
 
 					if (linked === undefined) {
 						return yield* new NotFoundError({
@@ -460,6 +545,15 @@ export const register = function register({
 
 					return { subject: linked };
 				}).pipe(
+					// See the consent route: the ID is another tenant's.
+					Effect.catchTag('SubjectTenantConflictError', (error) =>
+						Effect.fail(
+							new ConflictError({
+								code: 'SUBJECT_CONFLICT',
+								message: error.message,
+							})
+						)
+					),
 					Effect.catchTag('IdentityConflictError', (error) =>
 						Effect.fail(
 							new ConflictError({

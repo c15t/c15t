@@ -39,7 +39,7 @@ describe('Theme regressions', () => {
 							toolbarItem: { className: 'themed-trigger-item' },
 						},
 					},
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 				}}
 			>
 				<ConsentDialogTriggerToolbar
@@ -188,7 +188,12 @@ describe('Theme regressions', () => {
 
 	test('provider noStyle strips v3 surface base classes', async () => {
 		await render(
-			<ConsentProvider options={{ mode: offline(), noStyle: true }}>
+			<ConsentProvider
+				options={{
+					mode: offline({ acknowledgeNoRecords: true }),
+					noStyle: true,
+				}}
+			>
 				<ConsentBannerTitle data-testid="nostyle-banner-title">
 					Banner title
 				</ConsentBannerTitle>
@@ -267,7 +272,7 @@ describe('Theme regressions', () => {
 							},
 						},
 					},
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 				}}
 			>
 				<AdTechProviderSection
@@ -299,7 +304,12 @@ describe('Theme regressions', () => {
 				.filter(Boolean)
 		);
 		await render(
-			<ConsentProvider options={{ mode: offline(), noStyle: true }}>
+			<ConsentProvider
+				options={{
+					mode: offline({ acknowledgeNoRecords: true }),
+					noStyle: true,
+				}}
+			>
 				<div data-testid="nostyle-ad-tech-providers">
 					<AdTechProviderSection
 						providers={[

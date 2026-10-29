@@ -15,8 +15,8 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
 
-/** These tests are not about the backend; an explicit offline() needs none. */
-const OFFLINE_CONFIG = { mode: offline() };
+/** These tests are not about the backend; an explicit offline({ acknowledgeNoRecords: true }) needs none. */
+const OFFLINE_CONFIG = { mode: offline({ acknowledgeNoRecords: true }) };
 
 const loads = vi.hoisted(() => ({ evaluated: 0, loaded: 0 }));
 

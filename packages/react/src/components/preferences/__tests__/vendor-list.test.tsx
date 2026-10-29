@@ -94,7 +94,7 @@ const renderWidget = (
 		<ConsentProvider
 			options={{
 				consentCategories: [...CATEGORIES],
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: policyFixture(values, {
 					categories: ['marketing', 'measurement'],
@@ -389,7 +389,7 @@ describe('vendor switches are opt-in', () => {
 			<ConsentProvider
 				options={{
 					consentCategories: [...CATEGORIES],
-					mode: offline(),
+					mode: offline({ acknowledgeNoRecords: true }),
 					persistence: false,
 					prefetch: policyFixture(
 						{ measurement: true },

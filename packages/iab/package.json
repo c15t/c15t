@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/iab",
-	"version": "3.1.0",
-	"description": "IAB TCF 2.4 CMP addon for c15t. Generates TC Strings and GPP strings, loads the Global Vendor List (GVL), and collects GDPR consent for programmatic advertising.",
+	"version": "3.2.0-canary.0",
+	"description": "IAB TCF CMP addon for c15t (TCF 2.4). Generates TC Strings and GPP strings, loads the Global Vendor List (GVL) and collects consent for programmatic advertising.",
 	"keywords": [
 		"cmp",
 		"consent",

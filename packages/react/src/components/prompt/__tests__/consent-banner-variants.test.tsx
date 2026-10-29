@@ -26,7 +26,7 @@ const renderBanner = function renderBanner(
 	return render(
 		<ConsentProvider
 			options={{
-				mode: offline(),
+				mode: offline({ acknowledgeNoRecords: true }),
 				persistence: false,
 				prefetch: options.language
 					? {
@@ -148,7 +148,7 @@ describe('ConsentBanner variants', () => {
 		});
 	});
 
-	test('a defaulted corner mirrors for right-to-left text', async () => {
+	test('right-to-left text keeps the default corner', async () => {
 		await renderBanner(
 			{ model: 'opt-in', prompt: 'choice' },
 			{},
@@ -159,10 +159,10 @@ describe('ConsentBanner variants', () => {
 		const root = await waitForRoot();
 
 		expect(root.getAttribute('dir')).toBe('rtl');
-		expect(root.dataset.position).toBe('bottom-right');
+		expect(root.dataset.position).toBe('bottom-left');
 	});
 
-	test('a host-chosen corner is never mirrored', async () => {
+	test('right-to-left text keeps a host-chosen corner', async () => {
 		await renderBanner(
 			{ model: 'opt-in', prompt: 'choice' },
 			{ position: 'bottom-right' },

@@ -15,6 +15,7 @@ afterEach(() => {
 test('Google Consent Mode updates each permission and follows the live GPC signal', async () => {
 	const now = Date.now();
 	const transport = createOfflineTransport({
+		acknowledgeNoRecords: true,
 		policyRules: [
 			{
 				id: 'gcm',

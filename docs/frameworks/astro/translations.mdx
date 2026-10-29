@@ -23,11 +23,13 @@ On a static or prerendered page there is no request at build time. The HTML
 starts in `i18n.locale` or English, and the browser switches to the language
 its `/init` answer returns.
 
-c15t ships messages for Bulgarian, Chinese, Croatian, Czech, Danish, Dutch,
-English, Estonian, Finnish, French, German, Greek, Gujarati, Hebrew, Hindi,
-Hungarian, Icelandic, Indonesian, Irish, Italian, Latvian, Lithuanian,
-Luxembourgish, Maltese, Norwegian Bokmål, Norwegian Nynorsk, Polish,
-Portuguese, Romanian, Romansh, Slovak, Slovenian, Spanish, Swedish and Welsh.
+c15t ships messages for Arabic, Bangla, Bulgarian, Chinese, Croatian, Czech,
+Danish, Dutch, English, Estonian, Finnish, French, German, Greek, Gujarati,
+Haitian Creole, Hebrew, Hindi, Hungarian, Icelandic, Indonesian, Irish,
+Italian, Japanese, Kannada, Korean, Latvian, Lithuanian, Luxembourgish, Malay,
+Malayalam, Maltese, Marathi, Norwegian Bokmål, Norwegian Nynorsk, Polish,
+Portuguese, Punjabi, Romanian, Romansh, Russian, Slovak, Slovenian, Spanish,
+Swedish, Tamil, Telugu, Thai, Turkish, Urdu, Vietnamese, Welsh and Yiddish.
 
 ## Change the wording
 
@@ -60,7 +62,7 @@ c15t({
 only the keys you change. Setting `common.acceptAll` keeps every other label
 in `common`. In hosted and manifest mode the base is the copy your backend
 sends, including wording edited in your Inth project, and your messages win
-for the keys they set. In offline mode the base is the stock wording.
+for the keys they set. In local mode the base is the stock wording.
 
 c15t looks up messages for the exact language first, then for its primary
 language, so a visitor resolved to `de-AT` gets your `de` messages when there

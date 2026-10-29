@@ -9,11 +9,14 @@
  *
  * - Structure: the shared valibot schema. A body it rejects is a 400 with the
  *   field errors, never a guess at what was meant.
+ * - Domain: with `trustedOrigins` configured, a save naming a domain it does
+ *   not cover is a 400 `DOMAIN_NOT_ALLOWED`, before anything is resolved.
  * - Time: `givenAt` and every receipt's `confirmedAt` must be safe,
  *   non-negative epoch milliseconds no later than the server's clock at
- *   request time. Nothing is clamped or rewritten: a receipt records when the
- *   subject acted, and a server that moves it changes the evidence. A clock
- *   ahead of the server's is therefore a rejection the client can see, not a
+ *   request time, plus `DECISION_CLOCK_TOLERANCE_SECONDS` for a client clock
+ *   that runs ahead. Nothing is clamped or rewritten: a receipt records when
+ *   the subject acted, and a server that moves it changes the evidence. A
+ *   clock further ahead is therefore a rejection the client can see, not a
  *   silent edit.
  * - Decision: a `policySnapshotToken` is verified when present; asserted
  *   manifest-mode inputs are recomputed through the same resolver `/init`
@@ -73,8 +76,12 @@ import {
 	PolicySnapshotError,
 	StalePolicyError,
 } from './errors';
-import { verifyPolicySnapshotToken } from './policy-snapshot';
+import {
+	DECISION_CLOCK_TOLERANCE_SECONDS,
+	verifyPolicySnapshotToken,
+} from './policy-snapshot';
 import type { PolicySnapshotOptions } from './policy-snapshot';
+import { isDomainAllowed } from './save-domain';
 
 /** The largest epoch millisecond value `Date` can represent. */
 const MAX_DATE_MS = 8_640_000_000_000_000;
@@ -105,7 +112,12 @@ export interface SubmissionContext {
 	readonly policySnapshot: PolicySnapshotOptions | undefined;
 	readonly tenantId: string | undefined;
 	readonly ipAddress: IpAddressConfig | undefined;
-	/** Server clock, epoch milliseconds. Receipts may not be later than this. */
+	/** The instance's `trustedOrigins`; empty or absent accepts any domain. */
+	readonly trustedOrigins: readonly string[] | undefined;
+	/**
+	 * Server clock, epoch milliseconds. Receipts may not be later than this,
+	 * beyond `DECISION_CLOCK_TOLERANCE_SECONDS`.
+	 */
 	readonly now: number;
 }
 
@@ -160,7 +172,10 @@ const isSafeEpochMs = (value: unknown): value is number =>
 	value >= 0 &&
 	value <= MAX_DATE_MS;
 
-/** A timestamp the server can accept as a moment that has already happened. */
+/**
+ * A timestamp the server can accept as a moment that has already happened,
+ * allowing for a client clock up to `DECISION_CLOCK_TOLERANCE_SECONDS` ahead.
+ */
 const checkTimestamp = (
 	value: unknown,
 	field: string,
@@ -172,10 +187,10 @@ const checkTimestamp = (
 			message: `${field} must be a safe non-negative epoch millisecond integer`,
 		});
 	}
-	if (value > now) {
+	if (value > now + DECISION_CLOCK_TOLERANCE_SECONDS * 1000) {
 		return new BadRequestError({
 			code: 'INPUT_VALIDATION_FAILED',
-			message: `${field} is later than the server clock; receipts are recorded as sent, never adjusted`,
+			message: `${field} is more than ${DECISION_CLOCK_TOLERANCE_SECONDS / 60} minutes later than the server clock; receipts are recorded as sent, never adjusted`,
 		});
 	}
 	return undefined;
@@ -521,8 +536,9 @@ const checkChoice = (
 };
 
 /**
- * Refuses a vendor map that is later than the server clock. Nothing is
- * checked against the manifest, in either direction:
+ * Refuses a vendor map that is later than the server clock, beyond the
+ * tolerance `checkTimestamp` allows. Nothing is checked against the manifest,
+ * in either direction:
  *
  * - An id the manifest does not list is expected. The client merges the
  *   backend's vendors with vendors it declares in code.
@@ -829,6 +845,17 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			});
 		}
 		const input = parsed.output;
+
+		if (
+			context.trustedOrigins !== undefined &&
+			context.trustedOrigins.length > 0 &&
+			!isDomainAllowed(input.domain, context.trustedOrigins)
+		) {
+			return yield* new BadRequestError({
+				code: 'DOMAIN_NOT_ALLOWED',
+				message: `domain ${JSON.stringify(input.domain)} is not in this backend's trustedOrigins`,
+			});
+		}
 
 		const givenAtIssue = checkTimestamp(input.givenAt, 'givenAt', context.now);
 		if (givenAtIssue) {

@@ -43,14 +43,18 @@ export class PolicySnapshotError extends Data.TaggedError(
 }> {}
 
 /**
- * A request offered an identity token that did not verify, or that names a
- * different identity than the one being linked.
+ * An identity link could not be verified, so it was not stored.
  *
- * 401 rather than storing the link unverified: the caller asked for a
- * verified link, and silently downgrading it would leave the customer's
- * server reading nothing for that user with no error anywhere.
+ * - `IDENTITY_TOKEN_INVALID`: the request offered an identity token that did
+ *   not verify, or that names a different identity than the one being
+ *   linked. 401 rather than storing the link unverified: the caller asked for
+ *   a verified link, and silently downgrading it would leave the customer's
+ *   server reading nothing for that user with no error anywhere.
+ * - `IDENTITY_TOKEN_REQUIRED`: the request offered no proof, and the instance
+ *   is set to `identityToken.requireVerifiedLinks`.
  */
 export class IdentityTokenError extends Data.TaggedError('IdentityTokenError')<{
+	readonly code: 'IDENTITY_TOKEN_INVALID' | 'IDENTITY_TOKEN_REQUIRED';
 	readonly message: string;
 }> {}
 
@@ -121,10 +125,7 @@ export const toHttp = function toHttp(error: RouteError): HttpFailure {
 			};
 		case 'IdentityTokenError':
 			return {
-				body: {
-					cause: { code: 'IDENTITY_TOKEN_INVALID' },
-					message: error.message,
-				},
+				body: { cause: { code: error.code }, message: error.message },
 				status: 401,
 			};
 		case 'PolicySnapshotError':

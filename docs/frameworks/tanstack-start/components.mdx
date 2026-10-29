@@ -49,8 +49,8 @@ The state carries the backend URL, the mode and the route prefix you passed
 to `createConsentStateHandler`, so `ConsentRoot` has no props for them. With
 `state={{}}`, it takes the backend URL from `consentManifest()` and uses
 `manifest()`. Without a backend URL from either, it throws, unless the mode is
-`offline()`. `options.mode` replaces the state's mode: `manifest()`,
-`hosted()` or `offline()` from `c15t/tanstack-start`, or a transport such as
+`local()`. `options.mode` replaces the state's mode: `manifest()`,
+`hosted()` or `local()` from `c15t/tanstack-start`, or a transport such as
 `custom(transport)`.
 
 `ConsentRoot` creates the runtime once, when it mounts, and ignores later
@@ -64,7 +64,7 @@ render, and `buildPrefetchScript`, the script builder behind it.
 
 | Import | Exports | Use |
 | --- | --- | --- |
-| `c15t/tanstack-start` | `manifest`, `hosted`, `offline` | The modes, as data for `createConsentStateHandler({ mode })`. See [consent modes](/docs/concepts/modes) |
+| `c15t/tanstack-start` | `manifest`, `hosted`, `local` | The modes, as data for `createConsentStateHandler({ mode })`. See [consent modes](/docs/concepts/modes) |
 | `c15t/tanstack-start/server` | `createConsentStateHandler`, `resolveConsent`, `consentLoaderOptions`, `mergeInitIntoConsentState` | Resolve the visitor's state in a server function. `createConsentStateHandler` takes `mode`, `routePrefix`, `proxy`, `snapshot` and the `resolveConsent` options |
 | `c15t/tanstack-start/middleware` | `consentRequestMiddleware` | Read location, language and privacy headers on every request. See [geography headers](/docs/frameworks/tanstack-start/geography-headers) |
 | `c15t/tanstack-start/api` | `createConsentRoute` | Serve `/api/c15t/*` from `src/routes/api/c15t/$.ts` |

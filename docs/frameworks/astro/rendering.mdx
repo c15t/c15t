@@ -1,6 +1,6 @@
 ---
 title: Rendering and deployment
-description: Choose how c15t resolves consent on an Astro site, from static output with hosted() or browser-resolved manifest() to server output with manifest(), prerendered pages, server islands, ClientRouter and offline development.
+description: Choose how c15t resolves consent on an Astro site, from static output with hosted() or browser-resolved manifest() to server output with manifest(), prerendered pages, server islands, ClientRouter and local development.
 group: frameworks
 ---
 
@@ -17,7 +17,7 @@ browser finishes the job. A page rendered per request can.
 | Pages rendered on each request | `output: 'server'` and an adapter | `manifest()`, the default | Yes |
 | A server build with some prerendered pages | `output: 'server'`, `prerender = true` on those pages | `manifest()` | Only on the request-rendered pages |
 | Cached pages that still need a per-visitor banner | An adapter, and `ConsentBannerDeferred` in the layout | `manifest()` | Yes, from a server island |
-| Local development and tests with no backend | Either output | `offline()` | Depends on the output |
+| Local development and tests with no backend | Either output | `local()` | Depends on the output |
 
 Every path uses the same layout, client entrypoint and scripts from the
 [quickstart](/docs/frameworks/astro/quickstart). Only `astro.config.mjs` and,
@@ -186,18 +186,18 @@ swap, listen for `astro:page-load`. See the
 
 ## Develop without a backend
 
-`offline()` resolves policies in the browser and on your server with no
+`local()` resolves policies in the browser and on your server with no
 backend. Not recommended for production environments.
 
 ```js title="astro.config.mjs (partial)"
-c15t({ mode: offline() });
+c15t({ mode: local() });
 ```
 
-Import `offline` from `c15t/astro`. Choices persist in the visitor's cookie and
+Import `local` from `c15t/astro`. Choices persist in the visitor's cookie and
 localStorage only. There are no consent records, no hosted policies and no
-visitor counts. Pass `policyRules` to `offline()` to test a specific policy.
+visitor counts. Pass `policyRules` to `local()` to test a specific policy.
 
-On a prerendered page, offline mode resolves the policy at build time because
+On a prerendered page, local mode resolves the policy at build time because
 it needs no request. The banner is in the HTML but hidden, and a small inline
 script shows it in the first paint to visitors with nothing stored.
 

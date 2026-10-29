@@ -1,3 +1,4 @@
+import type { StorageConfig } from '@c15t/core';
 import type { ConsentMode } from '@c15t/core/modes';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import { clientMode } from '@c15t/core/runtime/client-mode';
@@ -9,6 +10,7 @@ import clientManifestSnapshot from '#c15t/client-manifest-snapshot';
 import {
 	defineNuxtPlugin,
 	showError,
+	useCookie,
 	useAppConfig,
 	useHead,
 	useRequestEvent,
@@ -38,6 +40,7 @@ import {
 	resolvesOnServer,
 } from './nuxt-mode';
 import type { NuxtConsentModeConfig } from './nuxt-mode';
+import type { NuxtConsentRequest } from './server-consent';
 import { isSharedNuxtRender } from './shared-render';
 import { generateTokensCSS, TOKENS_STYLE_ID } from './theme-tokens';
 
@@ -92,6 +95,109 @@ export const withClientData = function withClientData(
 		return { ...mode, headers: { ...headers, ...mode.headers } };
 	}
 	return mode;
+};
+
+/**
+ * The `<body>`-end script that starts the `scripts` entries a visitor's
+ * consent already allows, or `undefined` when it starts nothing. A
+ * failed import renders the page without it; the script loader then starts
+ * those entries after hydration.
+ *
+ * @param config - The merged c15t config.
+ * @param state - The state the server resolved, with its clock.
+ * @returns The head entry for the script.
+ * @internal
+ */
+export const serverScriptStartHead = async function serverScriptStartHead(
+	config: Partial<RuntimeConsentConfig>,
+	state: RequestConsentState
+) {
+	if (!config.scripts?.length) {
+		return;
+	}
+	let code: string | undefined;
+	try {
+		const { serverScriptStart } =
+			await import('@c15t/core/runtime/script-server-start');
+		code = serverScriptStart({
+			...(config as unknown as Parameters<typeof serverScriptStart>[0]),
+			prefetch: state,
+		});
+	} catch {
+		return;
+	}
+	if (!code) {
+		return;
+	}
+	const tag: {
+		innerHTML: string;
+		key: string;
+		nonce?: string;
+		tagPosition: 'bodyClose';
+	} = { innerHTML: code, key: 'c15t-server-start', tagPosition: 'bodyClose' };
+	if (config.nonce) {
+		tag.nonce = config.nonce;
+	}
+	return { script: [tag] };
+};
+
+/**
+ * Gives a visitor without a subject ID one on the server render: the
+ * response sets `<storageKey>-sid` through Nuxt's `useCookie`, and the
+ * request this returns carries the cookie, so the records and the consent
+ * the render reads hold the same ID the browser starts with. The cookie
+ * holds only the ID, so the banner still shows. A prefetch, or a render
+ * with no request event to answer, gets none.
+ *
+ * @param nuxtApp - Restores the Nuxt context after the import.
+ * @param request - What the plugin read about the request.
+ * @param storage - The `storageConfig` the browser uses.
+ * @returns The request, with the subject cookie in its `cookie` header.
+ * @internal
+ */
+const withSubjectCookie = async function withSubjectCookie(
+	nuxtApp: { runWithContext: (run: () => void) => unknown },
+	request: NuxtConsentRequest,
+	storage: StorageConfig | undefined
+): Promise<NuxtConsentRequest> {
+	if (!request.event) {
+		return request;
+	}
+	const { resolveRequestSubject } = await import('@c15t/core/server');
+	const subject = resolveRequestSubject({
+		request: { headers: request.headers, url: request.url },
+		storage,
+	});
+	if (!subject?.setCookie) {
+		return request;
+	}
+	const { header: _header, name, value, ...attributes } = subject.setCookie;
+	nuxtApp.runWithContext(() => {
+		// Encode like `header` does, so the cookie holds the same bytes as
+		// the request below, whatever Nuxt's default encoder does.
+		useCookie<string>(name, {
+			...attributes,
+			encode: encodeURIComponent,
+		}).value = value;
+	});
+	return {
+		...request,
+		headers: { ...request.headers, cookie: subject.cookie },
+	};
+};
+
+/**
+ * Whether this plugin run is the server render. Nuxt replaces
+ * `import.meta.server` at build time, so the client build drops the server
+ * branch; elsewhere (unit tests) a missing `window` decides.
+ * @returns `true` on the server.
+ * @internal
+ */
+const rendersOnServer = function rendersOnServer(): boolean {
+	return (
+		(import.meta as ImportMeta & { server?: boolean }).server ??
+		typeof window === 'undefined'
+	);
 };
 
 export default defineNuxtPlugin(async (nuxtApp) => {
@@ -177,16 +283,17 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 				: pickAllowedInitHeaders(useRequestHeaders([...INIT_HEADER_NAMES]))
 	);
 	const headers = requestHeaders.value;
+	const onServer = rendersOnServer();
+	const readsRecords = !(config.value.consentSource || shared);
+	// The server fills it in below, once the visitor has a subject ID.
 	const initialRecords = useNuxtState('c15t:records', () =>
-		config.value.consentSource || shared
-			? undefined
-			: readStoredRecordsFromCookieHeader(
-					typeof document === 'undefined'
-						? useRequestHeaders(['cookie']).cookie
-						: document.cookie,
+		readsRecords && !onServer
+			? readStoredRecordsFromCookieHeader(
+					document.cookie,
 					config.value.storageConfig,
 					Date.now()
 				)
+			: undefined
 	);
 
 	// The render resolves the visitor's consent once, on the server, and the
@@ -196,38 +303,51 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		'c15t:consent',
 		() => undefined
 	);
-	if (
-		// Nuxt replaces `import.meta.server` at build time, so the client build
-		// drops this branch; elsewhere (unit tests) a missing `window` decides.
-		((import.meta as ImportMeta & { server?: boolean }).server ??
-			typeof window === 'undefined') &&
-		serverResolves &&
-		!config.value.consentSource &&
-		!shared
-	) {
-		// Read before the first await, while the Nuxt context is current.
-		const request = {
-			event: useRequestEvent(),
-			headers: useRequestHeaders(),
-			url: useRequestURL(),
-		};
-		const { resolveNuxtConsent } = await import('./server-consent');
-		const state = await resolveNuxtConsent(
-			{ ...config.value, mode, routePrefix: routePrefix ?? false },
-			request
+	// Read before the first await, while the Nuxt context is current.
+	const request =
+		onServer && readsRecords
+			? await withSubjectCookie(
+					nuxtApp,
+					{
+						event: useRequestEvent(),
+						headers: useRequestHeaders(),
+						url: useRequestURL(),
+					},
+					config.value.storageConfig
+				)
+			: undefined;
+	if (request) {
+		initialRecords.value = readStoredRecordsFromCookieHeader(
+			request.headers.cookie,
+			config.value.storageConfig,
+			Date.now()
 		);
-		// Only a resolved policy is worth the payload bytes; without one the
-		// browser runs init, and the records travel in `c15t:records`.
-		if (state.initialPolicyResolution !== undefined) {
-			// The cookie's records and clock already travel in `c15t:records`;
-			// only a subject the backend named is new.
-			const { initialRecords: records, now: _now, ...rest } = state;
-			const subject = records?.subject;
-			// Raw: the state holds frozen policy objects, which a reactive
-			// payload proxy cannot wrap.
-			prefetched.value = markRaw(
-				subject ? { ...rest, initialRecords: { subject } } : rest
+		if (serverResolves) {
+			const { resolveNuxtConsent } = await import('./server-consent');
+			const state = await resolveNuxtConsent(
+				{ ...config.value, mode, routePrefix: routePrefix ?? false },
+				request
 			);
+			// Only a resolved policy is worth the payload bytes; without one the
+			// browser runs init, and the records travel in `c15t:records`.
+			if (state.initialPolicyResolution !== undefined) {
+				// The cookie's records and clock already travel in `c15t:records`;
+				// only a subject the backend named is new.
+				const { initialRecords: records, now: _now, ...rest } = state;
+				const subject = records?.subject;
+				// Raw: the state holds frozen policy objects, which a reactive
+				// payload proxy cannot wrap.
+				prefetched.value = markRaw(
+					subject ? { ...rest, initialRecords: { subject } } : rest
+				);
+				// Runs a granted vendor's setup and inserts its tag before the page
+				// hydrates. The script loader adopts the tag. The client registers
+				// no such tag, so its head leaves the element alone.
+				const startHead = await serverScriptStartHead(config.value, state);
+				if (startHead) {
+					nuxtApp.runWithContext(() => useHead(startHead));
+				}
+			}
 		}
 	}
 	const prefetch = prefetched.value ? toRaw(prefetched.value) : undefined;

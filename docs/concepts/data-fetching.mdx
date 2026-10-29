@@ -1,6 +1,6 @@
 ---
 title: Data fetching
-description: Choose the recommended build-time policy snapshot or runtime manifest fetching, backend /init, browser resolution or offline rules, and understand where consent choices are saved.
+description: Choose the recommended build-time policy snapshot or runtime manifest fetching, backend /init, browser resolution or local rules, and understand where consent choices are saved.
 group: concepts
 ---
 
@@ -8,7 +8,7 @@ group: concepts
 
 Where policy resolves and where choices are saved are separate from who runs
 the backend. Inth and a [self-hosted backend](/docs/self-host/quickstart) speak
-the same protocol, so every path below works with either. Only `offline()`
+the same protocol, so every path below works with either. Only `local()`
 removes backend requests. For a recommendation by framework, start with
 [choose your setup](/docs/concepts/choose-your-setup).
 
@@ -18,7 +18,7 @@ removes backend requests. For a recommendation by framework, start with
 | Cached manifest on your server | Your application resolves public policy data with each request's location and signals | Inth or your c15t backend | Policy changes must reach the app without rebuilding, or builds cannot access the backend |
 | Regular backend `/init` | The consent backend | The same backend | You have no application server, as in a React, Vue or Svelte single-page app, want the fewest moving parts, or need backend-owned request resolution |
 | Manifest in the browser | The browser, using a supplied location, or `/init` when the policy needs one it doesn't have | Inth or your c15t backend | The policy has no location rules or the page knows the visitor's location, and you accept about 3 KB more bundle and a rebuild for policy edits |
-| Offline | The browser or local runtime, using bundled rules | No backend submission | Local development and tests. Not recommended for production environments. |
+| Local | The browser or local runtime, using bundled rules | No backend submission. c15t keeps no server-side record of consent. | Local development and tests. Not recommended for production environments. |
 | Custom transport | Your implementation | Your implementation | An existing service cannot use the c15t backend protocol |
 
 ## What is a consent manifest?
@@ -188,36 +188,43 @@ needing the upstream URL. A static export cannot serve a Next.js route or
 rewrite at runtime; use the absolute Inth URL or a proxy provided by the static
 host instead.
 
-## When should I use offline mode?
+## When should I use local mode?
 
 Not recommended for production environments. Use Inth or a self-hosted backend
 for production policy and consent records.
 
-`offline()` resolves bundled policy rules without an init request and acknowledges
-saves locally. The runtime's persistence module stores the choice in browser
-storage. There is no backend audit history, cross-device record service or IP
-geolocation supplied by this transport.
+`local()`, called `offline()` before c15t 3.2, resolves bundled policy rules
+without an init request and acknowledges saves locally. The runtime's
+persistence module stores the choice in browser storage. c15t keeps no
+server-side record of consent, so there is no audit history, no cross-device
+record and no IP geolocation. [What a consent record proves](/docs/concepts/modes#what-a-consent-record-proves)
+explains what that leaves out.
 
-Use your framework's `offline()` so its translations and provider context are
+Use your framework's `local()` so its translations and provider context are
 included. In a React app it replaces the mode passed to `ConsentProvider`:
 
 ```ts title="src/consent-mode.ts"
-import { offline } from 'c15t/react';
+import { local } from 'c15t/react';
 
-export const mode = offline();
+export const mode = local();
 ```
 
+In development builds, local mode warns once per page that c15t keeps no
+server-side record of consent. Pass `local({ acknowledgeNoRecords: true })` to
+hide the warning once you have decided a browser-only record is enough; see
+[the development warning](/docs/concepts/modes#the-development-warning).
+
 In Next.js, TanStack Start, Nuxt, Astro and SvelteKit, pass the data
-`offline()` from the framework package where the config takes `mode`; see
+`local()` from the framework package where the config takes `mode`; see
 [consent modes](/docs/concepts/modes#import-the-factories-from-your-framework-package).
 
-With no `policyRules`, the current offline transport uses the recommended rule
-pack. Supplying `policyRules` replaces that pack. Unknown country and region are
-real resolution inputs; offline mode does not discover a visitor's location.
+With no `policyRules`, the local transport uses the recommended rule pack.
+Supplying `policyRules` replaces that pack. Unknown country and region are
+real resolution inputs; local mode does not discover a visitor's location.
 Use [policy rules](/docs/concepts/policies) to understand
 matching and defaults, and test the missing-location case.
 
-Offline mode is an explicit architecture choice, not an automatic fallback for
+Local mode is an explicit architecture choice, not an automatic fallback for
 a failed Inth request. If hosted initialization fails before a policy resolves,
 optional permissions remain denied and the stock prompt stays hidden. Observe
 initialization failures instead of silently changing policy sources.

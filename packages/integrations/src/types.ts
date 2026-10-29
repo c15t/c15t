@@ -44,6 +44,8 @@ export interface LoadScriptStep {
 	async?: boolean;
 	defer?: boolean;
 	attributes?: Record<string, string>;
+	/** Priority hint for the script request. */
+	fetchPriority?: 'high' | 'low' | 'auto';
 }
 
 export interface SetGlobalStep {
@@ -126,6 +128,12 @@ export interface CallGlobalStep {
 	method?: string;
 	/** Arguments to pass */
 	args?: unknown[];
+	/**
+	 * Clone arguments as literal JSON without interpreting runtime value markers.
+	 * Arguments must be JSON-serializable.
+	 * @default false
+	 */
+	literalArgs?: boolean;
 }
 
 export interface PushToQueueStep {
@@ -166,6 +174,8 @@ export interface DefineQueueMethodsStep {
 	 * Format used for each queued method call.
 	 *
 	 * - `tuple` pushes `[methodName, ...args]`, matching classic array queues.
+	 * - `nameAndArgs` pushes `[methodName, argsArray]`, preserving argument
+	 *   references for SDKs that spread the second entry when replaying calls.
 	 * - `methodCall` pushes `{ name, args, resolve }` and returns a `Promise`,
 	 *   matching SDK loaders that replay named calls and resolve the original
 	 *   pre-load promise after the real method runs.
@@ -182,10 +192,17 @@ export interface DefineQueueMethodsStep {
 	 */
 	queueFormat?:
 		| 'tuple'
+		| 'nameAndArgs'
 		| 'methodCall'
 		| 'wrappedMethodCall'
 		| 'voidMethodCall'
 		| 'callback';
+	/**
+	 * Return the target that owns the methods after a tuple call, even when
+	 * storage uses a separate queue. Other formats keep their return values.
+	 * @default false
+	 */
+	returnTarget?: boolean;
 	/**
 	 * Leave a method alone when the target already has a function under that
 	 * name. Setup runs again when consent is granted after a revocation
@@ -232,6 +249,33 @@ export interface DefineGlobalMethodsStep {
 	ifGlobalIsQueue?: boolean;
 }
 
+export interface SetCookieStep {
+	type: 'setCookie';
+	/**
+	 * The whole `document.cookie` assignment, attributes included.
+	 * @example `'__kla_off=true; path=/; SameSite=Lax'`
+	 */
+	cookie: string;
+}
+
+/**
+ * Defines `window[name]` as an object that answers any method name with a
+ * function queueing the call on `window[queue]`, unless the global exists.
+ *
+ * Each call pushes `[method, ...args, done]` and returns a promise `done`
+ * resolves. A trailing function argument is taken off the call and gets the
+ * result too. `push` forwards its items to the queue. Symbols, `then`,
+ * `toJSON` and `Object.prototype` members are left alone, so awaiting or
+ * serializing the object queues nothing.
+ */
+export interface DefineQueueProxyStep {
+	type: 'defineQueueProxy';
+	/** Global name of the proxy (e.g. `klaviyo`) */
+	name: string;
+	/** Global queue that receives the calls; an array when missing */
+	queue: string;
+}
+
 export interface ConstructGlobalStep {
 	type: 'constructGlobal';
 	/** Global constructor name (e.g. `UET`) */
@@ -258,6 +302,8 @@ export type ManifestStep =
 	| DefineQueueMethodsStep
 	| DefineQueueClassStep
 	| DefineGlobalMethodsStep
+	| SetCookieStep
+	| DefineQueueProxyStep
 	| ConstructGlobalStep;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -272,8 +318,10 @@ export type ManifestStep =
  *   `rudderanalytics.consent({ consentManagement: { enabled, provider: 'custom',
  *   allowedConsentIds, deniedConsentIds } })` with the mapping's consent IDs
  *   partitioned by the current c15t consent state
+ * - `'clarity'` — Microsoft Clarity Consent V2: calls
+ *   `clarity('consentv2', state)` with the mapping's storage names
  */
-export type ConsentSignalType = 'gtag' | 'rudderstack';
+export type ConsentSignalType = 'gtag' | 'rudderstack' | 'clarity';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vendor Manifest — declarative vendor integration definition
@@ -307,7 +355,7 @@ export interface VendorManifest extends ManifestContract {
 	/** Load regardless of consent state (vendor manages its own consent internally) */
 	alwaysLoad?: boolean | string;
 
-	/** Keep script in DOM after consent revocation (vendor has a consent API) */
+	/** Keep the element after revocation; 'loaded' removes pending loaders. */
 	persistAfterConsentRevoked?: boolean | string;
 
 	/**
@@ -386,6 +434,15 @@ export interface VendorManifest extends ManifestContract {
 
 	/** Target global for consent signaling (defaults based on signal type) */
 	consentSignalTarget?: string;
+
+	/**
+	 * Vendor consent types the `'default'` signal of a `'gtag'` or
+	 * `'clarity'` manifest sets whatever the c15t consent state says.
+	 * Updates and a vendor the subject turned off ignore them.
+	 */
+	consentSignalDefaults?:
+		| Record<string, 'granted' | 'denied'>
+		| ManifestInterpolationToken;
 }
 
 /**
@@ -398,7 +455,7 @@ export interface ResolvedManifest extends ManifestContract {
 	vendorDetails?: VendorDetails;
 	category: HasCondition<AllConsentNames>;
 	alwaysLoad?: boolean;
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: boolean | 'loaded';
 	bootstrapSteps: ManifestStep[];
 	setupSteps: ManifestStep[];
 	loadScript?: LoadScriptStep;
@@ -413,4 +470,5 @@ export interface ResolvedManifest extends ManifestContract {
 	consentMapping?: Record<string, string[]>;
 	consentSignal?: ConsentSignalType;
 	consentSignalTarget?: string;
+	consentSignalDefaults?: Record<string, 'granted' | 'denied'>;
 }

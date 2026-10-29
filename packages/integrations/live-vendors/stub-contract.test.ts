@@ -67,6 +67,21 @@ describe('vendor stub contracts', () => {
 		expect(runtimeConfigs.length).toBeGreaterThan(0);
 	});
 
+	it('uses a non-account placeholder in the Eloqua probe queue', () => {
+		const config = liveVendorProbeConfigs.find(
+			(candidate) => candidate.vendor === 'oracle-eloqua'
+		);
+		expect(config).toBeDefined();
+		if (!config) {
+			throw new Error('Missing Eloqua probe configuration.');
+		}
+		bootstrapOnly(config);
+		expect(window._elqQ).toContainEqual([
+			'elqSetSiteId',
+			'c15t-placeholder-site',
+		]);
+	});
+
 	it('requires the real PostHog loader to replay a snippet queue', () => {
 		const config = liveVendorProbeConfigs.find(
 			(candidate) => candidate.vendor === 'posthog'

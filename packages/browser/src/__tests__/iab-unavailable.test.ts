@@ -177,7 +177,10 @@ describe('offline mode without IAB', () => {
 			}
 		});
 		const client = init({
-			mode: offline({ policyRules: policyRules && [...policyRules] }),
+			mode: offline({
+				acknowledgeNoRecords: true,
+				policyRules: policyRules && [...policyRules],
+			}),
 		});
 		clients.push(client);
 		await client.ready();

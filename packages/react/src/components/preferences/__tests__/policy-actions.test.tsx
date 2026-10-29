@@ -77,7 +77,7 @@ const PolicyTestProvider = ({
 		options={{
 			components: providerOverrides?.components,
 			initialUI: 'dialog',
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
 			prefetch: {
 				...policyFixture(undefined, {

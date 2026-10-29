@@ -70,17 +70,59 @@ const StreamedScope = ({
 	);
 };
 
+/** Props for {@link StreamedConsentSurface}. */
+export interface StreamedConsentSurfaceProps {
+	/** The surface. Its consent hooks must run inside this component. */
+	children: ReactNode;
+}
+
 /**
- * Renders a consent surface the server can stream. While the provider's
- * `prefetch` is a promise, the surface waits for it in its own Suspense
- * boundary: the rest of the page streams at once, and the surface follows
- * in a later chunk of the same response, rendered from the resolved
- * config. It shows only when that config carries a policy that shows it.
- * Hydration reads the same config, so the surface hydrates in place.
+ * Renders a consent surface the server can stream, such as a banner built
+ * with the headless hooks. The stock `ConsentBanner` uses it too.
  *
- * @internal
+ * While the provider's `prefetch` is a promise, as with Next.js
+ * `<ConsentRoot state={resolveConsent()}>`, the surface waits for it in its
+ * own Suspense boundary: the rest of the page streams at once, and the
+ * surface follows in a later chunk of the same response, rendered from the
+ * resolved config. It shows only when that config carries a policy that
+ * shows it. Hydration reads the same config, so the surface hydrates in
+ * place. Without a pending `prefetch`, it renders its children as they are.
+ *
+ * Call the hooks in a component inside it. Hooks called above it read the
+ * snapshot from before consent resolved, which has no banner.
+ *
+ * @param props - The surface to stream.
+ * @returns The children, in a Suspense boundary while consent streams.
+ * @example
+ * ```tsx
+ * 'use client';
+ * import {
+ *   StreamedConsentSurface,
+ *   useHeadlessConsentUI,
+ * } from 'c15t/next/headless';
+ *
+ * function BannerContent() {
+ *   const { banner, performAction } = useHeadlessConsentUI();
+ *   if (!banner.isVisible) return null;
+ *   return (
+ *     <section aria-label="Cookie consent">
+ *       <button onClick={() => performAction('accept')}>Accept</button>
+ *     </section>
+ *   );
+ * }
+ *
+ * export function ConsentBanner() {
+ *   return (
+ *     <StreamedConsentSurface>
+ *       <BannerContent />
+ *     </StreamedConsentSurface>
+ *   );
+ * }
+ * ```
  */
-export const StreamedSurface = ({ children }: { children: ReactNode }) => {
+export const StreamedConsentSurface = ({
+	children,
+}: StreamedConsentSurfaceProps) => {
 	const streamed = useContext(StreamedPrefetchContext);
 	if (!streamed) {
 		return children;

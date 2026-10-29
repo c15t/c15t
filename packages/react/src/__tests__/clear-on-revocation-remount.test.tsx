@@ -34,7 +34,10 @@ pageWriterLoader.load = async () => {
 };
 
 const consentKey = 'remount-revocation-consent';
-const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
+const mode = offline({
+	acknowledgeNoRecords: true,
+	policyRules: [policyRulePresets.europeOptIn()],
+});
 
 const Permission = () => {
 	const allowed = useConsent('measurement');

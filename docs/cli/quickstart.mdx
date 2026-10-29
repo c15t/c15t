@@ -1,79 +1,84 @@
 ---
 title: CLI quickstart
-description: Use the c15t CLI to plan, review and apply c15t setup in an existing Next.js or React app, connected to an Inth backend.
+description: Use inth c15t from the Inth CLI to set up c15t in an existing app with a coding agent or quickstart files, connected to an Inth project.
 group: cli
 ---
 
-## Plan the setup
+## Install and sign in
 
-Run setup from the app directory with your Inth backend URL. Replace
-`https://your-project.inth.app` with the URL from your Inth project, including
-any path prefix:
+Install the Inth CLI:
 
 ```bash
-npx @c15t/cli setup hosted --backend-url https://your-project.inth.app --plan --json
+curl -fsSL https://inth.com/cli/install.sh | sh
 ```
 
-`--plan` writes nothing and installs nothing. The JSON result lists each file
-the CLI would create or change under `data.edits`, with its current and
-proposed contents, and the packages it would install under
-`data.dependencies`. Pass `--cwd path/to/app` to run from another directory.
-
-With `--backend-url`, setup does not sign in to Inth, so it works on every
-platform. To choose a project from your Inth account instead, sign in with
-`c15t login` and see [hosted projects](/docs/cli/commands/hosted).
-
-## Apply the setup
-
-When the plan looks right, apply it:
+If the installer says its directory is not on your `PATH`, run the command it
+prints and open a new terminal. Then sign in:
 
 ```bash
-npx @c15t/cli setup hosted --backend-url https://your-project.inth.app --apply
+inth login
 ```
 
-For a Next.js App Router app, setup adds a client provider component under
-`components/consent-manager/` and wraps `{children}` in your root layout with it.
-The provider renders the stock banner and preferences dialog.
+On Windows, or to use npm, run `npm install -g @inth/cli` instead. See
+[install the Inth CLI](/docs/cli/overview#install-the-inth-cli).
 
-Setup installs the c15t packages it needs, such as `c15t` and
-`@c15t/integrations`, from the CLI's own release line, so the v3 CLI installs
-`c15t@3`. It keeps packages that are already in `package.json`. Add
-`--skip-install` when your workspace tooling installs dependencies, and install
-`c15t` yourself.
+## Set up with a coding agent
 
-Setup refuses to overwrite a generated component that you have edited. To
-change an existing integration, edit its files rather than running setup again.
-
-## Answer prompts instead
+Run `inth c15t` from the app directory and pick your agent, or name it:
 
 ```bash
-npx @c15t/cli setup
+inth c15t --codex
 ```
 
-In a terminal, setup asks for the backend mode, UI style, theme and scripts.
-Without a terminal, pass the mode and inputs as flags; the CLI does not guess
-missing values. See [setup](/docs/cli/commands/setup) for every flag.
+`--claude`, `--cursor`, `--grok` and `--fx` start the other supported agents.
+`inth c15t` asks you to select an Inth project or create one, then starts the
+agent with the c15t setup prompt and the project's backend URL. The agent
+inventories the app and its analytics, pixels and embeds, installs c15t,
+moves every vendor behind consent and checks the result in a browser.
 
-## Setup with Codex
-
-Let your installed Codex CLI adapt the integration to an existing application:
+Pass the project to skip the question:
 
 ```bash
-npx @c15t/cli setup --codex hosted --backend-url https://your-project.inth.app
+inth c15t --codex --project my-project
 ```
 
-Replace the URL with your Inth project's backend URL. The agent receives the
-c15t v3 frontend task, installs the required v3 packages, and reads their
-bundled docs. Add `--plan` to inspect the prompt before launching Codex. See
-[agent setup](/docs/cli/automation#agent-setup-and-v3-migration-workflow).
+To create a project instead, pass `--name my-project --region <id>`.
+`inth region list` lists the regions.
+
+If your agent isn't installed on this machine, print the prompt and paste it
+into the agent:
+
+```bash
+inth c15t prompt --project my-project > c15t-prompt.md
+```
+
+## Write the quickstart files instead
+
+`scaffold` writes the framework's quickstart files and installs the c15t
+packages. Preview the files first:
+
+```bash
+inth c15t scaffold --project my-project --framework next-app --dry-run
+```
+
+When the list looks right, write them:
+
+```bash
+inth c15t scaffold --project my-project --framework next-app
+```
+
+The project's backend URL goes into `.env` under the framework's public
+variable, such as `NEXT_PUBLIC_C15T_BACKEND_URL`. Add `--skip-install` when
+your workspace tooling installs dependencies, and install `c15t` yourself.
+`scaffold` prints instructions for any file it couldn't wire up, such as a root
+component with a different name.
 
 ## Check the result
 
 1. Run your app's typecheck and build.
 2. Open the app in a private window. The banner appears for a visitor your Inth
    policy asks to choose.
-3. Replace any integration ID placeholders the CLI left in the provider, then
-   check in DevTools Network that those vendor requests wait until you accept.
+3. Check in DevTools Network that vendor requests wait until you accept.
 4. Reject, reload, and confirm the banner stays closed and the vendor requests
    stay absent.
 

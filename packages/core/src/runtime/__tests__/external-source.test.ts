@@ -30,7 +30,7 @@ test('external decisions change gates without creating receipts, persistence or 
 		callbacks: { onChoiceRecorded: recorded },
 		consentSource: source,
 		iframeBlocker: false,
-		mode: custom(createOfflineTransport()),
+		mode: custom(createOfflineTransport({ acknowledgeNoRecords: true })),
 	});
 	localStorage.clear();
 	runtime.start();
@@ -75,7 +75,7 @@ test('external decisions change gates without creating receipts, persistence or 
 
 test('ordinary kernels cannot be switched to external authority after creation', () => {
 	const runtime = createConsentRuntime({
-		mode: custom(createOfflineTransport()),
+		mode: custom(createOfflineTransport({ acknowledgeNoRecords: true })),
 	});
 	expect(() =>
 		runtime.kernel.set.externalPermissions({ measurement: true })
@@ -99,7 +99,7 @@ test('a failed external subscription reports the error without aborting startup 
 			},
 		},
 		iframeBlocker: false,
-		mode: custom(createOfflineTransport()),
+		mode: custom(createOfflineTransport({ acknowledgeNoRecords: true })),
 	});
 	runtime.kernel.events.on('init:applied', initialized);
 	try {
@@ -147,7 +147,7 @@ const withdrawExternally = async function withdrawExternally(
 			},
 		},
 		iframeBlocker: false,
-		mode: custom(createOfflineTransport()),
+		mode: custom(createOfflineTransport({ acknowledgeNoRecords: true })),
 		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
 		scripts: [
 			{ callbackOnly: true, category: 'measurement', id: 'tracker', onLoad },
@@ -244,7 +244,7 @@ test('disabled runtimes ignore external denials and load optional scripts', asyn
 		consentSource: source,
 		enabled: false,
 		iframeBlocker: false,
-		mode: custom(createOfflineTransport()),
+		mode: custom(createOfflineTransport({ acknowledgeNoRecords: true })),
 		scripts: [
 			{
 				callbackOnly: true,

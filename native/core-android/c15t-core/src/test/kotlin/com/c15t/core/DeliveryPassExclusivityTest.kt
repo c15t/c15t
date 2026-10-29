@@ -260,6 +260,7 @@ class DeliveryPassExclusivityTest {
 		private val logger: (KernelError) -> Unit = {},
 	) {
 		private val pool: ExecutorService? = pool
+		private val pendingTasks = AtomicInteger(0)
 		val timeline = Timeline()
 		val transport = GatedTransport(timeline)
 		private val backend = InMemoryKeyValueStore()
@@ -269,7 +270,16 @@ class DeliveryPassExclusivityTest {
 		private val executor: TaskExecutor? = when {
 			manual != null -> TaskExecutor { task -> manual.submit(task) }
 
-			pool != null -> TaskExecutor { task -> pool.execute(task) }
+			pool != null -> TaskExecutor { task ->
+				pendingTasks.incrementAndGet()
+				pool.execute {
+					try {
+						task()
+					} finally {
+						pendingTasks.decrementAndGet()
+					}
+				}
+			}
 
 			else -> null
 		}
@@ -291,6 +301,7 @@ class DeliveryPassExclusivityTest {
 		fun boot(kernel: C15tKernel) {
 			kernel.bootstrap()
 			await("the launch init to resolve") { kernel.snapshot().ready }
+			awaitIdle()
 		}
 
 		fun pendingDepth(): Int = pendingStore().size
@@ -350,14 +361,11 @@ class DeliveryPassExclusivityTest {
 		}
 
 		/**
-		 * Wait until every send the test released has answered.
-		 *
-		 * This deliberately does not wait for the queue to empty. A core that runs two passes
-		 * over one entry answers both sends and leaves the entry owed anyway, so "the queue
-		 * drained" would be the wrong thing to wait on: the send counts are the finding.
+		 * Wait for submitted tasks to finish, including queue updates after transport returns
+		 * and any further sends in the same pass. Queue contents remain assertions below.
 		 */
 		fun awaitIdle() {
-			await("every released send to answer") { transport.openSendCount == 0 }
+			await("every submitted task to finish") { pendingTasks.get() == 0 }
 		}
 
 		private inline fun await(what: String, condition: () -> Boolean) {

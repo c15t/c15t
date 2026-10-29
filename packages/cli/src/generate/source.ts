@@ -105,11 +105,11 @@ export const envFile = (
 		? { '.env': `${name}=${envValue(options.backendURL)}\n` }
 		: {};
 
-/** The instruction every offline template adds. */
+/** The instruction every local-mode template adds. */
 export const offlineInstruction = (options: BoilerplateOptions): string[] =>
 	options.mode === 'offline'
 		? [
-				'Offline mode resolves the recommended policy in the browser and records consent nowhere else. Review it before you deploy, or generate again in hosted mode.',
+				'Local mode is for development and tests. Consent stays in the browser, and c15t keeps no server-side record of it. Generate again in hosted mode before you deploy.',
 			]
 		: [];
 

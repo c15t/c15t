@@ -25,7 +25,7 @@ Only `mode` is required.
 
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `offline()`, `manifest()` or `custom()`. `offline()` switches copy when the kernel's language changes. See [transports](/docs/frameworks/javascript/transports). Read once. |
+| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `local()`, `manifest()` or `custom()`. `local()` switches copy when the kernel's language changes. See [transports](/docs/frameworks/javascript/transports). Read once. |
 | `scripts` | `Script[]` | none | Vendor scripts the loader mounts as categories are allowed. See [script loader](/docs/frameworks/javascript/modules/script-loader). |
 | `consentCategories` | category names | inferred | Categories to offer alongside those your scripts, rules and vendors use, within the policy's scope. |
 | `networkBlocker` | `{ rules, enabled?, logBlockedRequests?, onRequestBlocked? }` or `false` | off | Hold matching `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/javascript/modules/network-blocker). |
@@ -98,7 +98,7 @@ A runtime disposed before it started blocks the requests it was holding.
 | `setLanguage(code)` | Show the copy in another language. Does nothing for the current language; otherwise runs `/init` again, unless the runtime is disabled or uses `consentSource`. |
 | `processIframes()` | Pause gated iframes that consent does not allow and restore the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. Does nothing before `start()`, after `dispose()` or with `iframeBlocker: false`. |
 | `reconcileStorage()` | Read stored records again and apply changes another runtime or tab made. Returns whether anything changed. |
-| `clearRecords()` | Delete stored choices and reset the kernel's records: choice, notice dismissal, subject and vendor choice. Saves still queued for the cleared subject are dropped. |
+| `clearRecords()` | Delete stored choices and reset the kernel's records: choice, notice dismissal and vendor choice. The subject keeps its ID and loses its `externalId` and `identityProvider`. Saves still queued for the cleared subject are dropped. |
 | `consentCategories` | `necessary` plus the categories in the current choice scope, in the order the preference dialog lists them. |
 | `setConsentCategories(categories)` | Replace the configured categories. Discovered ones stay. `undefined` drops the configured list. |
 | `experiment` | The experiment the runtime runs: the one a ready `prefetch` carries, otherwise the `experiment` option. Resolve presentation and theme against it. |

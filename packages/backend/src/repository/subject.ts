@@ -39,8 +39,8 @@ import { SqlClient, Statement } from 'effect/sql';
 import type { SqlError } from 'effect/sql';
 
 import { insertOnce } from '../db/insert-once';
-import { tenantScope } from '../db/tenant';
-import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';
+import { currentTenantId, tenantScope } from '../db/tenant';
+import { encodeTenantRow, encoder, toDate, toDateOrNull } from '../db/values';
 import { purposeCodesById } from './consent-purpose';
 import {
 	decodePreferences,
@@ -462,7 +462,11 @@ export class IdentityConflictError extends Data.TaggedError(
  *   The subject id is the capability here: whoever holds it is the device,
  *   and a shared device signing a second user in is a normal flow.
  *
- * The update and its audit entry are one transaction. An audit log that can
+ * - A link that matches what is stored writes nothing, so retries add no
+ *   audit entries.
+ *
+ * The read, the update and its audit entry are one transaction, nested as a
+ * savepoint when the caller has already opened one. An audit log that can
  * disagree with the row it describes is worse than none — it makes the trail
  * untrustworthy rather than merely incomplete — and on a consent platform the
  * trail is the product.
@@ -480,54 +484,74 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		const sql = yield* SqlClient.SqlClient;
 		const encode = yield* encoder;
 		const scope = yield* tenantScope();
+		const result = {
+			externalId: input.externalId,
+			id: input.subjectId,
+			identityProvider: input.identityProvider,
+		};
 
-		const found = yield* sql<{
-			externalId: string | null;
-			identityProvider: string | null;
-			verifiedExternalId: string | null;
-		}>`
-			select
-				${sql('externalId')},
-				${sql('identityProvider')},
-				${sql('verifiedExternalId')}
-			from ${sql('subject')}
-			where ${sql('id')} = ${input.subjectId} and ${scope}
-		`;
-		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-		const before = found[0];
-		if (before === undefined) {
-			return undefined;
-		}
-
-		const wasVerified =
-			before.externalId !== null &&
-			before.verifiedExternalId === before.externalId;
-		const verified = input.verifiedBy !== null;
-		// A null provider is the default one: rows written outside this
-		// backend may leave it empty, and the route fills in `external`.
-		const unchanged =
-			before.externalId === input.externalId &&
-			(before.identityProvider ?? 'external') === input.identityProvider;
-
-		if (!verified && wasVerified) {
-			if (unchanged) {
-				return {
-					externalId: input.externalId,
-					id: input.subjectId,
-					identityProvider: input.identityProvider,
-				};
-			}
-			return yield* new IdentityConflictError({
-				message:
-					'This subject is linked to a verified identity. Changing it needs an API key or an identity token.',
-			});
-		}
-
-		const verifiedExternalId = verified ? input.externalId : null;
-
-		yield* sql.withTransaction(
+		return yield* sql.withTransaction(
 			// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
 			Effect.gen(function* linkExternalId() {
+				// Read inside the transaction and locked, so a concurrent link of
+				// the same subject waits and then reads what this one wrote. SQLite
+				// has no `for update`; its transactions already run one at a time.
+				const lock = sql.onDialectOrElse({
+					orElse: () => sql`for update`,
+					sqlite: () => sql``,
+				});
+				const found = yield* sql<{
+					externalId: string | null;
+					identityProvider: string | null;
+					verifiedExternalId: string | null;
+				}>`
+					select
+						${sql('externalId')},
+						${sql('identityProvider')},
+						${sql('verifiedExternalId')}
+					from ${sql('subject')}
+					where ${sql('id')} = ${input.subjectId} and ${scope}
+					${lock}
+				`;
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+				const before = found[0];
+				if (before === undefined) {
+					return undefined;
+				}
+
+				const wasVerified =
+					before.externalId !== null &&
+					before.verifiedExternalId === before.externalId;
+				const verified = input.verifiedBy !== null;
+				// A null provider is the default one: rows written outside this
+				// backend may leave it empty, and the route fills in `external`.
+				const unchanged =
+					before.externalId === input.externalId &&
+					(before.identityProvider ?? 'external') === input.identityProvider;
+
+				if (!verified && wasVerified) {
+					if (unchanged) {
+						return result;
+					}
+					return yield* new IdentityConflictError({
+						message:
+							'This subject is linked to a verified identity. Changing it needs an API key or an identity token.',
+					});
+				}
+
+				const verifiedExternalId = verified ? input.externalId : null;
+
+				// A retry of a link already stored changes nothing, so it writes
+				// nothing: an audit entry for a change that never happened is
+				// worse than none. Compared exactly, a null provider included.
+				if (
+					before.externalId === input.externalId &&
+					before.identityProvider === input.identityProvider &&
+					before.verifiedExternalId === verifiedExternalId
+				) {
+					return result;
+				}
+
 				const target = [sql`${sql('id')} = ${input.subjectId}`, scope];
 				if (!verified) {
 					// An unverified write must not land on a link verified since
@@ -579,7 +603,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 				// request.
 				yield* sql`
 					insert into ${sql('auditLog')} ${sql.insert(
-						encodeRow(encode, {
+						yield* encodeTenantRow({
 							actionType: 'identify_user',
 							changes: JSON.stringify({
 								externalId: { from: before.externalId, to: input.externalId },
@@ -607,14 +631,61 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 						})
 					)}
 				`;
+				return result;
 			})
 		);
+	}
+);
 
-		return {
-			externalId: input.externalId,
-			id: input.subjectId,
-			identityProvider: input.identityProvider,
-		};
+interface NewSubject {
+	subjectId: string;
+	externalId?: string | null;
+	identityProvider?: string | null;
+	/** Whether the caller proved `externalId`. See {@link linkExternalId}. */
+	externalIdVerified?: boolean;
+}
+
+/** The row a subject is created with, without its tenant. */
+const subjectRow = (input: NewSubject, now: Date) => ({
+	createdAt: now,
+	externalId: input.externalId ?? null,
+	id: input.subjectId,
+	identityProvider: input.externalId
+		? (input.identityProvider ?? 'external')
+		: 'anonymous',
+	updatedAt: now,
+	verifiedExternalId:
+		input.externalId && input.externalIdVerified ? input.externalId : null,
+});
+
+/**
+ * Refuses a subject id that already exists under another tenant.
+ *
+ * `id` is the primary key and is supplied by the client, so "already existed"
+ * does not imply "is ours". Two tenants naming the same subject would otherwise
+ * share one row: the second tenant's consent would hang off the first tenant's
+ * subject, which the first tenant then reads and the second cannot.
+ *
+ * Refused rather than reconciled. Silently writing under another tenant's
+ * subject is the disclosure; quietly dropping the submission would lose a
+ * consent record. The caller is told the id is taken.
+ */
+const refuseOtherTenant = Effect.fn('repository.refuseOtherTenant')(
+	function* refuseOtherTenant(subjectId: string) {
+		const sql = yield* SqlClient.SqlClient;
+		const tenantId = yield* currentTenantId;
+		const owner = yield* sql<{ tenantId: string | null }>`
+			select ${sql('tenantId')} from ${sql('subject')}
+			where ${sql('id')} = ${subjectId}
+		`;
+		const ownerTenant = owner[0]?.tenantId ?? null;
+		const mine = tenantId ?? null;
+
+		if (owner.length > 0 && ownerTenant !== mine) {
+			return yield* new SubjectTenantConflictError({
+				message: `subjectId "${subjectId}" already belongs to another tenant`,
+			});
+		}
 	}
 );
 
@@ -631,62 +702,50 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
  * recording consent, which is what PATCH exists to do explicitly.
  */
 export const findOrCreate = Effect.fn('repository.findOrCreate')(
-	function* findOrCreate(input: {
-		subjectId: string;
-		externalId?: string | null;
-		identityProvider?: string | null;
-		/** Whether the caller proved `externalId`. See {@link linkExternalId}. */
-		externalIdVerified?: boolean;
-		tenantId?: string | null;
-	}) {
-		const sql = yield* SqlClient.SqlClient;
-		const now = new Date();
-
+	function* findOrCreate(input: NewSubject) {
 		const created = yield* insertOnce({
 			conflictOn: 'id',
 			into: 'subject',
-			values: {
-				createdAt: now,
-				externalId: input.externalId ?? null,
-				id: input.subjectId,
-				identityProvider: input.externalId
-					? (input.identityProvider ?? 'external')
-					: 'anonymous',
-				tenantId: input.tenantId ?? null,
-				updatedAt: now,
-				verifiedExternalId:
-					input.externalId && input.externalIdVerified
-						? input.externalId
-						: null,
-			},
+			values: subjectRow(input, new Date()),
 		});
 
-		if (created) {
-			return { created, id: input.subjectId };
-		}
-
-		// The row already existed — but `id` is the primary key and is supplied
-		// by the client, so "already existed" does not imply "is ours". Two
-		// tenants naming the same subject would otherwise share one row: the
-		// second tenant's consent would hang off the first tenant's subject,
-		// which the first tenant then reads and the second cannot.
-		//
-		// Refused rather than reconciled. Silently writing under another
-		// tenant's subject is the disclosure; quietly dropping the submission
-		// would lose a consent record. The caller is told the id is taken.
-		const owner = yield* sql<{ tenantId: string | null }>`
-			select ${sql('tenantId')} from ${sql('subject')}
-			where ${sql('id')} = ${input.subjectId}
-		`;
-		const ownerTenant = owner[0]?.tenantId ?? null;
-		const mine = input.tenantId ?? null;
-
-		if (owner.length > 0 && ownerTenant !== mine) {
-			return yield* new SubjectTenantConflictError({
-				message: `subjectId "${input.subjectId}" already belongs to another tenant`,
-			});
+		if (!created) {
+			yield* refuseOtherTenant(input.subjectId);
 		}
 
 		return { created, id: input.subjectId };
 	}
 );
+
+/**
+ * {@link findOrCreate} for a transaction that goes on to lock and write the
+ * subject, as `PATCH /subjects/:id` does.
+ *
+ * On MySQL, an insert that finds the row already there leaves a shared lock on
+ * it until the transaction ends. Two transactions holding that lock which then
+ * both lock the row for writing wait on each other, and InnoDB rolls one back
+ * as a deadlock. `on duplicate key update` takes an exclusive lock on the
+ * existing row instead, so concurrent transactions wait their turn. It cannot
+ * report whether it created the row (see `insertOnce`), so the tenant check
+ * always runs.
+ *
+ * Postgres's `on conflict do nothing` leaves no lock on an existing row, and
+ * SQLite runs one transaction at a time, so both use {@link findOrCreate}.
+ */
+export const findOrCreateForUpdate = Effect.fn(
+	'repository.findOrCreateForUpdate'
+)(function* findOrCreateForUpdate(input: { subjectId: string }) {
+	const sql = yield* SqlClient.SqlClient;
+	if (!sql.onDialectOrElse({ mysql: () => true, orElse: () => false })) {
+		yield* findOrCreate(input);
+		return;
+	}
+
+	yield* sql`
+		insert into ${sql('subject')} ${sql.insert(
+			yield* encodeTenantRow(subjectRow(input, new Date()))
+		)}
+		on duplicate key update ${sql('id')} = ${sql('id')}
+	`;
+	yield* refuseOtherTenant(input.subjectId);
+});

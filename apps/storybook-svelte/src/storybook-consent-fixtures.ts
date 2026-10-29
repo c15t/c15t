@@ -44,7 +44,7 @@ export const seedTCString = function seedTCString(tcString: string | null) {
 };
 
 export const defaultConsentOptions: ConsentManagerOptions = {
-	mode: offline({ policyRules: [storybookPolicy] }),
+	mode: offline({ acknowledgeNoRecords: true, policyRules: [storybookPolicy] }),
 	presentation: storybookPresentation,
 	translations: { language: 'en', translations: enTranslations },
 };
@@ -70,7 +70,10 @@ export const editableStoredConsent: ConsentRecord = {
 export const defaultIABOptions: ConsentManagerOptions = {
 	...defaultConsentOptions,
 	iab: { cmpId: 160, cmpVersion: 1, gvl: mockGVL },
-	mode: offline({ policyRules: [storybookIABPolicy] }),
+	mode: offline({
+		acknowledgeNoRecords: true,
+		policyRules: [storybookIABPolicy],
+	}),
 	presentation: storybookIABPresentation,
 };
 

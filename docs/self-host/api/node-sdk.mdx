@@ -268,7 +268,9 @@ same user again changes nothing.
 
 Without a key or an identity token the link is stored but unverified, and
 `consents.check` and `subjects.list` ignore it. It also can't replace a
-verified link; that returns `IDENTITY_CONFLICT`.
+verified link; that returns `IDENTITY_CONFLICT`. A backend set to
+[`identityToken.requireVerifiedLinks`](/docs/self-host/api/endpoints#verify-identity-links)
+refuses it instead with `IDENTITY_TOKEN_REQUIRED`.
 
 ### Verify a link made in the browser
 

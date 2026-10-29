@@ -34,7 +34,11 @@ afterEach(() => {
 describe('mountDevTools', () => {
 	it('mounts the panel against the client kernel', async () => {
 		const client = createConsentClient(
-			{ consentCategories: ['measurement'], ui: false },
+			{
+				acknowledgeNoRecords: true,
+				consentCategories: ['measurement'],
+				ui: false,
+			},
 			{ pkg: 'test' }
 		);
 		clients.push(client);
@@ -56,6 +60,7 @@ describe('mountDevTools', () => {
 	it('changes location through the panel and re-resolves the policy', async () => {
 		const client = createConsentClient(
 			{
+				acknowledgeNoRecords: true,
 				overrides: { country: 'DE' },
 				policyRules: ['europeOptIn', 'worldNone'],
 				ui: false,
@@ -85,7 +90,7 @@ describe('window.c15t.onInit', () => {
 
 		installGlobal(api);
 		expect(onInit).not.toHaveBeenCalled();
-		const client = api.init({ ui: false });
+		const client = api.init({ acknowledgeNoRecords: true, ui: false });
 
 		return vi.waitFor(() => {
 			expect(onInit).toHaveBeenCalledWith(client);
@@ -97,7 +102,7 @@ describe('window.c15t.onInit', () => {
 		installGlobal(api);
 		const cancelled = vi.fn();
 		api.onInit(cancelled)();
-		const client = api.init({ ui: false });
+		const client = api.init({ acknowledgeNoRecords: true, ui: false });
 		const late = vi.fn();
 		api.onInit(late);
 

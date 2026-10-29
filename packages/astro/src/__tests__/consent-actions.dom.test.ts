@@ -58,7 +58,10 @@ const start = async function start(
 ): Promise<AstroConsentClient> {
 	const resolved = resolveOptions({
 		...options,
-		mode: offlineMode({ policyRules: [{ ...testRule, ...rule }] }),
+		mode: offlineMode({
+			acknowledgeNoRecords: true,
+			policyRules: [{ ...testRule, ...rule }],
+		}),
 	});
 	const { config } = await resolveConsentContext({
 		headers: new Headers(),

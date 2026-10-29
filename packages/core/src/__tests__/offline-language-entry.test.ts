@@ -12,7 +12,7 @@ import { createConsentRuntime } from '../runtime';
 describe('offline(): a language imported from its own entry', () => {
 	test('switches the copy to that language and no other', async () => {
 		const runtime = createConsentRuntime({
-			mode: offline(),
+			mode: offline({ acknowledgeNoRecords: true }),
 			persistence: false,
 			windowDebug: false,
 		});
