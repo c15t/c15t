@@ -297,6 +297,7 @@ interface VersionPrBodyOptions {
 	draft: Draft;
 	plan: PublishPlan | undefined;
 	getPreviousVersion: (packageId: string) => string | undefined;
+	releaseNotes?: string;
 }
 
 const versionPrPublishRows = function versionPrPublishRows(
@@ -321,7 +322,7 @@ const versionPrPublishRows = function versionPrPublishRows(
  */
 export const renderVersionPrBody = function renderVersionPrBody(
 	graph: Pick<TegamiContext['graph'], 'get'>,
-	{ draft, plan, getPreviousVersion }: VersionPrBodyOptions
+	{ draft, plan, getPreviousVersion, releaseNotes }: VersionPrBodyOptions
 ) {
 	const versionRows: string[] = [];
 	const notes = new Map<ChangelogEntry, string[]>();
@@ -354,7 +355,7 @@ export const renderVersionPrBody = function renderVersionPrBody(
 		'',
 		'## Release notes',
 		'',
-		'Full text is in each package `CHANGELOG.md` in this PR.',
+		releaseNotes ?? 'Full text is in each package `CHANGELOG.md` in this PR.',
 		''
 	);
 	const tail = publishRows.length
@@ -370,10 +371,13 @@ export const renderVersionPrBody = function renderVersionPrBody(
 			]
 		: [];
 
-	const noteRows = [...notes].map(([entry, names]) => {
-		const title = entry.subject ?? entry.sections[0]?.title ?? entry.filename;
-		return `- **${title}** (\`${entry.filename}\`): ${names.sort().join(', ')}`;
-	});
+	const noteRows = releaseNotes
+		? []
+		: [...notes].map(([entry, names]) => {
+				const title =
+					entry.subject ?? entry.sections[0]?.title ?? entry.filename;
+				return `- **${title}** (\`${entry.filename}\`): ${names.sort().join(', ')}`;
+			});
 	const render = (rows: string[]) =>
 		`${[...head, ...rows, ...tail].join('\n')}\n`;
 	let body = render(noteRows);
@@ -497,7 +501,15 @@ export const createRelease = function createRelease({
 							base: branch,
 							branch: `tegami/version-packages-${branch}`,
 							create(options) {
-								return { body: renderVersionPrBody(this.graph, options) };
+								return {
+									body: renderVersionPrBody(this.graph, {
+										...options,
+										releaseNotes:
+											branch === 'main' && options.plan
+												? stableReleaseNotes({ plan: options.plan }).notes
+												: undefined,
+									}),
+								};
 							},
 						},
 					})
