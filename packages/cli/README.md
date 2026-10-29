@@ -103,12 +103,6 @@ See the [documentation](https://c15t.com/docs/cli/overview) for guides, API refe
 - **Self-hosted backend**: Generate config and run database migrations for @c15t/backend
 - **Local mode**: Generate a browser-only setup for development and tests. c15t keeps no server-side record of consent
 
-## Docs for AI Agents
-
-This package ships its documentation as Markdown, matched to the installed version. After you install it, point your coding agent at `node_modules/@c15t/cli/AGENTS.md`. It indexes every guide in `node_modules/@c15t/cli/docs/`.
-
-On the web, every page of the [c15t docs](https://c15t.com/docs) has a Markdown version, and [llms.txt](https://c15t.com/docs/llms.txt) lists them all. Install the c15t agent skills with `npx skills add c15t/skills`.
-
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
