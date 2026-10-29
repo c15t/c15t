@@ -27,7 +27,6 @@ export const withPackageSetupLinks = function withPackageSetupLinks(
 	const setup = [
 		...candidates,
 		['self-host/quickstart.md', 'Backend quickstart'],
-		['cli/quickstart.md', 'CLI quickstart'],
 	].filter(([file]) => file && bundledFiles.has(file));
 	if (setup.length === 0 && bundledFiles.has('integrations/overview.md')) {
 		setup.push(['integrations/overview.md', 'Connect your integrations']);

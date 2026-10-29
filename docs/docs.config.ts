@@ -23,10 +23,6 @@ export default defineDocsConfig({
 			title: 'Integrations',
 		},
 		{
-			slug: 'cli',
-			title: 'CLI',
-		},
-		{
 			slug: 'self-host',
 			title: 'Backend',
 		},
@@ -996,19 +992,6 @@ export default defineDocsConfig({
 			pages: ['overview', 'quickstart', 'upgrade-v3'],
 			slug: 'self-host',
 			title: 'Backend',
-		},
-		{
-			base: 'cli',
-			children: [
-				{
-					pages: ['commands/setup', 'commands/codemods', 'commands/self-host'],
-					slug: 'commands',
-					title: 'Commands',
-				},
-			],
-			pages: ['overview', 'quickstart'],
-			slug: 'cli',
-			title: 'CLI',
 		},
 		{
 			base: 'comparisons',

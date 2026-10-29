@@ -164,7 +164,7 @@ YouTube and Google Maps use consent-gated embeds with no extra package. The [Def
 | [`@c15t/schema`](./packages/schema) | Valibot schemas and TypeScript types for the consent API | <a href="https://www.npmjs.com/package/@c15t/schema"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/schema.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/schema.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 | [`@c15t/logger`](./packages/logger) | The structured logger that c15t packages use | <a href="https://www.npmjs.com/package/@c15t/logger"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/logger.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/logger.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 
-To set up c15t from the terminal, run `inth c15t` from the [Inth CLI](https://c15t.com/docs/cli/overview). It starts your coding agent with the c15t setup prompt or writes your framework's quickstart files.
+To set up c15t from the terminal, run `inth c15t` from the [Inth CLI](https://inth.com/docs/cli). It starts your coding agent with the c15t setup prompt or writes your framework's quickstart files.
 
 [`@c15t/scripts`](./packages/scripts) is deprecated. It re-exports `@c15t/integrations` for older imports and goes away in v4.
 
