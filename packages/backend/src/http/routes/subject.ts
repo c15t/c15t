@@ -325,7 +325,6 @@ export const register = function register({
 				c,
 				Effect.gen(function* result() {
 					const prepared = yield* prepareSubmission(body, {
-						allowedDomains: options.allowedDomains,
 						headers: c.req.raw.headers,
 						ipAddress: options.ipAddress,
 						manifest: options.manifest,
@@ -333,6 +332,7 @@ export const register = function register({
 						policySnapshot: options.policySnapshot,
 						// The same tenant the init route scoped the token audience to.
 						tenantId: options.tenantId,
+						trustedOrigins: options.trustedOrigins,
 					});
 					const { input } = prepared;
 

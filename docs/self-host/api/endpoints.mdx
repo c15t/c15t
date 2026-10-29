@@ -182,7 +182,7 @@ Send the body with `Content-Type: application/json`. `POST /subjects` and
 `415 UNSUPPORTED_MEDIA_TYPE` and write nothing. `domain` is 1 to 253
 characters with no control characters; other values get
 `400 INPUT_VALIDATION_FAILED`. With
-[`allowedDomains`](/docs/self-host/api/configuration#origins-identity-and-secrets)
+[`trustedOrigins`](/docs/self-host/api/configuration#origins-identity-and-secrets)
 set, a save naming a domain no entry covers gets `400 DOMAIN_NOT_ALLOWED` and
 writes nothing. The c15t client keeps such a save and retries it on later page
 loads, up to 10 times within 7 days, so the save is still recorded if you add

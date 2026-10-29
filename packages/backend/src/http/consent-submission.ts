@@ -9,7 +9,7 @@
  *
  * - Structure: the shared valibot schema. A body it rejects is a 400 with the
  *   field errors, never a guess at what was meant.
- * - Domain: with `allowedDomains` configured, a save naming a domain it does
+ * - Domain: with `trustedOrigins` configured, a save naming a domain it does
  *   not cover is a 400 `DOMAIN_NOT_ALLOWED`, before anything is resolved.
  * - Time: `givenAt` and every receipt's `confirmedAt` must be safe,
  *   non-negative epoch milliseconds no later than the server's clock at
@@ -71,7 +71,6 @@ import { Effect } from 'effect';
 import * as v from 'valibot';
 
 import type { DecisionInput } from '../repository/runtime-policy-decision';
-import { isDomainAllowed } from './allowed-domains';
 import {
 	BadRequestError,
 	PolicySnapshotError,
@@ -82,6 +81,7 @@ import {
 	verifyPolicySnapshotToken,
 } from './policy-snapshot';
 import type { PolicySnapshotOptions } from './policy-snapshot';
+import { isDomainAllowed } from './save-domain';
 
 /** The largest epoch millisecond value `Date` can represent. */
 const MAX_DATE_MS = 8_640_000_000_000_000;
@@ -107,13 +107,13 @@ const asCookieBanner = (
 };
 
 export interface SubmissionContext {
-	/** The instance's `allowedDomains`; `undefined` accepts any domain. */
-	readonly allowedDomains: readonly string[] | undefined;
 	readonly headers: Headers;
 	readonly manifest: ConsentManifestConfig | undefined;
 	readonly policySnapshot: PolicySnapshotOptions | undefined;
 	readonly tenantId: string | undefined;
 	readonly ipAddress: IpAddressConfig | undefined;
+	/** The instance's `trustedOrigins`; empty or absent accepts any domain. */
+	readonly trustedOrigins: readonly string[] | undefined;
 	/**
 	 * Server clock, epoch milliseconds. Receipts may not be later than this,
 	 * beyond `DECISION_CLOCK_TOLERANCE_SECONDS`.
@@ -847,12 +847,13 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		const input = parsed.output;
 
 		if (
-			context.allowedDomains !== undefined &&
-			!isDomainAllowed(input.domain, context.allowedDomains)
+			context.trustedOrigins !== undefined &&
+			context.trustedOrigins.length > 0 &&
+			!isDomainAllowed(input.domain, context.trustedOrigins)
 		) {
 			return yield* new BadRequestError({
 				code: 'DOMAIN_NOT_ALLOWED',
-				message: `domain ${JSON.stringify(input.domain)} is not in this backend's allowedDomains`,
+				message: `domain ${JSON.stringify(input.domain)} is not in this backend's trustedOrigins`,
 			});
 		}
 

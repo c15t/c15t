@@ -1,6 +1,6 @@
 /**
  * What the subject write routes accept, through the HTTP surface on every
- * engine: JSON bodies only, a bounded `domain` limited by `allowedDomains`
+ * engine: JSON bodies only, a bounded `domain` limited by `trustedOrigins`
  * when set, and identity links limited to verified ones under
  * `identityToken.requireVerifiedLinks`. A refused request writes nothing.
  */
@@ -117,20 +117,30 @@ for (const engine of ENGINES) {
 				assert.deepStrictEqual(await written(), nothing);
 			});
 
-			it('records any domain when allowedDomains is unset', async () => {
-				const saved = await harness.json('POST', '/subjects', {
-					...save,
-					domain: 'anything.example.net',
-				});
+			it.each([
+				['unset', undefined],
+				['empty', []],
+				['*', ['*']],
+			])(
+				'records any domain when trustedOrigins is %s',
+				async (_label, trustedOrigins) => {
+					const saved = await harness.json(
+						'POST',
+						'/subjects',
+						{ ...save, domain: 'anything.example.net' },
+						{},
+						harness.appWith({ trustedOrigins })
+					);
 
-				assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
-			});
+					assert.strictEqual(saved.status, 200, JSON.stringify(saved.body));
+				}
+			);
 
-			describe('with allowedDomains', () => {
+			describe('with trustedOrigins', () => {
 				const restricted = () =>
 					harness.appWith({
-						allowedDomains: ['example.com', '*.example.org'],
 						apiKeys: [API_KEY],
+						trustedOrigins: ['https://example.com', '*.example.org'],
 					});
 
 				it.each([
@@ -168,13 +178,6 @@ for (const engine of ENGINES) {
 						code: 'DOMAIN_NOT_ALLOWED',
 					});
 					assert.deepStrictEqual(await written(), nothing);
-				});
-
-				it('refuses an empty list at startup', () => {
-					assert.throws(
-						() => harness.appWith({ allowedDomains: [] }),
-						/allowedDomains is empty/u
-					);
 				});
 			});
 		});

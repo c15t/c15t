@@ -42,8 +42,8 @@ export default defineConfig({
 ```
 
 This is a local development configuration. `trustedOrigins` lists the sites
-whose browsers may call the backend; add your production host before you
-deploy. Keep the SQLite file on persistent storage, because a temporary
+whose browsers may call the backend and record consent; add your production
+host before you deploy, or its consent saves are refused. Keep the SQLite file on persistent storage, because a temporary
 filesystem loses consent history. [Database setup](/docs/self-host/guides/database-setup)
 covers PostgreSQL and MySQL, and [policy configuration](/docs/self-host/guides/policy-packs)
 covers rules for other regions.

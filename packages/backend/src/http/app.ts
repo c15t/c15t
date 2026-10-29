@@ -20,7 +20,6 @@ import {
 	gradeLevel,
 	middleware as observability,
 } from '../observability/evlog';
-import { assertAllowedDomainsOptions } from './allowed-domains';
 import { assertTenantOptions, makeRun, resolveHosting } from './context';
 import type { AppOptions, RouteContext } from './context';
 import { assertIdentityTokenOptions } from './identity-token';
@@ -42,7 +41,6 @@ export const createApp = function createApp(
 ) {
 	assertTenantOptions(input);
 	assertIdentityTokenOptions(input);
-	assertAllowedDomainsOptions(input);
 	// Stamped into the manifest config once, so `/init`, `/manifest`, the
 	// script builds, and consent saves all build the same manifest.
 	const manifest: ConsentManifestConfig = {

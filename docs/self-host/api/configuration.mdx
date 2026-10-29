@@ -35,8 +35,7 @@ fallback. Add reviewed rules for other locations in
 | --- | --- |
 | `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
 | `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
-| `trustedOrigins` | Hosts whose browsers may call the backend cross-origin, such as `app.example.com` or `*.example.com`. Empty or absent allows none. `GET /init` answers every origin regardless; see [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors). |
-| `allowedDomains` | Domains a consent save may name in `domain`, written like `trustedOrigins` entries: `example.com`, `*.example.com` or `*`. A save naming any other domain gets `400 DOMAIN_NOT_ALLOWED` and writes nothing. Absent accepts any domain. An empty list throws when the instance is built. See [origins, identity and secrets](#origins-identity-and-secrets). |
+| `trustedOrigins` | Hosts whose browsers may call the backend cross-origin, such as `app.example.com` or `*.example.com`. Empty or absent allows none. `GET /init` answers every origin regardless; see [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors). When set, a consent save must also name a host it covers in `domain`, or it gets `400 DOMAIN_NOT_ALLOWED`; list every site that saves consent, including the backend's own. See [origins, identity and secrets](#origins-identity-and-secrets). |
 | `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. An empty or padded string, or a non-string such as `null`, throws when the instance is built. This is the only tenant setting; `manifest.tenantId` is no longer accepted and throws. |
 | `requireTenantId` | Set to `true` when several tenants share one database. The instance throws at construction if `tenantId` is missing, instead of running in the single-tenant scope. Defaults to `false`. |
 | `hosting` | Who runs this backend: `'self-hosted'` (the default) or `'inth'`, which only Inth's hosted platform sets. `/init` and `/manifest` report it, and browsers read it as `window.c15t.hosting`. It is not signed, so use it for debugging and support, not as proof of hosting. Any other value throws when the instance is built, and so does `manifest.hosting`. |
@@ -141,14 +140,16 @@ only after a CORS preflight, and only origins in `trustedOrigins` pass it. The
 c15t clients and `@c15t/node-sdk` send JSON already.
 
 A save's `domain` comes from the client, and the first save naming a domain
-adds a row to the `domain` table. Set `allowedDomains` to the sites this
-backend serves, such as `['example.com', '*.example.com']`, and a save naming
-any other domain gets `400 DOMAIN_NOT_ALLOWED` and writes nothing. Entries
-match like `trustedOrigins` entries: `www.` is equivalent, and
-`*.example.com` covers subdomains but not `example.com` itself. The browser
-client sends the page's hostname, or its `domain` option when you set one.
-Only an entry's host counts: a scheme, port or path is ignored, so
-`localhost:3000` and `capacitor://localhost` both cover `localhost`.
+adds a row to the `domain` table. With `trustedOrigins` set, a save naming a
+site no entry covers gets `400 DOMAIN_NOT_ALLOWED` and writes nothing, so the
+table holds only sites you trust. This applies to same-origin saves too: a
+backend mounted on your site needs that site's host in `trustedOrigins`. The
+browser client sends the page's hostname, or its `domain` option when you set
+one. Entries match as they do for CORS: `www.` is equivalent,
+`*.example.com` covers subdomains but not `example.com` itself, and `*`
+covers every site. Only an entry's host counts: a scheme, port or path is
+ignored, so `localhost:3000` and `capacitor://localhost` both cover
+`localhost`. Empty or absent `trustedOrigins` accepts any domain.
 
 A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
 correct tenant instance in trusted application code. Do not choose a tenant from
