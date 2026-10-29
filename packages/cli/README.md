@@ -31,7 +31,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Manage hosted authentication and projects, or plan self-hosted database migrations
 - Structured JSON results and a reusable command runner for automation
 - Explicit legacy v1-to-v2 codemods with dry runs
-- Bundled documentation and agent skill installation
+- Agent skill installation
 
 ## Prerequisites
 
