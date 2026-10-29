@@ -1,0 +1,70 @@
+c15t:release:
+  - branch: release/v1
+    id: npm:c15t
+    version: 1.9.0
+  - branch: release/v1
+    id: npm:@c15t/dev-tools
+    version: 1.9.0
+  - branch: release/v1
+    id: npm:@c15t/cli
+    version: 1.9.0
+  - branch: release/v1
+    id: npm:@c15t/nextjs
+    version: 1.9.0
+  - branch: release/v1
+    id: npm:@c15t/react
+    version: 1.9.0
+core:changelogs:
+  - content: "---\npackages:\n  c15t:\n    type: minor\n  \"@c15t/react\":\n    type: minor\n---\n\n### Warn that offline mode keeps no consent records\n\nOffline mode keeps consent only in the visitor's browser, so c15t has no\nserver-side record of it, and it has no geolocation, so every visitor gets the\nsame policy. In development builds, c15t now logs a `console.warn` once per\npage when it creates an offline client in the browser. Production builds never\nlog it, and it never blocks consent.\n\nSet `acknowledgeNoRecords: true` in the offline options to hide the message,\nfor example in tests:\n\n```ts\nconfigureConsentManager({ mode: 'offline', acknowledgeNoRecords: true });\n```\n\n`ConsentManagerProvider` in `@c15t/react` and `@c15t/nextjs` passes the option\nthrough.\n"
+    filename: 2026-10-19-offline-mode-warning.md
+    v: 0.0.0
+  - content: "---\npackages:\n  c15t:\n    type: patch\n---\n\n### Keep the tracking blocker working with wrapped `fetch`\n\nThe tracking blocker threw when the page's `fetch` came from another library\nthat exposes a property through a getter, so the consent store failed to start.\nIt now copies the original `fetch`'s properties before wrapping it.\n"
+    filename: 2026-10-20-tracking-blocker-fetch-wrappers.md
+    v: 0.0.0
+core:packages:
+  - changelogIds:
+      - 2026-10-19-offline-mode-warning.md
+      - 2026-10-20-tracking-blocker-fetch-wrappers.md
+    id: npm:c15t
+    updated: true
+  - id: npm:@c15t/translations
+    updated: false
+  - id: npm:@c15t/scripts
+    updated: false
+  - id: npm:@c15t/node-sdk
+    updated: false
+  - id: npm:@c15t/logger
+    updated: false
+  - id: npm:@c15t/backend
+    updated: false
+  - id: npm:@c15t/dev-tools
+    updated: true
+  - id: npm:@c15t/cli
+    updated: true
+  - id: npm:@c15t/nextjs
+    updated: true
+  - changelogIds:
+      - 2026-10-19-offline-mode-warning.md
+    id: npm:@c15t/react
+    updated: true
+npm:packages:
+  - distTag: v1-legacy
+    id: npm:c15t
+  - distTag: v1-legacy
+    id: npm:@c15t/translations
+  - distTag: v1-legacy
+    id: npm:@c15t/scripts
+  - distTag: v1-legacy
+    id: npm:@c15t/node-sdk
+  - distTag: v1-legacy
+    id: npm:@c15t/logger
+  - distTag: v1-legacy
+    id: npm:@c15t/backend
+  - distTag: v1-legacy
+    id: npm:@c15t/dev-tools
+  - distTag: v1-legacy
+    id: npm:@c15t/cli
+  - distTag: v1-legacy
+    id: npm:@c15t/nextjs
+  - distTag: v1-legacy
+    id: npm:@c15t/react
