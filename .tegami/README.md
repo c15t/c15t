@@ -46,6 +46,10 @@ are pending. The PR contains manifests, dependency updates, the Bun lockfile,
 changelogs, and the publish lock. Merging it publishes. Pushes without pending
 notes or an unfinished lock do nothing.
 
+When a stable release publishes `c15t@3.2.0`, each package's GitHub release
+notes contain only `https://c15t.com/changelog/3.2.0`. Canary and later stable
+releases use Tegami's generated notes.
+
 The CLI wrapper checks for an unfinished publish lock before running `ci` and
 publishes that lock first, leaving any newer notes for the next run. A failed
 retry preserves the lock. Tegami's upstream `ci` command skips this check, so

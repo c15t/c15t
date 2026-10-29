@@ -421,6 +421,22 @@ export const syncBunLockVersions = function syncBunLockVersions(
 	}
 };
 
+/** Use the website changelog for packages in the 3.2.0 stable release. */
+const stableReleaseNotes = function stableReleaseNotes({
+	plan,
+}: {
+	plan: PublishPlan;
+}) {
+	if (
+		plan
+			.getPackagesToPublish()
+			.some((pkg) => pkg.name === 'c15t' && pkg.version === '3.2.0')
+	) {
+		return { notes: 'https://c15t.com/changelog/3.2.0' };
+	}
+	return {};
+};
+
 /** Create the release workflow. Drafts can be tested without GitHub or publishing. */
 export const createRelease = function createRelease({
 	cwd = process.cwd(),
@@ -469,6 +485,13 @@ export const createRelease = function createRelease({
 			},
 			...(withGithub
 				? github({
+						release:
+							branch === 'main'
+								? {
+										create: stableReleaseNotes,
+										createGrouped: stableReleaseNotes,
+									}
+								: true,
 						repo: 'c15t/c15t',
 						versionPr: {
 							base: branch,

@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { PublishPlan } from 'tegami';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parse, stringify } from 'yaml';
 
@@ -691,6 +692,86 @@ describe('version PR body', () => {
 			'| `@c15t/core` | `3.0.0-canary.2` | `3.0.0-canary.3` |'
 		);
 	});
+});
+
+describe('GitHub release notes', () => {
+	it.each([
+		{ branch: 'main', grouped: false, version: '3.2.0' },
+		{ branch: 'main', grouped: true, version: '3.2.0' },
+		{ branch: 'canary', grouped: false, version: '3.2.0-canary.0' },
+		{ branch: 'main', grouped: false, version: '3.2.1' },
+		{ branch: 'main', grouped: false, independent: true, version: '3.2.0' },
+	])(
+		'creates $branch $version release notes with grouped=$grouped independent=$independent',
+		async ({ branch, grouped, independent = false, version }) => {
+			const root = fixture([
+				{ name: 'c15t', version },
+				{ name: '@c15t/ui', version: '3.0.2' },
+			]);
+			vi.stubEnv('GITHUB_TOKEN', 'fixture-token');
+			const requests: unknown[] = [];
+			vi.stubGlobal(
+				'fetch',
+				vi.fn((_input: unknown, init?: RequestInit) => {
+					if (init?.method === 'HEAD') {
+						return Promise.resolve(new Response(null, { status: 404 }));
+					}
+					if (init?.method !== 'POST' || typeof init.body !== 'string') {
+						throw new Error('Unexpected GitHub request');
+					}
+					requests.push(JSON.parse(init.body));
+					return Promise.resolve(new Response(null, { status: 201 }));
+				})
+			);
+			const context = await createRelease({
+				branch,
+				cwd: root,
+			})._internal.context();
+			const packages = context.graph
+				.getPackages()
+				.filter((pkg) => pkg.name !== 'fixture');
+			const published = packages.filter(
+				(pkg) => !independent || pkg.name !== 'c15t'
+			);
+			const plan: PublishPlan = {
+				changelogs: new Map(),
+				getPackagesToPublish: () => published,
+				options: {},
+				packages: new Map(
+					packages.map((pkg) => [
+						pkg.id,
+						{
+							changelogs: [],
+							git: {
+								tag: grouped ? `v${version}` : `${pkg.name}@${pkg.version}`,
+							},
+							preflight: { shouldPublish: published.includes(pkg) },
+							publishResult: { type: 'published' },
+							updated: published.includes(pkg),
+						},
+					])
+				),
+				tasks: [],
+			};
+			const plugin = context.plugins.find((entry) => entry.name === 'github');
+			const tasks = await plugin?.publishTasks?.call(context, { plan });
+			await Promise.all(
+				(Array.isArray(tasks) ? tasks : [tasks]).map(
+					(task) => task && task.run({ context, plan })
+				)
+			);
+
+			const generatedNotes = expect.stringContaining('Published ');
+			const body =
+				branch === 'main' && version === '3.2.0' && !independent
+					? 'https://c15t.com/changelog/3.2.0'
+					: generatedNotes;
+			expect(requests).toHaveLength(grouped ? 1 : published.length);
+			for (const request of requests) {
+				expect(request).toMatchObject({ body });
+			}
+		}
+	);
 });
 
 it.each(['main', 'canary'])(
