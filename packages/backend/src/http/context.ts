@@ -89,6 +89,20 @@ export interface AppOptions {
 	 */
 	readonly trustedOrigins?: readonly string[];
 	/**
+	 * Domains a consent save may name in `domain`, written like
+	 * `trustedOrigins` entries: `example.com`, `*.example.com`, or `*`.
+	 *
+	 * Absent means a save may name any domain. With a list, a save naming a
+	 * domain it does not cover is refused with `400 DOMAIN_NOT_ALLOWED` and
+	 * writes nothing, so the `domain` table holds only the sites this backend
+	 * serves. The browser client sends the page's hostname, or its `domain`
+	 * option when one is set.
+	 *
+	 * An empty list throws when the instance is built: it would refuse every
+	 * save.
+	 */
+	readonly allowedDomains?: readonly string[];
+	/**
 	 * The tenant this instance serves, matching @c15t/backend where tenantId is
 	 * instance configuration rather than per-request.
 	 *

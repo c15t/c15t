@@ -37,6 +37,7 @@ import type { SqlClient } from 'effect/sql';
 
 import { toLayer } from './db/connect';
 import type { DatabaseOption } from './db/connect';
+import { assertAllowedDomainsOptions } from './http/allowed-domains';
 import { createApp } from './http/app';
 import { assertTenantOptions, resolveHosting } from './http/context';
 import type { AppOptions } from './http/context';
@@ -172,6 +173,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	// Before the runtime exists, so a refused configuration opens no pool.
 	assertTenantOptions(app);
 	assertIdentityTokenOptions(app);
+	assertAllowedDomainsOptions(app);
 	resolveHosting(app);
 	void warnOnPolicyFailure(options);
 	warnOnVendorListGap(options);

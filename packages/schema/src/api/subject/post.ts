@@ -64,9 +64,16 @@ const baseSubjectConsentSchema = v.object({
 			)
 		)
 	),
-	/** Domain where consent was given */
+	/**
+	 * Domain where consent was given. At most 253 characters, the longest
+	 * host name and the bound the session report's journey domain uses, and
+	 * no control characters: the backend stores it as a row.
+	 */
 	domain: v.pipe(
 		v.string(),
+		v.minLength(1, 'Domain must not be empty'),
+		v.maxLength(253, 'Domain must be at most 253 characters'),
+		v.regex(/^\P{Cc}*$/u, 'Domain must not contain control characters'),
 		v.description('Domain where consent was collected.'),
 		v.examples(['example.com'])
 	),

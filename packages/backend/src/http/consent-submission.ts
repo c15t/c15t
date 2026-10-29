@@ -9,6 +9,8 @@
  *
  * - Structure: the shared valibot schema. A body it rejects is a 400 with the
  *   field errors, never a guess at what was meant.
+ * - Domain: with `allowedDomains` configured, a save naming a domain it does
+ *   not cover is a 400 `DOMAIN_NOT_ALLOWED`, before anything is resolved.
  * - Time: `givenAt` and every receipt's `confirmedAt` must be safe,
  *   non-negative epoch milliseconds no later than the server's clock at
  *   request time, plus `DECISION_CLOCK_TOLERANCE_SECONDS` for a client clock
@@ -69,6 +71,7 @@ import { Effect } from 'effect';
 import * as v from 'valibot';
 
 import type { DecisionInput } from '../repository/runtime-policy-decision';
+import { isDomainAllowed } from './allowed-domains';
 import {
 	BadRequestError,
 	PolicySnapshotError,
@@ -104,6 +107,8 @@ const asCookieBanner = (
 };
 
 export interface SubmissionContext {
+	/** The instance's `allowedDomains`; `undefined` accepts any domain. */
+	readonly allowedDomains: readonly string[] | undefined;
 	readonly headers: Headers;
 	readonly manifest: ConsentManifestConfig | undefined;
 	readonly policySnapshot: PolicySnapshotOptions | undefined;
@@ -840,6 +845,16 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			});
 		}
 		const input = parsed.output;
+
+		if (
+			context.allowedDomains !== undefined &&
+			!isDomainAllowed(input.domain, context.allowedDomains)
+		) {
+			return yield* new BadRequestError({
+				code: 'DOMAIN_NOT_ALLOWED',
+				message: `domain ${JSON.stringify(input.domain)} is not in this backend's allowedDomains`,
+			});
+		}
 
 		const givenAtIssue = checkTimestamp(input.givenAt, 'givenAt', context.now);
 		if (givenAtIssue) {

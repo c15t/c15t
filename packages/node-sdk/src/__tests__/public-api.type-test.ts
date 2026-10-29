@@ -91,6 +91,7 @@ expectTypeOf<C15tErrorCodeOf<typeof c15t.subjects.identify>>().toEqualTypeOf<
 	| 'EXTERNAL_ID_REQUIRED'
 	| 'IDENTITY_CONFLICT'
 	| 'IDENTITY_TOKEN_INVALID'
+	| 'IDENTITY_TOKEN_REQUIRED'
 	| 'NOT_FOUND'
 	| C15tClientErrorCode
 >();

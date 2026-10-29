@@ -48,6 +48,7 @@ import {
 	NotFoundError,
 } from '../errors';
 import { verifyIdentity } from '../identity-token';
+import { requireJsonBody } from '../json-body';
 
 /** One consent as the wire reports it, with 2.x fields plus v3 receipts. */
 const toConsentItem = (consent: ConsentRow): ConsentItem => ({
@@ -104,6 +105,49 @@ const checkIdentity = Effect.fn('subject.checkIdentity')(
 		return identity;
 	}
 );
+
+/**
+ * Checks the external id a save names and decides what the save stores.
+ *
+ * A save is a legal record, so a token that fails here does not refuse it.
+ * The link is stored unverified and the wide event says why; `PATCH` with a
+ * fresh token can verify it later. An instance set to
+ * `identityToken.requireVerifiedLinks` leaves an unproved link off instead,
+ * and the consent is recorded without it.
+ */
+const linkForSave = Effect.fn('subject.linkForSave')(function* linkForSave(
+	headers: Headers,
+	options: AppOptions,
+	input: {
+		readonly externalSubjectId?: string | undefined;
+		readonly identityProvider?: string | undefined;
+		readonly identityToken?: string | undefined;
+	}
+) {
+	const none = { externalId: null, identityProvider: null, verified: false };
+	if (input.externalSubjectId === undefined) {
+		return none;
+	}
+	const identity = yield* checkIdentity(headers, options, {
+		externalId: input.externalSubjectId,
+		identityProvider: input.identityProvider,
+		token: input.identityToken,
+	});
+	if (
+		!identity.verified &&
+		options.identityToken?.requireVerifiedLinks === true
+	) {
+		yield* setFields({
+			identity: { linkStored: false, reason: identity.reason, verified: false },
+		});
+		return none;
+	}
+	return {
+		externalId: input.externalSubjectId,
+		identityProvider: input.identityProvider ?? null,
+		verified: identity.verified,
+	};
+});
 
 export const register = function register({
 	app,
@@ -270,6 +314,7 @@ export const register = function register({
 			summary: 'Record a consent submission',
 			tags: ['Subject'],
 		}),
+		requireJsonBody,
 		async (c) => {
 			const body = await c.req.json().catch(() => undefined);
 			// One clock reading per request, so every timestamp check and every
@@ -280,6 +325,7 @@ export const register = function register({
 				c,
 				Effect.gen(function* result() {
 					const prepared = yield* prepareSubmission(body, {
+						allowedDomains: options.allowedDomains,
 						headers: c.req.raw.headers,
 						ipAddress: options.ipAddress,
 						manifest: options.manifest,
@@ -290,17 +336,7 @@ export const register = function register({
 					});
 					const { input } = prepared;
 
-					// A save is a legal record, so a token that fails here does not
-					// refuse it. The link is stored unverified and the wide event says
-					// why; `PATCH` with a fresh token can verify it later.
-					const identity =
-						input.externalSubjectId === undefined
-							? undefined
-							: yield* checkIdentity(c.req.raw.headers, options, {
-									externalId: input.externalSubjectId,
-									identityProvider: input.identityProvider,
-									token: input.identityToken,
-								});
+					const link = yield* linkForSave(c.req.raw.headers, options, input);
 
 					const domain = yield* findOrCreateDomain(input.domain);
 					const policy = yield* findOrCreateRuntimePolicy(input.type);
@@ -316,10 +352,10 @@ export const register = function register({
 						consentAction: prepared.consentAction ?? null,
 						decision: prepared.decision?.input,
 						domainId: domain.id,
-						externalId: input.externalSubjectId ?? null,
-						externalIdVerified: identity?.verified === true,
+						externalId: link.externalId,
+						externalIdVerified: link.verified,
 						givenAt: prepared.givenAt,
-						identityProvider: input.identityProvider ?? null,
+						identityProvider: link.identityProvider,
 						ipAddress: prepared.ipAddress,
 						jurisdictionModel: prepared.jurisdictionModel ?? null,
 						metadata: prepared.metadata,
@@ -407,10 +443,12 @@ export const register = function register({
 			summary: 'Link a subject to an external identity',
 			tags: ['Subject'],
 		}),
+		requireJsonBody,
 		// No API key required: the browser links its own subject after sign-in,
 		// and the subject id is the capability. The link counts as verified,
 		// and so shows up in reads by external id, only with an API key or a
-		// signed `identityToken`. See `../identity-token.ts`.
+		// signed `identityToken`. See `../identity-token.ts`. An instance set
+		// to `identityToken.requireVerifiedLinks` refuses unverified links.
 		async (c) => {
 			const subjectId = c.req.param('id');
 			const body = await c.req.json().catch(() => undefined);
@@ -457,8 +495,21 @@ export const register = function register({
 					});
 					if (!identity.verified && identity.reason === 'invalid') {
 						return yield* new IdentityTokenError({
+							code: 'IDENTITY_TOKEN_INVALID',
 							message:
 								'identityToken did not verify, or names a different identity',
+						});
+					}
+					// Before the transaction, like the token check: a refused link
+					// creates no subject either.
+					if (
+						!identity.verified &&
+						options.identityToken?.requireVerifiedLinks === true
+					) {
+						return yield* new IdentityTokenError({
+							code: 'IDENTITY_TOKEN_REQUIRED',
+							message:
+								'This backend stores verified identity links only. Send an identityToken, or link from your server with an API key.',
 						});
 					}
 

@@ -36,6 +36,7 @@ fallback. Add reviewed rules for other locations in
 | `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
 | `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
 | `trustedOrigins` | Hosts whose browsers may call the backend cross-origin, such as `app.example.com` or `*.example.com`. Empty or absent allows none. `GET /init` answers every origin regardless; see [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors). |
+| `allowedDomains` | Domains a consent save may name in `domain`, written like `trustedOrigins` entries: `example.com`, `*.example.com` or `*`. A save naming any other domain gets `400 DOMAIN_NOT_ALLOWED` and writes nothing. Absent accepts any domain. An empty list throws when the instance is built. See [origins, identity and secrets](#origins-identity-and-secrets). |
 | `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. An empty or padded string, or a non-string such as `null`, throws when the instance is built. This is the only tenant setting; `manifest.tenantId` is no longer accepted and throws. |
 | `requireTenantId` | Set to `true` when several tenants share one database. The instance throws at construction if `tenantId` is missing, instead of running in the single-tenant scope. Defaults to `false`. |
 | `hosting` | Who runs this backend: `'self-hosted'` (the default) or `'inth'`, which only Inth's hosted platform sets. `/init` and `/manifest` report it, and browsers read it as `window.c15t.hosting`. It is not signed, so use it for debugging and support, not as proof of hosting. Any other value throws when the instance is built, and so does `manifest.hosting`. |
@@ -43,7 +44,7 @@ fallback. Add reviewed rules for other locations in
 | `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
 | `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
 | `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. `replayWindowSeconds` (default 604,800, 7 days) is how long after a token expires a save made while it was valid is still accepted; `0` refuses every late save. See [late saves](/docs/self-host/api/endpoints#late-saves). |
-| `identityToken` | `signingKey` of at least 32 bytes, plus optional `issuer` (default `c15t`) and `audience` (default `c15t-identity`), for verifying [identity tokens](/docs/self-host/api/endpoints#verify-identity-links). Without it, only API-key requests verify links. Keep the key secret, one per tenant. |
+| `identityToken` | `signingKey` of at least 32 bytes, plus optional `issuer` (default `c15t`) and `audience` (default `c15t-identity`), for verifying [identity tokens](/docs/self-host/api/endpoints#verify-identity-links). Without it, only API-key requests verify links. Keep the key secret, one per tenant. Set `requireVerifiedLinks: true` to store verified links only; it defaults to `false`. |
 | `legalDocumentSnapshot` | Legal-document signing configuration type. It does not automatically issue or verify HTTP tokens. Use the [explicit signing helpers](/docs/self-host/guides/legal-document-snapshot-integration); their default lifetime is 86,400 seconds. |
 | `gvl` | Server-side Global Vendor List loading and cache configuration. Writing the block is the opt-in: `/init` carries the list for every matched IAB policy. `enabled: false` declines. |
 | `additionalConsent` | Loading options for the Google Additional Consent providers listed in `manifest.iab.additionalConsent`: `cache` (defaults to the `gvl` cache, under separate keys; a relative provider list `endpoint` is cached in memory instead, so backends sharing a cache keep their lists apart), `ttlMs` (default one day) and `fetch`. `enabled: false` stops `/init` from serving them. See [Google Additional Consent](/docs/frameworks/react/iab#add-google-additional-consent). |
@@ -132,6 +133,20 @@ per-client limits see each visitor. See `trustForwardedHeaders` in the
 [Next.js data fetching reference](/docs/frameworks/next/data-fetching-reference#createconsentroute-options)
 and the
 [TanStack Start troubleshooting guide](/docs/frameworks/tanstack-start/troubleshooting#saves-through-apic15t-fail-with-403-or-a-challenge-page).
+
+Both routes accept JSON bodies only, sent with
+`Content-Type: application/json`, and answer any other type with
+`415 UNSUPPORTED_MEDIA_TYPE`. A browser sends a JSON body to another origin
+only after a CORS preflight, and only origins in `trustedOrigins` pass it. The
+c15t clients and `@c15t/node-sdk` send JSON already.
+
+A save's `domain` comes from the client, and the first save naming a domain
+adds a row to the `domain` table. Set `allowedDomains` to the sites this
+backend serves, such as `['example.com', '*.example.com']`, and a save naming
+any other domain gets `400 DOMAIN_NOT_ALLOWED` and writes nothing. Entries
+match like `trustedOrigins` entries: `www.` is equivalent, and
+`*.example.com` covers subdomains but not `example.com` itself. The browser
+client sends the page's hostname, or its `domain` option when you set one.
 
 A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
 correct tenant instance in trusted application code. Do not choose a tenant from

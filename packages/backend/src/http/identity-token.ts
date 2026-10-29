@@ -39,6 +39,18 @@ export interface IdentityTokenOptions {
 	readonly issuer?: string;
 	/** Expected `aud`. Defaults to `c15t-identity`. */
 	readonly audience?: string;
+	/**
+	 * Store identity links only when they are verified.
+	 *
+	 * By default an unverified link is stored, and reads by external id skip
+	 * it. With this set, `PATCH /subjects/:id` refuses one with
+	 * `401 IDENTITY_TOKEN_REQUIRED` and creates nothing, and a save records
+	 * its consent without the external id. An API key still verifies a link,
+	 * so a server can link without a token.
+	 *
+	 * @default false
+	 */
+	readonly requireVerifiedLinks?: boolean;
 }
 
 /**
@@ -49,9 +61,12 @@ export interface IdentityTokenOptions {
 export const MIN_IDENTITY_SIGNING_KEY_BYTES = 32;
 
 /**
- * Refuses an identity signing key too short to resist offline guessing.
+ * Refuses an identity signing key too short to resist offline guessing, and
+ * a `requireVerifiedLinks` that is not a boolean.
  *
  * @param options - The instance's options.
+ * @throws {TypeError} When `identityToken.requireVerifiedLinks` is set but is
+ * not a boolean.
  * @throws {Error} When `identityToken.signingKey` is set but is not a string
  * of at least {@link MIN_IDENTITY_SIGNING_KEY_BYTES} UTF-8 bytes.
  * @internal
@@ -60,6 +75,15 @@ export const assertIdentityTokenOptions =
 	function assertIdentityTokenOptions(options: {
 		readonly identityToken?: IdentityTokenOptions;
 	}): void {
+		// Read as unknown: `requireVerifiedLinks: 'true'` from an untyped config
+		// would otherwise leave unverified links accepted without a word.
+		const required: unknown = options.identityToken?.requireVerifiedLinks;
+		if (required !== undefined && typeof required !== 'boolean') {
+			throw new TypeError(
+				`[c15t] identityToken.requireVerifiedLinks must be a boolean, received ${required === null ? 'null' : typeof required}.`
+			);
+		}
+
 		const key: unknown = options.identityToken?.signingKey;
 		if (key === undefined) {
 			return;
