@@ -68,7 +68,8 @@ describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 		);
 		app = createApp(runtime, {
 			apiKeys: [API_KEY],
-			trustedOrigins: ['https://app.example.com'],
+			// `example.com` is the site the saves below name.
+			trustedOrigins: ['https://app.example.com', 'example.com'],
 		});
 	});
 

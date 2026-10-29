@@ -177,6 +177,17 @@ client construct this payload so effective permissions are not mistaken for an
 explicit grant. Hydration, a dismissed notice and a GPC signal are not consent
 submissions.
 
+Send the body with `Content-Type: application/json`. `POST /subjects` and
+`PATCH /subjects/:id` answer any other type, or none, with
+`415 UNSUPPORTED_MEDIA_TYPE` and write nothing. `domain` is 1 to 253
+characters with no control characters; other values get
+`400 INPUT_VALIDATION_FAILED`. With
+[`trustedOrigins`](/docs/self-host/api/configuration#origins-identity-and-secrets)
+set, a save naming a domain no entry covers gets `400 DOMAIN_NOT_ALLOWED` and
+writes nothing. The c15t client keeps such a save and retries it on later page
+loads, up to 10 times within 7 days, so the save is still recorded if you add
+its domain to the list in that time.
+
 The response includes `subjectId`, `consentId`, `appliedPreferences` and `givenAt`.
 Read `GET /subjects/:id` to inspect merged category choices. A type filter changes
 which consent records are returned and how `isValid` is calculated; it does not
@@ -252,6 +263,12 @@ its link to the external ID was verified: the `POST /subjects` or
 signed with [`identityToken.signingKey`](/docs/self-host/api/configuration).
 Unverified links are stored but skipped by those reads.
 
+To store verified links only, set `identityToken.requireVerifiedLinks: true`.
+`PATCH /subjects/:id` then refuses a link with neither an API key nor a valid
+token, and `POST /subjects` records the consent without its
+`externalSubjectId`. An API key still verifies a link, so your server can link
+users without minting tokens.
+
 Mint tokens with [`createIdentityToken`](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser). From
 another language, sign an HS256 JWT with `sub` set to the external ID, `aud`
 `c15t-identity`, `iss` `c15t`, an `exp`, and optionally `idp` matching
@@ -262,8 +279,10 @@ another language, sign an HS256 JWT with `sub` set to the external ID, `aud`
 | `400 EXTERNAL_ID_REQUIRED` | `PATCH` only. The body has no `externalId`. Nothing is created or linked. |
 | `400 INPUT_VALIDATION_FAILED` | `PATCH` only. `externalId`, `identityProvider` or `identityToken` isn't a string. Nothing is created or linked. |
 | `401 IDENTITY_TOKEN_INVALID` | `PATCH` only. The token doesn't verify, has expired, or names another external ID or provider. Nothing changes. |
+| `401 IDENTITY_TOKEN_REQUIRED` | `PATCH` only, with `identityToken.requireVerifiedLinks` set. The request has neither an API key nor an identity token. Nothing is created or linked. |
 | `409 IDENTITY_CONFLICT` | `PATCH` only. The subject's current link is verified and this request isn't, so it can't replace it. Sending the same identity again succeeds. |
 | `409 SUBJECT_CONFLICT` | `PATCH` only. Another tenant on the same database already holds this subject ID. Nothing is linked. |
+| `415 UNSUPPORTED_MEDIA_TYPE` | The body isn't sent as `application/json`. Nothing is created or linked. |
 
 A browser has a subject ID from its first page load, so `identify()` can run
 before any save. `PATCH /subjects/:id` then creates the subject. An older
@@ -271,8 +290,9 @@ self-hosted backend answers `404` for a subject no save has created yet. The
 client treats that as success and sends the identity with the next save.
 
 `POST /subjects` never refuses a consent because of its token: a bad token
-leaves the link unverified, and the token only applies when the save creates
-the subject. Verify an existing subject with `PATCH /subjects/:id`.
+leaves the link unverified, or unstored with `requireVerifiedLinks`, and the
+token only applies when the save creates the subject. Verify an existing
+subject with `PATCH /subjects/:id`.
 
 ## Make an administrative request
 

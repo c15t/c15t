@@ -37,6 +37,29 @@ export const DEMO_TERMS_RELEASE = {
 	version: '2026-04-13',
 };
 
+/**
+ * Sites this backend trusts: browsers on them may call it cross-origin, and
+ * consent saves may name them as their `domain`.
+ *
+ * The demo is same-origin, but its saves name the deployment's host, so that
+ * host has to be listed. `isOriginTrusted` compares hostnames exactly unless
+ * the entry starts with `*.`: a bare `vercel.app` entry matches nothing, and
+ * `*.vercel.app` would trust every deployment on Vercel.
+ */
+const trustedOrigins = function trustedOrigins(): string[] {
+	const origins = ['localhost', '*.localhost'];
+	for (const host of [
+		process.env.VERCEL_PROJECT_PRODUCTION_URL,
+		process.env.VERCEL_BRANCH_URL,
+		process.env.VERCEL_URL,
+	]) {
+		if (host && !origins.includes(host)) {
+			origins.push(host);
+		}
+	}
+	return origins;
+};
+
 export const createDemoInstance = function createDemoInstance(
 	scenario: string
 ) {
@@ -52,7 +75,7 @@ export const createDemoInstance = function createDemoInstance(
 	return c15tInstance({
 		database: postgresDb,
 		basePath: '/api/self-host',
-		trustedOrigins: ['localhost', '*.localhost', 'vercel.app'],
+		trustedOrigins: trustedOrigins(),
 		tenantId: 'ins_1',
 		// Everything a client needs to render the banner now lives in one
 		// manifest, built by @c15t/schema so the server and the browser resolve

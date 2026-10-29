@@ -226,6 +226,22 @@ message and code, with `status` and `code` properties to match.
 After a 402 response, c15t no longer sends the consent save again. The choice
 stays in the browser.
 
+## Consent only from sites you trust
+
+The backend now records consent only for sites in `trustedOrigins`. A save
+naming any other site gets `400 DOMAIN_NOT_ALLOWED` and writes nothing. In
+3.1, any site could create a row in the `domain` table. Only an entry's host
+counts, so `localhost:3000` covers `localhost`, and `*` still covers every
+site. Without `trustedOrigins`, saves are not checked.
+
+`identityToken.requireVerifiedLinks` is a new option, off by default. It
+stores a link to your user ID only when an API key or identity token proves
+it. Without proof, `identify()` gets `401 IDENTITY_TOKEN_REQUIRED`, and a
+consent save is recorded without the user ID.
+
+See [origins, identity and secrets](/docs/self-host/api/configuration#origins-identity-and-secrets)
+and [verify identity links](/docs/self-host/api/endpoints#verify-identity-links).
+
 ## Fixes
 
 - A preference center that a visitor opens before the backend answers now stays
@@ -249,6 +265,13 @@ stays in the browser.
 
 Update `c15t` and any `@c15t/*` packages you use to 3.2 together.
 
+If you set `trustedOrigins` on a self-hosted backend, make sure it lists every
+site that saves consent, including the site the backend is mounted on. In 3.1,
+a same-origin save worked without it. In 3.2, a save from a site not on the
+list gets `400 DOMAIN_NOT_ALLOWED`. c15t keeps a refused save and retries it
+up to 10 times over 7 days, so a site you add in that time still gets its
+consent recorded.
+
 If your cookie policy lists c15t cookies, add `c15t-sid` and
 `c15t-notice-subject`. Their prefixes follow your custom `storageKey`.
 
@@ -258,6 +281,12 @@ cookies when browser persistence is off or a `consentSource` owns consent.
 Pass the same storage settings to the server helper and browser. See the
 [Next.js subject cookie setup](/docs/frameworks/next/geography-headers#give-each-visitor-a-subject-id)
 and [SvelteKit request setup](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle).
+
+If your own code calls `POST /subjects` or `PATCH /subjects/:id`, send
+`Content-Type: application/json`. Both routes now answer other body types with
+`415 UNSUPPORTED_MEDIA_TYPE`, as 2.x did. A save's `domain` must also be 1 to
+253 characters with no control characters. The c15t clients and
+`@c15t/node-sdk` already meet both rules.
 
 Two changes can move things on a page:
 

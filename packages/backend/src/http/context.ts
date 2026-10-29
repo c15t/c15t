@@ -86,6 +86,13 @@ export interface AppOptions {
 	 * Empty or absent means no cross-origin request is allowed. The banner is
 	 * loaded from the host's own page, so a deployment that has not configured
 	 * this should reject rather than default open.
+	 *
+	 * When set, it also limits the `domain` a consent save may name: a save
+	 * naming a site no entry covers is refused with `400 DOMAIN_NOT_ALLOWED`
+	 * and writes nothing. Only an entry's host counts for this, so
+	 * `localhost:3000` covers `localhost`, and `*` covers every site. Empty or
+	 * absent accepts any domain, since saves then come from the backend's own
+	 * origin or a server.
 	 */
 	readonly trustedOrigins?: readonly string[];
 	/**

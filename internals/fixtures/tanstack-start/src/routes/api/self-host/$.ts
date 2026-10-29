@@ -22,14 +22,16 @@ import { createAdapter } from '../../../../lib/adapter';
 import type { ResolvedAdapter } from '../../../../lib/adapter';
 
 /**
- * Origins allowed to call this backend cross-origin.
+ * Sites this backend trusts: browsers on them may call it cross-origin, and
+ * consent saves may name them as their `domain`.
  *
- * The demo is same-origin, so this only matters if you point another site at
- * it. `isOriginTrusted` compares hostnames exactly unless the entry starts
- * with `*.`, so a deployment's own host has to be named.
+ * The demo is same-origin, but its saves name the host it is served on, so
+ * that host has to be listed: `127.0.0.1` for `bun run start`, and the
+ * deployment's host on Vercel. `isOriginTrusted` compares hostnames exactly
+ * unless the entry starts with `*.`.
  */
 const trustedOrigins = function trustedOrigins(): string[] {
-	const origins = ['localhost', '*.localhost'];
+	const origins = ['localhost', '*.localhost', '127.0.0.1'];
 	for (const host of [
 		process.env.VERCEL_PROJECT_PRODUCTION_URL,
 		process.env.VERCEL_BRANCH_URL,

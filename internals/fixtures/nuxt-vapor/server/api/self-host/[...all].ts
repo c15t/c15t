@@ -24,8 +24,8 @@ import type { ResolvedAdapter } from '../../../lib/adapter';
 /**
  * Origins allowed to call this backend cross-origin.
  *
- * The demo is same-origin, so this only matters if you point another site at
- * it. `isOriginTrusted` compares hostnames exactly unless the entry starts with
+ * The demo is same-origin, but its consent saves name the host it is served
+ * on, so that host has to be listed too. `isOriginTrusted` compares hostnames exactly unless the entry starts with
  * `*.`, so the deployment's own host has to be named: a bare `vercel.app` entry
  * matches nothing, and `*.vercel.app` would trust every deployment on Vercel.
  */
