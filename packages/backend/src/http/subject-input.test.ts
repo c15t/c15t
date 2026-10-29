@@ -145,6 +145,7 @@ for (const engine of ENGINES) {
 
 				it.each([
 					['an exact entry', 'example.com'],
+					['a host with the default HTTPS port', 'example.com:443'],
 					['the www. host of an entry', 'www.example.com'],
 					['a subdomain under a wildcard entry', 'shop.example.org'],
 				])('records a save for %s', async (_label, domain) => {

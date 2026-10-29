@@ -52,7 +52,9 @@ export const isDomainAllowed = function isDomainAllowed(
 	// Only a bare host names a domain. A value the URL parser reads partly as
 	// a path, query, fragment or credentials would otherwise pass on its host
 	// alone and then be stored as written.
-	if (url.host !== domain.toLowerCase()) {
+	// Compare hostnames because URL normalizes ports, including dropping :443.
+	const hostname = domain.replace(/:\d+$/u, '').toLowerCase();
+	if (url.hostname !== hostname) {
 		return false;
 	}
 	return isOriginTrusted(url.origin, trustedOrigins.map(entryHost));

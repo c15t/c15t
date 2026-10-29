@@ -22,6 +22,8 @@ one the backend is mounted on. Only an entry's host counts, so
 `localhost:3000` covers `localhost`, and `*` covers every site. Empty or
 absent `trustedOrigins` accepts any domain.
 
+Save domains may include a port, including the default HTTPS port `:443`.
+
 `identityToken.requireVerifiedLinks`, off by default, stores identity links
 only when an API key or identity token proves them. `PATCH /subjects/:id`
 without either gets `401 IDENTITY_TOKEN_REQUIRED` and creates nothing. A save

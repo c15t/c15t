@@ -10,7 +10,11 @@ describe('isDomainAllowed', () => {
 		['any host under *', 'anything.test', ['*']],
 		['a host in another case', 'Example.COM', ['example.com']],
 		['a port when the entry has none', 'localhost:3000', ['localhost']],
+		['the default HTTPS port', 'example.com:443', ['example.com']],
+		['the default HTTPS port under *', 'example.com:443', ['*']],
+		['a zero-padded default HTTPS port', 'example.com:0443', ['example.com']],
 		['an IPv6 literal', '[::1]', ['[::1]']],
+		['an IPv6 literal with the default HTTPS port', '[::1]:443', ['[::1]']],
 		// The browser sends `location.hostname`: no scheme, no port.
 		['a host for an entry with a port', 'localhost', ['localhost:3000']],
 		['a host for an origin entry', 'localhost', ['http://localhost:3000/']],
@@ -46,6 +50,12 @@ describe('isDomainAllowed', () => {
 		'someone@example.com',
 		'https://example.com',
 		'exa mple.com',
+		'example.com:443/path',
+		'example.com:443?query=1',
+		'example.com:443#fragment',
+		'someone@example.com:443',
+		'example.com:65536',
+		'example.com:',
 	])('refuses %s, which is not a bare host', (domain) => {
 		assert.isFalse(isDomainAllowed(domain, ['*', 'example.com']));
 	});
