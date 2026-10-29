@@ -12,6 +12,26 @@
 import { isOriginTrusted } from '@c15t/schema/geo';
 
 /**
+ * An entry's host, without the scheme, port or path an origin carries.
+ *
+ * The browser sends the page's host name alone, which `isOriginTrusted`
+ * reads as port 443 with no app scheme. An entry copied from
+ * `trustedOrigins`, such as `localhost:3000` or `capacitor://localhost`,
+ * would otherwise never match it.
+ */
+const entryHost = (entry: string): string => {
+	const authority =
+		entry
+			.trim()
+			.replace(/^[a-z][\d+.a-z-]*:\/\//iu, '')
+			.split(/[/?#]/u)[0] ?? '';
+	// An IPv6 literal keeps its colons; only a port after `]` goes.
+	return authority.startsWith('[')
+		? authority.replace(/\]:\d*$/u, ']')
+		: authority.replace(/:\d*$/u, '');
+};
+
+/**
  * Whether a save's `domain` is one the instance records consent for.
  *
  * @param domain - The `domain` the save names.
@@ -36,7 +56,7 @@ export const isDomainAllowed = function isDomainAllowed(
 	if (url.host !== domain.toLowerCase()) {
 		return false;
 	}
-	return isOriginTrusted(url.origin, [...allowedDomains]);
+	return isOriginTrusted(url.origin, allowedDomains.map(entryHost));
 };
 
 /**

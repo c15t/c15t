@@ -90,7 +90,8 @@ export interface AppOptions {
 	readonly trustedOrigins?: readonly string[];
 	/**
 	 * Domains a consent save may name in `domain`, written like
-	 * `trustedOrigins` entries: `example.com`, `*.example.com`, or `*`.
+	 * `trustedOrigins` entries: `example.com`, `*.example.com`, or `*`. Only
+	 * an entry's host counts; a scheme, port or path is ignored.
 	 *
 	 * Absent means a save may name any domain. With a list, a save naming a
 	 * domain it does not cover is refused with `400 DOMAIN_NOT_ALLOWED` and

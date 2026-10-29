@@ -14,6 +14,16 @@ describe('isDomainAllowed', () => {
 		['a host in another case', 'Example.COM', ['example.com']],
 		['a port when the entry has none', 'localhost:3000', ['localhost']],
 		['an IPv6 literal', '[::1]', ['[::1]']],
+		// The browser sends `location.hostname`: no scheme, no port.
+		['a host for an entry with a port', 'localhost', ['localhost:3000']],
+		['a host for an origin entry', 'localhost', ['http://localhost:3000/']],
+		['a host for an app-scheme entry', 'localhost', ['capacitor://localhost']],
+		[
+			'a host for a wildcard with a port',
+			'a.example.org',
+			['*.example.org:8080'],
+		],
+		['an IPv6 literal for an entry with a port', '[::1]', ['[::1]:3000']],
 	])('allows %s', (_label, domain, allowed) => {
 		assert.isTrue(isDomainAllowed(domain, allowed));
 	});

@@ -147,6 +147,8 @@ any other domain gets `400 DOMAIN_NOT_ALLOWED` and writes nothing. Entries
 match like `trustedOrigins` entries: `www.` is equivalent, and
 `*.example.com` covers subdomains but not `example.com` itself. The browser
 client sends the page's hostname, or its `domain` option when you set one.
+Only an entry's host counts: a scheme, port or path is ignored, so
+`localhost:3000` and `capacitor://localhost` both cover `localhost`.
 
 A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
 correct tenant instance in trusted application code. Do not choose a tenant from
