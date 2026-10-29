@@ -489,7 +489,7 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -504,7 +504,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.15",
         "@radix-ui/react-scroll-area": "^1.2.13",
@@ -535,7 +535,7 @@
     },
     "packages/iab": {
       "name": "@c15t/iab",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@iabtechlabtcf/core": "^1.5.22",
@@ -562,7 +562,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -604,7 +604,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "@types/google.maps": "3.65.3",
@@ -680,7 +680,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.2.2",
+      "version": "2.2.3",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
