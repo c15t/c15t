@@ -8,19 +8,14 @@ headless hooks, so consent logic stays in the `c15t` package.
 Users install items with the shadcn CLI:
 
 ```bash
-npx shadcn add @c15t/next-consent-manager @c15t/next-consent-banner
+npx shadcn add https://c15t.com/r/new-york-v4/next-consent-manager.json
 ```
 
-The `@c15t` namespace resolves through the shadcn directory, or through this
-entry in the project's `components.json`:
-
-```json
-{
-  "registries": {
-    "@c15t": "https://c15t.com/r/{style}/{name}.json"
-  }
-}
-```
+Use direct URLs until the `@c15t` namespace is listed in the shadcn directory.
+Match the style segment to `style` in the project's `components.json`, such
+as `radix-nova`, `base-nova` or `aria-nova`. For `new-york` with Tailwind v4,
+use `new-york-v4`. Direct URLs do not substitute `{style}` automatically.
+The manager includes the banner and the other UI items it needs.
 
 ## Layout
 
@@ -39,8 +34,9 @@ by pointing `c15t/react` imports at `c15t/next` or `c15t/tanstack-start`.
 Nothing else changes. Each framework has its own `consent-manager`, because
 that's where the setups differ.
 
-shadcn requests items at `{style}/{name}.json` using the project's `style`
-value. A `new-york` project on Tailwind v4 requests `new-york-v4` instead.
+Items are served at `{style}/{name}.json`. When using a configured registry,
+shadcn picks the folder from the project's `style` value. A `new-york`
+project on Tailwind v4 resolves to `new-york-v4` instead.
 The build writes a folder for each of the 27 styles. Items that share a base
 are identical apart from their file paths and the URLs of the items they
 depend on.

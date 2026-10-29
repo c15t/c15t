@@ -31,27 +31,21 @@ consent records, see [consent modes](/docs/concepts/modes).
 
 ## Install the consent manager
 
+Use the direct registry URL while the `@c15t` namespace is awaiting its
+shadcn directory listing. This example uses `new-york-v4`:
+
 ```bash
-npx shadcn add @c15t/next-consent-manager
+npx shadcn add https://c15t.com/r/new-york-v4/next-consent-manager.json
 ```
+
+Match the style segment in every URL to `style` in your `components.json`,
+such as `radix-nova`, `base-nova` or `aria-nova`. For `new-york` with Tailwind
+v4, use `new-york-v4`. Direct URLs do not substitute `{style}` automatically.
 
 This installs `c15t.config.ts` at the project root and a `ConsentManager`
 component, usually under `components/c15t/`. Its dependencies include the
 banner, preference dialog, floating preferences button and the shadcn UI
 components they use. You do not need to install the banner separately.
-
-If the CLI cannot find the `@c15t` namespace, merge this entry into
-`components.json` and rerun the command:
-
-{/* example: fragment */}
-
-```json title="components.json"
-{
-  "registries": {
-    "@c15t": "https://c15t.com/r/{style}/{name}.json"
-  }
-}
-```
 
 ## Set your backend URL
 
@@ -104,8 +98,14 @@ If c15t already runs in your app, keep your existing root and config. Install
 the UI items directly:
 
 ```bash
-npx shadcn add @c15t/next-consent-banner @c15t/next-consent-dialog @c15t/next-consent-dialog-trigger
+npx shadcn add \
+  https://c15t.com/r/new-york-v4/next-consent-banner.json \
+  https://c15t.com/r/new-york-v4/next-consent-dialog.json \
+  https://c15t.com/r/new-york-v4/next-consent-dialog-trigger.json
 ```
+
+Replace `new-york-v4` with your project's style as described in
+[Install the consent manager](#install-the-consent-manager).
 
 Import these components from your generated `components/c15t/` files and
 render them inside the existing `ConsentRoot`, replacing the stock banner,
@@ -120,9 +120,15 @@ hooks' policy actions and a way to reopen preferences. Updating `c15t`
 updates consent logic; the copied markup remains yours to maintain.
 
 The registry also includes a preference sheet, an inline widget and an
-embed gate. Install them as `@c15t/next-consent-sheet`,
-`@c15t/next-consent-widget` or `@c15t/next-consent-gate`. For custom controls,
-see the [headless guide](/docs/frameworks/next/headless).
+embed gate. Install the item you need using the same style segment:
+
+```bash
+npx shadcn add https://c15t.com/r/new-york-v4/next-consent-sheet.json
+npx shadcn add https://c15t.com/r/new-york-v4/next-consent-widget.json
+npx shadcn add https://c15t.com/r/new-york-v4/next-consent-gate.json
+```
+
+For custom controls, see the [headless guide](/docs/frameworks/next/headless).
 
 There are no shadcn IAB TCF components yet. For IAB policies, use the
 [IAB setup](/docs/frameworks/next/iab) and its TCF UI.

@@ -58,8 +58,12 @@ Your consent banner can now use the same components as the rest of your app. Add
 it with the shadcn CLI:
 
 ```bash
-npx shadcn add @c15t/next-consent-manager
+npx shadcn add https://c15t.com/r/new-york-v4/next-consent-manager.json
 ```
+
+Use direct URLs until the `@c15t` namespace is listed in the shadcn directory.
+Replace `new-york-v4` with the style from your project's `components.json`.
+For `new-york` with Tailwind v4, keep `new-york-v4`.
 
 Each item renders your project's own shadcn components, and the markup is yours
 to change. c15t keeps the consent logic, so you still get its fixes when you
