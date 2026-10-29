@@ -551,6 +551,20 @@ export const createInitLifecycle = function createInitLifecycle({
 			: { error, ok: false };
 	};
 
+	const beginResponseObservations = (response: InitResponse) => {
+		const snapshot = getSnapshot();
+		const context = { overrides: snapshot.overrides, user: snapshot.user };
+		transport?.acceptObservations?.(context, response);
+		const hidden =
+			typeof document !== 'undefined' && document.visibilityState !== 'visible';
+		if (
+			response.observationEndpoint &&
+			(!response.observationReceipt || hidden)
+		) {
+			transport?.beginObservations?.(context, response.observationEndpoint);
+		}
+	};
+
 	const runInitAttempt = async function runInitAttempt(
 		attempt: number
 	): Promise<InitResult> {
@@ -619,6 +633,7 @@ export const createInitLifecycle = function createInitLifecycle({
 				);
 			}
 			runtime.announce(folded.patch, 'init:applied', snapshot.policyPending);
+			beginResponseObservations(accepted);
 			clearRetry();
 			const result = complete({ ok: true });
 			replaySaves();
@@ -765,6 +780,7 @@ export const createInitLifecycle = function createInitLifecycle({
 		);
 		if (afterStart) {
 			runtime.announce(folded.patch, 'init:applied', current.policyPending);
+			beginResponseObservations(response);
 			replaySaves();
 			return;
 		}

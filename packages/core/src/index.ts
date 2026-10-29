@@ -384,3 +384,6 @@ export {
 	IABUnavailableError,
 	policyNeedsIAB,
 } from './libs/iab-unavailable';
+
+export { observeBannerElement } from './libs/observe-banner-element';
+export { observationPolicyFingerprint } from './libs/observation-policy';

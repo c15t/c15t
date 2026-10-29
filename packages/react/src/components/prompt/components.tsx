@@ -15,6 +15,7 @@ import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui'
 import { useComposedRefs } from '~/components/shared/libs/compose-refs';
 import { Slot } from '~/components/shared/libs/slot';
 import { usePolicyRule, useSetActiveUI } from '~/hooks';
+import { useBannerObservation } from '~/hooks/use-banner-observation';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -229,6 +230,7 @@ const ConsentBannerCard = createForwardRef<
 	// The trap reads its own ref; the caller's ref, object or callback, is
 	// filled alongside it.
 	const cardRef = useRef<HTMLDivElement>(null);
+	useBannerObservation(cardRef, true);
 	const composedRef = useComposedRefs(cardRef, ref);
 
 	// A blocking surface traps focus and announces as a modal dialog. A

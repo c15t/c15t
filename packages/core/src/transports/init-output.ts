@@ -133,6 +133,8 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 		gvlReference: payload.gvlReference,
 
 		location: payload.location,
+		observationEndpoint: payload.observationEndpoint,
+		observationReceipt: payload.observationReceipt,
 		policyResolution: resolveInitPolicyWire(payload, options),
 		resolvedOverrides: {
 			...mapResolvedOverrides(payload),
@@ -202,6 +204,9 @@ export const mergeInitResponseIntoKernelConfig =
 		}
 
 		const merged: TransportKernelConfig = { ...base };
+		if (response.observationEndpoint !== undefined) {
+			merged.initialObservationEndpoint = response.observationEndpoint;
+		}
 		const derivedOverrides: KernelOverrides = {};
 
 		if (response.location?.countryCode) {
@@ -372,6 +377,7 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 	}
 
 	const response: TransportInitResponse = {
+		observationEndpoint: config.initialObservationEndpoint,
 		policyResolution: writePolicyResolutionWire(config.initialPolicyResolution),
 	};
 

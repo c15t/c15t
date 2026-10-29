@@ -1,0 +1,91 @@
+---
+title: Banner observations
+description: Understand optional hosted page and banner observations, browser visibility checks, session counting and delivery limits.
+---
+
+Inth can enable optional browser observations for operational banner alerts.
+An observation records a visible page or a rendered banner. It does not record
+a consent decision, grant permission or change which scripts may run.
+
+This requires an Inth gateway that issues observation capabilities and a c15t
+version with observation support. A backend without that capability receives
+no observation POSTs or additional receipt requests. Self-hosted and local
+backends do not gain an observation collector from an SDK upgrade.
+
+## What the browser records
+
+| Event | Evidence |
+| --- | --- |
+| `page_seen` | A browser initialization receipt and a visible document, independently of whether a banner rendered. |
+| `banner_shown` | A mounted banner that intersects the viewport in a visible document, with nonzero layout, visible styling and matching policy and language. |
+
+The stock React, Vue, Svelte and HTML banners report rendered observations,
+including their IAB variants. Framework integrations that use these components
+share their observation behaviour. Server rendering and the kernel's
+`surface:shown` event alone do not establish browser display evidence.
+
+Visibility checks do not prove that a person read the banner. They also do not
+measure whether another element covered it. Missing observations can result
+from a closed page, blocked network requests, unsupported visibility APIs or
+an SDK version without instrumentation. Missing evidence is not a known zero.
+
+## Identity and receipt boundaries
+
+Each document gets a random page ID held only in memory. Observation requests
+also carry the existing consent journey ID and its `page` or `tab` scope. This
+feature creates no additional cookie or Web Storage identity. Disabling consent
+journeys also disables observation delivery.
+
+Tab journey counts describe **banner sessions**, not unique visitors. A tab
+can visit several documents; each document has its own page observations.
+Reports that require tab sessions need the existing `journey` runtime option
+set to `'tab'`. That option uses the journey's existing `sessionStorage`
+behaviour. The default page scope supplies page and banner impressions only;
+observation support does not silently change journey scope.
+
+The gateway's short-lived opaque receipt binds the page and journey to its
+trusted origin, resolved domain, policy, language and geography. The SDK sends
+the receipt back without decoding it. The browser supplies no tenant or policy
+identifier in the observation body.
+
+For server-rendered state, the server provides an endpoint capability only.
+After the document becomes visible, the browser requests its own receipt
+directly from the hosted gateway. That request runs outside consent
+initialization and never replaces the page's current consent state. A receipt
+for a different policy or language cannot report the rendered banner.
+
+## Custom banner interfaces
+
+Custom UI does not automatically produce `banner_shown` observations. Use the
+core `observeBannerElement` helper on the actual mounted card and call the
+kernel's `reportBannerRendered` method from its visibility callback. Pass the
+callback's live visibility probe as `isVisible` so a delayed receipt can recheck
+the element, along with the
+rendered language and the fingerprint returned by
+`observationPolicyFingerprint` for that rendered policy resolution. Keep the
+helper's cleanup function and call it when the banner unmounts or its policy
+or language changes.
+
+`reportBannerRendered` accepts evidence only while the kernel's active surface
+is the banner and its current policy and language match. Calling it because a
+banner was requested, before mounting UI, produces unreliable evidence and
+must be avoided.
+
+## Verify delivery
+
+With observation collection enabled for the hosted project, inspect browser
+network requests to `/init` and `/observations/banner`. Confirm that a visible
+page can report `page_seen` without a banner, then that a rendered stock banner
+reports `banner_shown`. An unopened background tab waits until visible.
+
+Observation delivery accepts only HTTPS endpoints on the configured backend's
+origin. A custom proxy that changes that origin must preserve the gateway's
+receipt acquisition and Origin validation; otherwise observations remain
+unavailable. Do not put receipt values in public screenshots or logs.
+
+Delivery is best effort, deduplicated by page and event, with bounded retries
+and request timeouts. Disposing the consent runtime removes observation
+listeners and cancels pending receipt acquisition. Delivery failures never
+block consent initialization or change saved choices. Inth's collection and
+email controls determine whether observations are accepted or alerts are sent;
+installing the SDK alone does not enable customer email.

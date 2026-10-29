@@ -164,6 +164,10 @@ export const initOutputSchema = v.object({
 	 */
 	hosting: v.optional(hostingSchema),
 	location: locationSchema,
+	/** Same-backend HTTPS destination for optional hosted observations. */
+	observationEndpoint: v.optional(v.pipe(v.string(), v.maxLength(2048))),
+	/** Opaque, short-lived browser observation credential; never a project API key. */
+	observationReceipt: v.optional(v.pipe(v.string(), v.maxLength(8192))),
 	/** Explicit, versioned policy outcome for every complete response. */
 	policyResolution: policyResolutionWireSchema,
 	/**

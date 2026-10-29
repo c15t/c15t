@@ -1,3 +1,4 @@
+import { observeBannerElement, observationPolicyFingerprint } from '@c15t/core';
 import type { ConsentSnapshot, PresentationAction } from '@c15t/core';
 import type { ConsentRuntimeIABHandle } from '@c15t/core/runtime';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
@@ -368,6 +369,18 @@ export const createIABSurface = (
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(root);
+		const policyFingerprint = observationPolicyFingerprint(snapshot.resolution);
+		if (!dialog && policyFingerprint) {
+			release.push(
+				observeBannerElement(content, (isVisible) =>
+					client.kernel.reportBannerRendered?.({
+						isVisible,
+						language: snapshot.translations?.language,
+						policyFingerprint,
+					})
+				)
+			);
+		}
 		if (flip) {
 			void root.offsetHeight;
 			root.classList.replace(

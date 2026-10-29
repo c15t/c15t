@@ -11,6 +11,7 @@ import {
 	DEFAULT_INIT_CREDENTIALS,
 } from '../libs/request-context-headers';
 import type { InitContext } from '../types';
+import { observationPageId } from './banner-observations';
 import { trimSlash } from './hosted-records';
 import { c15tProtocolParams } from './version-header';
 
@@ -65,13 +66,22 @@ export const createHostedInitRequest =
 			...buildRequestContextParams(options.overrides),
 			experiment: options.experiment,
 		});
-		const url = options.journey
+		let url = options.journey
 			? appendJourneyParams(params, {
 					id: options.journey.id,
 					scope: options.journey.scope,
 					storedChoice: options.journey.storedChoice,
 				})
 			: params;
+		const pageId = options.journey ? observationPageId() : undefined;
+		if (pageId) {
+			const observationUrl = new URL(
+				url,
+				typeof window === 'undefined' ? undefined : window.location.href
+			);
+			observationUrl.searchParams.set('observationPageId', pageId);
+			url = observationUrl.toString();
+		}
 		// An `initURL` parameter c15t does not replace, such as `?gpc=1`,
 		// reaches the backend, so the response is read against it too.
 		const requestHeaders = Object.fromEntries(

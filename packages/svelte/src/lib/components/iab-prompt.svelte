@@ -2,6 +2,7 @@
 	import {
 		resolveIABBannerSummary,
 		resolveConsentPresentation,
+		observationPolicyFingerprint,
 	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
 	import { saveIABConsentSurface } from '@c15t/core/surface-actions';
@@ -11,6 +12,7 @@
 	import { getTextDirection } from '@c15t/ui/utils';
 
 	import { focusTrap } from '../actions/focus-trap';
+	import { observeBanner } from '../actions/observe-banner';
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
@@ -251,6 +253,13 @@
 					class={cardStyle.className || ''}
 					style={toStyleAttribute(cardStyle.style)}
 					data-testid="iab-consent-banner-card"
+					use:observeBanner={{
+						kernel: consent.kernel,
+						language: consent.snapshot.translations?.language,
+						policyFingerprint: observationPolicyFingerprint(
+							consent.snapshot.resolution
+						),
+					}}
 					role={shouldTrapFocus ? 'dialog' : 'region'}
 					aria-modal={shouldTrapFocus ? 'true' : undefined}
 					aria-label={iabT.banner.title}

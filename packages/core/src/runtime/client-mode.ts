@@ -1,5 +1,8 @@
 import { isProductionBuild } from '../libs/is-production';
 import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
+import { hasPrefetchedInitialData } from '../libs/prefetch/window-key';
+import type { ConsentMode, OfflineModeOptions } from '../modes';
+import type { SSRInitialData } from '../options/ssr';
 /**
  * `@c15t/core/runtime/client-mode` — turn a consent mode into the transport
  * a server-framework client root uses, keeping every path that page doesn't
@@ -23,9 +26,7 @@ import { warnNoConsentRecordsInDevelopment } from '../libs/no-records-warning';
  * No path here statically imports the resolver, a policy pack, the server
  * snapshot or any translation.
  */
-import { hasPrefetchedInitialData } from '../libs/prefetch/window-key';
-import type { ConsentMode, OfflineModeOptions } from '../modes';
-import type { SSRInitialData } from '../options/ssr';
+import { createBannerObservationReporter } from '../transports/banner-observations';
 import type * as HostedModule from '../transports/hosted';
 import { createHostedInitRequest } from '../transports/hosted-init-request';
 import type { HostedInitRequest } from '../transports/hosted-init-request';
@@ -38,6 +39,7 @@ import type {
 	ProviderTransportFactory,
 	ProviderTransportKind,
 } from '../transports/mode';
+import { createObservationReceiptAcquirer } from '../transports/observation-receipt';
 import type * as OfflineModule from '../transports/offline';
 import type { InitContext, KernelConfig, KernelTransport } from '../types';
 
@@ -141,6 +143,24 @@ export const createLazyInitTransport = function createLazyInitTransport(
 		};
 
 	return {
+		acceptObservations(context, response) {
+			void (async () => {
+				try {
+					(await recordTransport()).acceptObservations?.(context, response);
+				} catch {
+					/* A failed lazy transport has no observation credentials. */
+				}
+			})();
+		},
+		disposeObservations() {
+			void (async () => {
+				try {
+					(await recordTransport()).disposeObservations?.();
+				} catch {
+					/* A failed lazy transport has no observation listeners. */
+				}
+			})();
+		},
 		async identify(user, subjectId) {
 			await (await recordTransport()).identify?.(user, subjectId);
 		},
@@ -152,6 +172,15 @@ export const createLazyInitTransport = function createLazyInitTransport(
 			return (
 				(await (await recordTransport()).loadSubjectRecord?.(subjectId)) ?? null
 			);
+		},
+		observe(input) {
+			void (async () => {
+				try {
+					(await recordTransport()).observe?.(input);
+				} catch {
+					/* An optional observation never changes consent state. */
+				}
+			})();
 		},
 		async save(payload) {
 			const transport = await recordTransport();
@@ -300,7 +329,34 @@ export const lazyHosted = function lazyHosted(
 	return Object.assign(
 		(): KernelTransport => {
 			const fetch = globalThis.fetch?.bind(globalThis);
-			return createLazyInitTransport(
+			const observations = createBannerObservationReporter({
+				backendURL: options.backendURL,
+				fetch: fetch ?? globalThis.fetch,
+			});
+			const receiptAcquirer = createObservationReceiptAcquirer({
+				accept: observations.setReceipt,
+				acceptsEndpoint: observations.acceptsEndpoint,
+				async load(context, signal) {
+					if (!fetch) {
+						throw new Error('c15t: observation fetch unavailable.');
+					}
+					const request = createHostedInitRequest({
+						backendURL: options.backendURL,
+						experiment: context.experiment,
+						journey: context.journey,
+						overrides: context.overrides,
+					});
+					const response = await fetch(request.url, {
+						...request.init,
+						signal,
+					});
+					if (!response.ok) {
+						throw new Error('c15t: observation receipt unavailable.');
+					}
+					return await response.json();
+				},
+			});
+			const lazy = createLazyInitTransport(
 				createHostedRecordTransport(
 					{ backendURL: options.backendURL, fetch },
 					assertDecisionInputs
@@ -326,6 +382,23 @@ export const lazyHosted = function lazyHosted(
 					});
 				}
 			);
+			return {
+				...lazy,
+				acceptObservations(context, response) {
+					observations.setReceipt(response, context.journey);
+					lazy.acceptObservations?.(context, response);
+				},
+				beginObservations: receiptAcquirer.begin,
+				disposeObservations() {
+					receiptAcquirer.dispose();
+					observations.dispose();
+					lazy.disposeObservations?.();
+				},
+				observe(input) {
+					observations.observe(input);
+					lazy.observe?.(input);
+				},
+			};
 		},
 		{ kind: options.kind ?? ('hosted' as const) }
 	);

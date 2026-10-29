@@ -1,3 +1,4 @@
+import { observeBannerElement, observationPolicyFingerprint } from '@c15t/core';
 import type { ConsentSnapshot, PresentationAction } from '@c15t/core';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
@@ -274,7 +275,22 @@ export const createBanner = function createBanner(
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(element);
-		const card = element.querySelector<HTMLElement>('[role="dialog"]');
+		const card = element.querySelector<HTMLElement>(
+			'[data-testid="consent-banner-card"]'
+		);
+		const policyFingerprint = observationPolicyFingerprint(snapshot.resolution);
+		if (policyFingerprint && card) {
+			cleanups.push(
+				observeBannerElement(card, (isVisible) =>
+					ctx.client.kernel.reportBannerRendered?.({
+						isVisible,
+						language: snapshot.translations?.language,
+						policyFingerprint,
+					})
+				)
+			);
+		}
+
 		if (trapFocus && card) {
 			cleanups.push(setupFocusTrap(card));
 		}

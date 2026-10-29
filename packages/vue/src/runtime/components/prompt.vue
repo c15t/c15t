@@ -31,6 +31,7 @@ import {
 	useConsentSnapshot,
 	useHasConsentUi,
 } from '../composables';
+import { useBannerObservation } from '../composables/use-banner-observation';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useLateEntry } from '../composables/use-late-entry';
@@ -161,6 +162,7 @@ const shouldTrapFocus = computed(() =>
 	Boolean(isOpen.value && surface.value.trapFocus)
 );
 const card = ref<HTMLElement | null>(null);
+useBannerObservation(card, () => isOpen.value);
 useFocusTrap(card, () => shouldTrapFocus.value);
 
 const bannerTitle = computed(() => {

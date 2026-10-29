@@ -64,3 +64,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 ## Backend
 
 - [Upgrade from v2](./docs/self-host/upgrade-v3.md): Upgrade a self-hosted c15t backend (@c15t/backend) and the Node.js SDK (@c15t/node-sdk) from v2 to v3. Covers the database config, the schema migration, moved backend options, policy rules and the new createC15tClient() client.
+
+## Other
+
+- [Banner observations](./docs/guides/banner-observations.md): Understand optional hosted page and banner observations, browser visibility checks, session counting and delivery limits.

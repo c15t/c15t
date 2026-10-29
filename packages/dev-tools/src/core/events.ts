@@ -8,6 +8,7 @@ const EVENT_TYPES = [
 	'preferences:requested',
 	'choice:recorded',
 	'surface:shown',
+	'surface:rendered',
 	'permissions:changed',
 	'notice:dismissed',
 	'overrides:set',
@@ -132,6 +133,18 @@ export function kernelEventToDevToolsEvent(
 				},
 				id,
 				message: 'Explicit choice recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'surface:rendered':
+			return {
+				data: {
+					language: event.language,
+					policyFingerprint: event.policyFingerprint,
+					surface: event.surface,
+				},
+				id,
+				message: 'Banner rendered in a visible document',
 				timestamp,
 				type: event.type,
 			};

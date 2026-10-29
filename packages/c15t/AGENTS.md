@@ -445,3 +445,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [X Pixel](./docs/integrations/x-pixel.md): Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
 - [YouTube](./docs/integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
 - [Zendesk Messaging](./docs/integrations/zendesk.md): Load the Zendesk Messaging Web Widget after functionality consent, map measurement consent to its cookie ranges and clear widget storage on revocation.
+
+## Other
+
+- [Banner observations](./docs/guides/banner-observations.md): Understand optional hosted page and banner observations, browser visibility checks, session counting and delivery limits.

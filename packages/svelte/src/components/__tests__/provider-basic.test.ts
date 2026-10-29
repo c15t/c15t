@@ -108,12 +108,14 @@ describe('ConsentProvider Basic Request Behavior', () => {
 		});
 		await vi.waitFor(() => {
 			// The query carries the protocol inputs and the consent journey.
-			expect(mockFetch).toHaveBeenCalledWith(
-				expect.stringMatching(
-					/^\/api\/c15t\/init\?v=[^&]+&contract=1&journey=/u
-				),
-				expect.objectContaining({ method: 'GET' })
-			);
+			const [request, options] = mockFetch.mock.calls[0] ?? [];
+			const url = new URL(String(request), window.location.href);
+			expect(url.origin).toBe(window.location.origin);
+			expect(url.pathname).toBe('/api/c15t/init');
+			expect(url.searchParams.get('v')).toBeTruthy();
+			expect(url.searchParams.get('contract')).toBe('1');
+			expect(url.searchParams.get('journey')).toBeTruthy();
+			expect(options).toMatchObject({ method: 'GET' });
 		});
 
 		result.unmount();
