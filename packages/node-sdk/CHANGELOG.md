@@ -1,3 +1,65 @@
+## @c15t/node-sdk@3.2.0
+
+### Stricter input on subject writes: JSON bodies, trusted domains and verified links
+
+`POST /subjects` and `PATCH /subjects/:id` accept JSON bodies only. A request
+with another `Content-Type`, or none, gets `415 UNSUPPORTED_MEDIA_TYPE` and
+writes nothing. 2.x backends refused these bodies in their request validators,
+and the c15t clients and `@c15t/node-sdk` send JSON.
+
+A save's `domain` must be 1 to 253 characters with no control characters.
+Other values get `400 INPUT_VALIDATION_FAILED`.
+
+With `trustedOrigins` set, a save's `domain` must be a host the list covers.
+Other saves get `400 DOMAIN_NOT_ALLOWED` and create no row. This applies to
+same-origin saves too, so list every site that saves consent, including the
+one the backend is mounted on. Only an entry's host counts, so
+`localhost:3000` covers `localhost`, and `*` covers every site. Empty or
+absent `trustedOrigins` accepts any domain.
+
+Save domains may include a port, including the default HTTPS port `:443`.
+
+`identityToken.requireVerifiedLinks`, off by default, stores identity links
+only when an API key or identity token proves them. `PATCH /subjects/:id`
+without either gets `401 IDENTITY_TOKEN_REQUIRED` and creates nothing. A save
+still records its consent, without the external ID.
+
+`@c15t/node-sdk` types the new codes: `subjects.create` can return
+`DOMAIN_NOT_ALLOWED`, and `subjects.identify` can return
+`IDENTITY_TOKEN_REQUIRED`.
+
+### Errors say what the backend said
+
+When a backend refuses a request with a JSON body, the error now carries its
+message and code. Over HTTP/2 an error used to read
+`c15t hosted transport: /init responded 402 ` with nothing after the status.
+It now reads
+`c15t hosted transport: /init responded 402: <message> (<CODE>)` and has
+`status` and `code` properties. Bodies that are not JSON keep the old message.
+This covers `/init`, `/manifest`, `/subjects`, the manifest cache, the static
+manifest and the GVL. The dev warning for a failed init now includes the
+message too.
+
+A consent save refused with 402 (payment required) is no longer resent. The
+choice stays in the browser, as it does for other permanent rejections. A 402
+on init is not retried. A 409 or 422 save is also no longer resent when its
+permanent code, such as `SUBJECT_CONFLICT`, is at the top level of the body
+instead of under `cause`.
+
+`@c15t/node-sdk` now reads a top-level `code` when the body has no
+`cause.code`, so `serverCode` is set for `{ message, code }` bodies.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/node-sdk@3.2.0-canary.0 (canary)
 
 ### Errors say what the backend said

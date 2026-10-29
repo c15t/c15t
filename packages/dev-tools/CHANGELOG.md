@@ -1,3 +1,28 @@
+## @c15t/dev-tools@3.2.0
+
+### Show the banner on pages that hide empty elements
+
+The script-tag UI stayed hidden on pages with a rule such as
+`div:empty { display: none; }`, which Shopify's Dawn theme ships. The banner
+renders into a shadow root, and shadow content doesn't count as a child, so the
+page rule matched the `<div data-c15t-ui>` host and hid it. c15t still reported
+the banner as shown, so visitors saw nothing and no consent was saved.
+
+The host now sets `display: block !important` inline, and page CSS can no longer
+hide it. The DevTools panel's host gets the same fix. With `shadow: false` the
+host has child elements and keeps no inline display.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/dev-tools@3.2.0-canary.0 (canary)
 
 ### Rewrite npm descriptions for search
