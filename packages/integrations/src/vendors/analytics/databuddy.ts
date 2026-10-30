@@ -5,7 +5,7 @@ import { vendorManifestContract } from '../../types';
 import type { SetGlobalPathStep, VendorManifest } from '../../types';
 import { readId, skipMissingId } from '../_shared/required-id';
 import { createScriptReuse } from '../_shared/reuse-script';
-import { resolveScriptUrl } from '../_shared/script-url';
+import { trimToUndefined } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -38,6 +38,38 @@ declare global {
 		};
 	}
 }
+
+const cdnBaseUrl = 'https://cdn.databuddy.cc';
+
+/**
+ * Date-versioned files and their subresource integrity, from the
+ * `@databuddy/sdk` 3.4.2 release. A versioned file never changes, so a
+ * changed file on the CDN fails the integrity check and does not run.
+ */
+const pinnedScripts = {
+	loader: {
+		integrity:
+			'sha384-xXKfqQUu53gQi7i1OUzZ1t/rlpkyILPqMsDxO4MQH70gAX/yiDVUj1JogQaW0M2s',
+		src: `${cdnBaseUrl}/databuddy.2026-10-30.1.js`,
+	},
+	replay: {
+		integrity:
+			'sha384-naub2msIlvDqEZRXGKjjR1CEOa9ZNszRcSgfitF8vO2qgKGlygxmOkxzH/puniCl',
+		src: `${cdnBaseUrl}/replay.2026-10-30.1.js`,
+	},
+} as const;
+
+/**
+ * Uses the pinned file and its integrity unless the caller overrides the URL.
+ * A custom URL loads without integrity, because c15t cannot know its hash.
+ */
+const resolvePinnedScript = function resolvePinnedScript(
+	override: string | undefined,
+	pinned: { integrity: string; src: string }
+): { integrity: string | undefined; src: string } {
+	const src = trimToUndefined(override);
+	return src === undefined ? pinned : { integrity: undefined, src };
+};
 
 const disableTracker = {
 	path: ['databuddy', 'options', 'disabled'],
@@ -92,6 +124,7 @@ export const databuddyManifest = {
 				'data-track-interactions': '{{trackInteractions}}',
 				'data-track-outgoing-links': '{{trackOutgoingLinks}}',
 				'data-track-web-vitals': '{{trackWebVitals}}',
+				integrity: '{{integrity}}',
 			},
 
 			src: '{{scriptUrl}}',
@@ -183,8 +216,9 @@ export interface DatabuddyConsentOptions {
 	apiUrl?: string;
 
 	/**
-	 * The Databuddy script URL.
-	 * @default 'https://cdn.databuddy.cc/databuddy.js'
+	 * The Databuddy script URL. The default is a date-versioned file that
+	 * loads with subresource integrity. A custom URL loads without it.
+	 * @default 'https://cdn.databuddy.cc/databuddy.2026-10-30.1.js'
 	 */
 	scriptUrl?: string;
 
@@ -302,8 +336,9 @@ export interface DatabuddyReplayOptions {
 	recordIframes?: boolean;
 
 	/**
-	 * The Databuddy replay script URL.
-	 * @default 'https://cdn.databuddy.cc/replay.js'
+	 * The Databuddy replay script URL. The default is a date-versioned file
+	 * that loads with subresource integrity. A custom URL loads without it.
+	 * @default 'https://cdn.databuddy.cc/replay.2026-10-30.1.js'
 	 */
 	scriptUrl?: string;
 }
@@ -321,6 +356,7 @@ const featureAttribute = function featureAttribute(
 interface ReplaySettings {
 	apiUrl: string;
 	clientId: string;
+	integrity: string | undefined;
 	maskText: boolean | undefined;
 	recordIframes: boolean | undefined;
 	scriptUrl: string;
@@ -346,6 +382,9 @@ const createReplayLoader = function createReplayLoader(
 			element.async = true;
 			element.src = settings.scriptUrl;
 			element.setAttribute('crossorigin', 'anonymous');
+			if (settings.integrity) {
+				element.setAttribute('integrity', settings.integrity);
+			}
 			element.setAttribute('data-api-url', settings.apiUrl);
 			element.setAttribute('data-client-id', settings.clientId);
 			const maskText = featureAttribute(settings.maskText);
@@ -382,6 +421,7 @@ const createDatabuddyScript = function createDatabuddyScript(
 		options.loadMode === 'always'
 			? databuddyAlwaysLoadManifest
 			: databuddyManifest;
+	const loader = resolvePinnedScript(options.scriptUrl, pinnedScripts.loader);
 
 	const script = resolveManifest(manifest, {
 		apiUrl,
@@ -396,10 +436,8 @@ const createDatabuddyScript = function createDatabuddyScript(
 			clientId,
 			disabled: false,
 		},
-		scriptUrl: resolveScriptUrl(
-			options.scriptUrl,
-			'https://cdn.databuddy.cc/databuddy.js'
-		),
+		integrity: loader.integrity,
+		scriptUrl: loader.src,
 		trackErrors: featureAttribute(features.errors),
 		trackInteractions: featureAttribute(features.interactions),
 		trackOutgoingLinks: featureAttribute(features.outgoingLinks),
@@ -410,15 +448,17 @@ const createDatabuddyScript = function createDatabuddyScript(
 	}
 
 	const replayOptions = options.replay === true ? {} : options.replay;
+	const replayScript = resolvePinnedScript(
+		replayOptions.scriptUrl,
+		pinnedScripts.replay
+	);
 	const replay = createReplayLoader({
 		apiUrl,
 		clientId,
+		integrity: replayScript.integrity,
 		maskText: replayOptions.maskText,
 		recordIframes: replayOptions.recordIframes,
-		scriptUrl: resolveScriptUrl(
-			replayOptions.scriptUrl,
-			'https://cdn.databuddy.cc/replay.js'
-		),
+		scriptUrl: replayScript.src,
 	});
 
 	return {

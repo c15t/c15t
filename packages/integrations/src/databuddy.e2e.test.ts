@@ -19,13 +19,13 @@ import { databuddy } from './vendors/analytics/databuddy';
 const isDatabuddyLoader = function isDatabuddyLoader(
 	node: HTMLScriptElement
 ): boolean {
-	return node.src.includes('cdn.databuddy.cc/databuddy.js');
+	return node.src.includes('cdn.databuddy.cc/databuddy.');
 };
 
 const isReplayLoader = function isReplayLoader(
 	node: HTMLScriptElement
 ): boolean {
-	return node.src.includes('cdn.databuddy.cc/replay.js');
+	return node.src.includes('cdn.databuddy.cc/replay.');
 };
 
 /**
@@ -247,6 +247,59 @@ describe('databuddy contract', () => {
 		);
 
 		expect(replayScripts).toEqual([]);
+	});
+
+	it('loads the pinned databuddy.js and replay.js with integrity', () => {
+		const { loaderScripts, replayScripts } = probeDatabuddyScripts();
+
+		loadScripts(
+			[databuddy({ clientId: 'db-contract', replay: true })],
+			grantedMeasurementConsents
+		);
+
+		expect(
+			[...loaderScripts, ...replayScripts].map((node) => ({
+				integrity: node.getAttribute('integrity'),
+				src: node.src,
+			}))
+		).toEqual([
+			{
+				integrity:
+					'sha384-xXKfqQUu53gQi7i1OUzZ1t/rlpkyILPqMsDxO4MQH70gAX/yiDVUj1JogQaW0M2s',
+				src: 'https://cdn.databuddy.cc/databuddy.2026-10-30.1.js',
+			},
+			{
+				integrity:
+					'sha384-naub2msIlvDqEZRXGKjjR1CEOa9ZNszRcSgfitF8vO2qgKGlygxmOkxzH/puniCl',
+				src: 'https://cdn.databuddy.cc/replay.2026-10-30.1.js',
+			},
+		]);
+	});
+
+	it('loads a custom replay.js URL without integrity', () => {
+		const replayScripts: HTMLScriptElement[] = [];
+		installHeadProbe((node, win) => {
+			if (isDatabuddyLoader(node)) {
+				win.databuddy = { options: {} };
+				node.dispatchEvent(new Event('load'));
+			}
+			if (node.src === 'https://example.com/replay.js') {
+				replayScripts.push(node);
+			}
+		});
+
+		loadScripts(
+			[
+				databuddy({
+					clientId: 'db-contract',
+					replay: { scriptUrl: 'https://example.com/replay.js' },
+				}),
+			],
+			grantedMeasurementConsents
+		);
+
+		expect(replayScripts).toHaveLength(1);
+		expect(replayScripts[0]?.hasAttribute('integrity')).toBe(false);
 	});
 
 	it('loads replay.js on grant, stops it on refusal and loads it again on a later grant', () => {
