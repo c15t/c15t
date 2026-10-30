@@ -73,8 +73,11 @@ test('flags .at() calls, not fields, comments or strings', () => {
 test('flags .at() calls in component scripts', () => {
 	expect(
 		lint({
+			'panel.astro': '<script>\nconst last = [1].at(-1);\n</script>\n',
+			'panel.svelte':
+				'<script lang="ts">\nconst last = [1].at(-1);\n</script>\n<div></div>\n',
 			'panel.vue':
 				'<script setup lang="ts">\nconst last = [1].at(-1);\n</script>\n<template><div /></template>\n',
-		})
-	).toEqual(['panel.vue:2']);
+		}).sort()
+	).toEqual(['panel.astro:2', 'panel.svelte:2', 'panel.vue:2']);
 });
