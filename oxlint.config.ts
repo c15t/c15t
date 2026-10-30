@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'oxlint';
 import antiSlop from 'ultracite/oxlint/anti-slop';
 import core from 'ultracite/oxlint/core';
@@ -156,13 +158,20 @@ export default defineConfig({
 		'apps/shadcn-registry/vendor/**',
 		'packages/c15t/shims/**',
 	],
+	jsPlugins: [
+		{
+			name: 'c15t',
+			specifier: fileURLToPath(
+				new URL('scripts/oxlint-browser-built-ins.mjs', import.meta.url)
+			),
+		},
+	],
 	overrides: [
 		{
 			files: browserPackageFiles,
 			rules: {
 				// Safari 15.4 was the first Safari to ship any of these built-ins.
-				// `scripts/browser-built-ins.test.ts` also catches `.at()` calls,
-				// which a property ban can't tell from fields named `at`.
+				'c15t/no-array-at': 'error',
 				'no-restricted-globals': [
 					'error',
 					{
@@ -213,6 +222,7 @@ export default defineConfig({
 			plugins: ['vitest'],
 			rules: {
 				// Tests run on Node and current browsers, which have these.
+				'c15t/no-array-at': 'off',
 				'no-restricted-globals': 'off',
 				'no-restricted-properties': 'off',
 				// Loading the plugin also enables its default rules. Adopt only
