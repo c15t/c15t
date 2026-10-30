@@ -1327,7 +1327,7 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					disabled: false,
 				},
 			}),
-		loaderUrlSubstring: 'cdn.databuddy.cc/databuddy.js',
+		loaderUrlSubstring: 'cdn.databuddy.cc/databuddy.',
 		runtimeCheck: () =>
 			check(
 				typeof window.databuddy?.track === 'function',

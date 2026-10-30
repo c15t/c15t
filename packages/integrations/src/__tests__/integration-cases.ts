@@ -213,7 +213,7 @@ export const helperParityCases = {
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.databuddy.cc/databuddy.js',
+			src: 'https://cdn.databuddy.cc/databuddy.2026-10-30.1.js',
 		},
 		script: databuddy({
 			clientId: 'db_123',

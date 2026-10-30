@@ -1,3 +1,335 @@
+## @c15t/core@3.2.0
+
+### Add Gainsight PX consent integration
+
+Load Gainsight PX after measurement consent with the `gainsightPx` helper.
+
+### Add consent-gated FullStory loading
+
+Load FullStory after measurement consent with the `fullStory` helper.
+
+### Add HubSpot consent integration
+
+Load HubSpot after marketing consent with the `hubspot` helper.
+
+### Add consent-gated ActiveCampaign loading
+
+Load ActiveCampaign site tracking after marketing consent with the `activeCampaignTracking` helper.
+
+### Explain consent evidence in the local-mode warning
+
+The development warning now explains that GDPR Article 7(1) requires businesses
+relying on consent to demonstrate it. Local mode keeps choices only in the
+browser, so keep your own consent records or use a c15t backend.
+
+### Add Default consent integration
+
+Load the Default Pixel after measurement consent with `defaultComPixel`, or the Forms SDK after functionality consent with `defaultComFormsSdk`.
+
+### Add Amazon Ads consent integration
+
+Load Amazon Ads after marketing consent with the `amazonAdsTag` helper.
+
+### Set the subject ID cookie on the server
+
+The framework adapters now give a new visitor a subject ID on their first
+request. The server sets it in the `c15t-sid` cookie and the server render
+uses the same ID, so the browser starts with it instead of creating its own.
+The cookie holds only the ID: the banner still shows until the visitor
+decides.
+
+- Next.js: `c15tProxy` sets the cookie and forwards it on the request, so
+  `resolveConsent` in the same request reads it. `withConsentProps` sets it
+  for Pages Router pages. Both accept `storage`, `trustForwardedHeaders`
+  and `subjectCookie`. Without the proxy, App Router pages leave it to the
+  browser.
+- TanStack Start: `consentRequestMiddleware` sets it and accepts the same
+  options. Prerendered pages get none.
+- Astro: the c15t middleware sets it on server-rendered pages, named from
+  `storageConfig`. `middleware.trustForwardedHeaders` and
+  `middleware.subjectCookie` are new. With a `consentSource`, pass
+  `subjectCookie: false`.
+- SvelteKit: `c15tHandle` sets it and exposes the request cookie as
+  `locals.c15t.cookie`. `storage`, `trustForwardedHeaders` and
+  `subjectCookie` are new options. With `persistence: false` or a
+  `consentSource` on `ConsentProvider`, pass `subjectCookie: false`.
+- Nuxt: the plugin sets it during server rendering, except for prerendered
+  and cached routes.
+
+Prefetch and prerender requests, and responses marked as shared, never get a
+cookie, because every visitor who received it would share the ID. Neither does
+the consent route, which renders no page and serves its manifest as public
+data a shared cache keeps: Next.js skips the `routePrefix` in
+`c15t.config.ts`, SvelteKit and Astro skip their `routePrefix`, and each falls
+back to `/api/c15t`. The Next.js proxy and the SvelteKit handle run before
+the response exists, so pass `subjectCookie: false` for requests to other
+routes a shared cache keeps, such as a public API route or feed; the
+consent headers are still normalized. TanStack Start sees the response: a
+page whose `resolveConsent` read the visitor's cookies holds the visitor's
+consent and subject ID, so it is sent `private` with the cookie, keeping
+its browser directives, and without the CDN cache fields, such as
+`CDN-Cache-Control` and `Surrogate-Control`, that a CDN honouring them reads
+in place of `Cache-Control`. A response with no such render that sets
+`public`, `s-maxage`, `max-age`, `no-cache` or `Expires`, or a CDN cache field
+that lets the CDN store it, gets no cookie, and
+TanStack Start sends the consent route's responses unchanged, wherever it is
+mounted. Render HTML you cache for every
+visitor with `shared: true`. Pass the same `storage` options as the
+browser so the cookie has the same name, domain and lifetime. With
+`persistence={false}` or a `consentSource` on `ConsentRoot`, pass
+`subjectCookie: false` so the server sets no cookie.
+
+On another server, `resolveRequestSubject()` from `c15t/server` returns the
+visitor's ID, the `Set-Cookie` value to send and the request `Cookie` header
+to render with.
+
+A subject ID with an unpaired UTF-16 surrogate gets no subject cookie, and the
+server keeps the ID its records carry. TanStack Start's server-render state
+replaces that surrogate with U+FFFD on the way to the browser; see the
+TanStack Start docs for when the browser keeps the changed ID.
+
+The server helpers read a Node-style header record under any header-name
+casing. `resolveRequestSubject()` and `readRequestConsent()` find a `Cookie` or
+`COOKIE` header, and the request origin finds `Host`. Forwarding headers are
+still read only with `trustForwardedHeaders: true`.
+
+The server and the adapters never replace a `c15t-sid` cookie the request
+already has. While the browser's cookie writes succeed, the server render and
+the browser use the same ID. The server reads cookies only, though. If the
+browser refuses to rewrite a record cookie after the subject ID changes, a
+server render keeps reporting the old ID that cookie holds, and the browser
+starts with the new ID from its localStorage. This happens even when the
+request's `c15t-sid` cookie already holds the new ID. It lasts until a later
+write of that record reaches the cookie, which may never happen while the
+browser keeps refusing it.
+
+With `crossSubdomain`, a visitor whose only record is a vendor decision can hold
+a local vendor copy and a shared cookie copy with the same decision time but
+different subject IDs, because a rekey keeps the original decision time. As
+before, a page that hydrates from storage starts with the local copy's ID.
+Server-rendered pages now do the same. The runtime does not write that ID over a
+shared `c15t-sid` cookie the record cookies agree with, but a later vendor save
+from this origin stores it in the shared vendor cookie, and after that a later
+page load can store it in the shared `c15t-sid` cookie too. The ID mismatch on
+its own grants no optional category and lifts no denial; that vendor save
+changes only the vendor decisions it names.
+
+### Give every visitor a subject ID from the first page load
+
+A browser runtime now has `snapshot.subject.subjectId` from the first
+snapshot, before the visitor decides anything. Before, the ID appeared only
+at the first save. You can link activity to a visitor from the first page
+load and still find it when they opt out.
+
+- Persistence stores the ID in a new `<storageKey>-sid` cookie and
+  localStorage key (`c15t-sid` by default). The first save records the same
+  ID with the choice.
+- The ID alone is not a choice. The banner still shows and `hasConsented()`
+  stays `false` until the visitor decides.
+- `clear()`, a revocation and `clearOnRevocation` patterns keep the ID.
+  `kernel.set.subjectId(null)` starts over with a new one.
+- An ID a tab generated, or read from `c15t-sid` alone, follows one another
+  tab stores until this tab saves or identifies the visitor. IDs the app or
+  the server supplies, IDs the stored records carry when the page loads, and
+  a new ID `set.subjectId(null)` writes into existing records do not follow.
+  `subject:resolved` now carries `previousSubjectId`, the ID it replaced, so
+  you can move anything recorded under the old one.
+- With `persistence: false`, the ID lives in memory and each page load gets a
+  new one.
+
+`identify()` works before the first save. `PATCH /subjects/:id` in
+`@c15t/backend` now creates the subject and links the identity in one request
+when no save has created the subject yet. Before, the link needed a save
+first. Like `POST /subjects`, it needs no API key. The backend has no rate or
+body-size limit of its own, so set them in front of it; see the self-host
+configuration guide. The client treats a `404` from an older self-hosted
+backend as success and sends the identity with the next save.
+
+### Rename offline mode to `local()` and warn that it keeps no consent records
+
+`offline()` is now `local()` in every framework package, in `c15t` and in
+`c15t/modes`. `offline()` still works and is marked deprecated. c15t v4 removes
+it.
+
+In development builds, local mode logs one `console.warn` per page: c15t keeps
+no server-side record of consent, and with no geolocation every visitor gets
+the same policy. Production builds never log it, and it blocks nothing. Pass
+`local({ acknowledgeNoRecords: true })` to hide it once you have decided a
+browser-only record is enough. c15t v4 will require that option.
+
+The script tag's local-mode file is now `c15t.local.js`. `c15t.offline.js`
+still ships until v4, and on development hosts it logs its new name. Script-tag files are production builds, so
+they log the warning only on development hosts such as `localhost`. Add
+`data-acknowledge-no-records` to the tag to hide it. `c15t.local()` joins the
+script-tag global.
+
+`c15t setup` labels local mode "Development and tests only, no consent records"
+and generates `local()`.
+
+### Errors say what the backend said
+
+When a backend refuses a request with a JSON body, the error now carries its
+message and code. Over HTTP/2 an error used to read
+`c15t hosted transport: /init responded 402 ` with nothing after the status.
+It now reads
+`c15t hosted transport: /init responded 402: <message> (<CODE>)` and has
+`status` and `code` properties. Bodies that are not JSON keep the old message.
+This covers `/init`, `/manifest`, `/subjects`, the manifest cache, the static
+manifest and the GVL. The dev warning for a failed init now includes the
+message too.
+
+A consent save refused with 402 (payment required) is no longer resent. The
+choice stays in the browser, as it does for other permanent rejections. A 402
+on init is not retried. A 409 or 422 save is also no longer resent when its
+permanent code, such as `SUBJECT_CONFLICT`, is at the top level of the body
+instead of under `cause`.
+
+`@c15t/node-sdk` now reads a top-level `code` when the body has no
+`cause.code`, so `serverCode` is set for `{ message, code }` bodies.
+
+### Browser manifest mode skips the manifest request when the server state has a policy
+
+With `manifest({ resolve: 'browser' })`, the browser used to request
+`/manifest` and load the policy resolver (about 20 KB gzipped) on every page
+load, even when the server state from `resolveConsent()` already held the
+visitor's policy and the browser never used them. Now neither starts until an
+init needs them. With a streamed state, they start once it arrives without a
+policy.
+
+### Keep the subject ID with a notice acknowledgement
+
+Every notice acknowledgement now stores the visitor's subject ID with it, in a
+new `<storageKey>-notice-subject` cookie (`c15t-notice-subject` by default).
+That includes a choice that acknowledges a notice. A visitor whose only action
+was acknowledging a banner that offers only necessary categories keeps their ID
+through this record. The acknowledgement still grants no optional category. The
+`<storageKey>-notice` cookie keeps its old format, so an older c15t runtime on
+the same site still reads it.
+
+`clear()` removes the acknowledgement and its `-notice-subject` cookie. The
+visitor keeps their subject ID in `<storageKey>-sid`, as after any other clear.
+`kernel.set.subjectId(null)` gives the visitor a new ID in both places.
+
+`clearOnRevocation` patterns never delete the notice identity cookie, even when a
+wildcard matches its name.
+
+A save that records only vendor decisions while a notice is shown, such as
+turning off a vendor switch, now stores the notice acknowledgement too, so a
+reload no longer shows the notice again.
+
+Notice acknowledgements stored in localStorage keep their linked account when
+cookies cannot be read.
+
+When the consent record cannot be read, a tab now follows another tab's change
+of the subject ID that a notice or vendor record carries, instead of keeping
+the old ID and saving it later.
+
+A tab drops a linked account when an older c15t runtime removes or replaces
+the notice acknowledgement that carried it. The subject ID stays.
+
+A seed from a backend keeps the linked account it names for a stored ID. A tab
+follows another tab's linked account on the record that gave its own.
+
+A save under a subject ID or linked account with no URI encoding, such as
+one with a lone surrogate, keeps the whole record in localStorage and skips
+its cookie copy instead of throwing. A tab follows the notice's subject once
+the vendor record that carried another is removed or loses its subject.
+
+The `StoredRecords` type exported from `@c15t/core/modules/persistence` gains
+optional `recordedSubjectId` and `subjectCarrier` fields. An object typed as
+`StoredRecords` with the earlier fields still type-checks. `readStoredRecords()`
+always sets both, and its return type says so. A stand-in typed through the
+reader, such as `typeof readStoredRecords`, its return type or a mocked
+reader, must now return both fields.
+
+If your cookie policy lists c15t cookies, add `c15t-notice-subject`.
+
+### The IAB CMP is created once under an IAB policy
+
+When an IAB policy supplied the `cmpId` after the runtime started, the IAB
+CMP was created up to 100 times on every page load, and the console showed
+"Consent listeners kept updating consent in response to each other".
+`createIAB` updates the kernel while it runs, and that update started the
+mount again before the first CMP was stored. Now the CMP is created once.
+
+### Keep a dialog open when consent init resolves
+
+A preference center opened before the consent backend answered closed when
+the answer arrived, for example when a visitor clicked a consent gate's
+button right after the page loaded. The dialog now stays open until the
+visitor saves or closes it.
+
+### Export banner copy and button labels for headless UIs
+
+`resolvePromptCopy(translations, prompt)` returns the banner's title and
+description, and reads the notice copy when the prompt is a notice.
+`resolveActionLabels(translations)` labels each banner action, and
+`resolvePreferenceControlLabels(translations)` labels the opt-out and
+preferences buttons. All three use the active language and fall back to
+English for a missing key. Import them from `c15t`, `@c15t/svelte`,
+`@c15t/svelte/headless`, `c15t/vue/vue-plugin` or `@c15t/browser/headless`.
+`@c15t/browser/headless` also exports `resolveConsentPresentation` now.
+
+React adds `useBannerCopy()` and `useConsentLabels()` to
+`c15t/react/headless`, `c15t/next/headless` and
+`c15t/tanstack-start/headless`. They return the same strings the stock
+banner renders and update when the language changes. The same headless
+entries now export `useVendorsListedUnder(category)`, which returns the
+vendors the stock dialog lists under a category.
+
+When a notice offers only a dismiss button, `primaryActions` from
+`resolveConsentPresentation` now contains `dismiss`, so a headless banner can
+style it as the primary button. The browser banner now styles that button as
+primary too. The React, Vue and Svelte banners already did.
+
+### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages
+
+`@c15t/translations` now ships consent copy for Japanese (`ja`), Thai
+(`th`), Malay (`ms`), Vietnamese (`vi`), Turkish (`tr`), Tamil (`ta`),
+Telugu (`te`), Marathi (`mr`), Kannada (`kn`), Malayalam (`ml`) and Punjabi
+in Gurmukhi script (`pa`).
+
+Import one with `@c15t/translations/<code>`, or load them all with
+`@c15t/translations/all`. `manifest()` loads them on demand like the other
+languages, and the backend serves them from `/init`.
+
+### Add Arabic, Bangla, Haitian Creole, Korean, Russian, Urdu and Yiddish
+
+`@c15t/translations` now ships consent copy for `ar`, `bn`, `ht`, `ko`,
+`ru`, `ur` and `yi`. Along with the existing Spanish, Chinese, Italian,
+Polish and French, that covers the 12 languages New York State's language
+access law names for state agencies.
+
+Import one with `@c15t/translations/<code>`, or load them all with
+`@c15t/translations/all`. `manifest()` loads them on demand like the other
+languages, and the backend serves them from `/init`.
+
+Arabic, Urdu and Yiddish render right to left.
+
+### Allowed scripts start from the server HTML
+
+Next.js, TanStack Start, Nuxt and SvelteKit now start the `scripts` entries a
+visitor's consent already allows from the server-rendered HTML, before the page
+hydrates. An inline script runs after first paint and inserts their tags; the
+script loader adopts them. On a throttled mobile profile, vendors started about
+800 ms sooner. This covers React 18 and 19, and every vendor helper in
+`@c15t/integrations` except Cloudflare Zaraz and Sentry.
+
+Nothing starts while the policy asks the visitor to choose, or from prerendered
+or cached HTML. Set `scriptLoader: { serverStart: false }` to start every entry
+after hydration, as before.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/core@3.2.0-canary.0 (canary)
 
 ### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages
