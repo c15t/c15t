@@ -2,9 +2,8 @@
  * Package source that ships to browsers calls none of the built-ins Safari
  * 15.4 introduced; Chrome added them between 92 and 98. Consumer bundlers
  * lower syntax but do not polyfill built-ins, so one such call breaks the
- * provider in older browsers (#1658). Oxlint bans most of these by name; it
- * cannot tell an `.at()` call from a field named `at`, and it does not
- * read `.astro`, `.svelte` or `.vue` files.
+ * provider in older browsers (#1658). Oxlint bans most of these by name, but
+ * it cannot tell an `.at()` call from a field named `at`.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';

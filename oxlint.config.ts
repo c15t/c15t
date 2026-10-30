@@ -56,7 +56,7 @@ const browserPackageFiles = [
 	'translations',
 	'ui',
 	'vue',
-].map((name) => `packages/${name}/src/**/*.{js,jsx,ts,tsx}`);
+].map((name) => `packages/${name}/src/**/*.{js,jsx,ts,tsx,astro,svelte,vue}`);
 
 const noStructuredClone =
 	'Chrome < 98, Firefox < 94 and Safari < 15.4 lack it. Use the package copyPlainData helper.';
