@@ -3,8 +3,8 @@
  * 15.4 introduced; Chrome added them between 92 and 98. Consumer bundlers
  * lower syntax but do not polyfill built-ins, so one such call breaks the
  * provider in older browsers (#1658). Oxlint bans most of these by name; it
- * cannot tell an `.at()` call from a field named `at`, and it does not read
- * `.svelte` or `.vue` files.
+ * cannot tell an `.at()` call from a field named `at`, and it does not
+ * read `.astro`, `.svelte` or `.vue` files.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -35,7 +35,7 @@ const sourceFiles = function* sourceFiles(
 		const path = join(directory, entry.name);
 		if (entry.isDirectory()) {
 			yield* sourceFiles(path);
-		} else if (/\.(?:[cm]?[jt]sx?|svelte|vue)$/u.test(entry.name)) {
+		} else if (/\.(?:[cm]?[jt]sx?|astro|svelte|vue)$/u.test(entry.name)) {
 			yield path;
 		}
 	}
