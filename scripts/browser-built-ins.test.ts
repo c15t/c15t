@@ -63,6 +63,10 @@ test('browser package source avoids built-ins older browsers lack', () => {
 			}
 			const lines = readFileSync(file, 'utf8').split('\n');
 			for (const [index, line] of lines.entries()) {
+				// A comment may name a banned call, as advice to use something else.
+				if (/^\s*(?:\/\/|\/?\*)/u.test(line)) {
+					continue;
+				}
 				for (const { name, pattern } of banned) {
 					if (pattern.test(line)) {
 						found.push(`${path}:${index + 1} ${name}`);
