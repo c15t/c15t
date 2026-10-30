@@ -27,6 +27,16 @@ const isTest = (path: string) =>
 		path
 	);
 
+/**
+ * A source line without its comment text, which may name a banned call as
+ * advice to use something else. Code after an inline `/* … *\/` or a closing
+ * `*\/` stays. A `//` after code stays too: it may be part of a URL string.
+ */
+const withoutComments = (line: string) =>
+	line
+		.replace(/\/\*.*?\*\//gu, '')
+		.replace(/^\s*(?:\/\/.*|\/\*.*|\*\/|\*(?:.*?\*\/|.*))/u, '');
+
 const sourceFiles = function* sourceFiles(
 	directory: string
 ): Generator<string> {
@@ -62,12 +72,9 @@ test('browser package source avoids built-ins older browsers lack', () => {
 			}
 			const lines = readFileSync(file, 'utf8').split('\n');
 			for (const [index, line] of lines.entries()) {
-				// A comment may name a banned call, as advice to use something else.
-				if (/^\s*(?:\/\/|\/?\*)/u.test(line)) {
-					continue;
-				}
+				const code = withoutComments(line);
 				for (const { name, pattern } of banned) {
-					if (pattern.test(line)) {
+					if (pattern.test(code)) {
 						found.push(`${path}:${index + 1} ${name}`);
 					}
 				}
