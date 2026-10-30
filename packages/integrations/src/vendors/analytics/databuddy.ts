@@ -41,34 +41,39 @@ declare global {
 
 const cdnBaseUrl = 'https://cdn.databuddy.cc';
 
+/** The tracker release that `@databuddy/sdk` 3.4.2 pins. */
+const defaultVersion = '2026-10-30.1';
+
 /**
- * Date-versioned files and their subresource integrity, from the
- * `@databuddy/sdk` 3.4.2 release. A versioned file never changes, so a
- * changed file on the CDN fails the integrity check and does not run.
+ * Subresource integrity for the files of the default version. A versioned
+ * file never changes, so a changed file on the CDN fails the check and does
+ * not run.
  */
-const pinnedScripts = {
-	loader: {
-		integrity:
-			'sha384-xXKfqQUu53gQi7i1OUzZ1t/rlpkyILPqMsDxO4MQH70gAX/yiDVUj1JogQaW0M2s',
-		src: `${cdnBaseUrl}/databuddy.2026-10-30.1.js`,
-	},
-	replay: {
-		integrity:
-			'sha384-naub2msIlvDqEZRXGKjjR1CEOa9ZNszRcSgfitF8vO2qgKGlygxmOkxzH/puniCl',
-		src: `${cdnBaseUrl}/replay.2026-10-30.1.js`,
-	},
+const defaultIntegrity = {
+	databuddy:
+		'sha384-xXKfqQUu53gQi7i1OUzZ1t/rlpkyILPqMsDxO4MQH70gAX/yiDVUj1JogQaW0M2s',
+	replay:
+		'sha384-naub2msIlvDqEZRXGKjjR1CEOa9ZNszRcSgfitF8vO2qgKGlygxmOkxzH/puniCl',
 } as const;
 
 /**
- * Uses the pinned file and its integrity unless the caller overrides the URL.
- * A custom URL loads without integrity, because c15t cannot know its hash.
+ * Resolves a CDN file and its integrity. Only the default version loads with
+ * integrity. A URL override wins over the version and loads without it,
+ * because c15t cannot know its hash.
  */
-const resolvePinnedScript = function resolvePinnedScript(
-	override: string | undefined,
-	pinned: { integrity: string; src: string }
+const resolveCdnScript = function resolveCdnScript(
+	file: keyof typeof defaultIntegrity,
+	version: string,
+	override: string | undefined
 ): { integrity: string | undefined; src: string } {
 	const src = trimToUndefined(override);
-	return src === undefined ? pinned : { integrity: undefined, src };
+	if (src !== undefined) {
+		return { integrity: undefined, src };
+	}
+	return {
+		integrity: version === defaultVersion ? defaultIntegrity[file] : undefined,
+		src: `${cdnBaseUrl}/${file}.${version}.js`,
+	};
 };
 
 const disableTracker = {
@@ -216,8 +221,17 @@ export interface DatabuddyConsentOptions {
 	apiUrl?: string;
 
 	/**
-	 * The Databuddy script URL. The default is a date-versioned file that
-	 * loads with subresource integrity. A custom URL loads without it.
+	 * Databuddy tracker release to load from the CDN, such as
+	 * `'2026-10-30.1'`. It names both `databuddy.js` and `replay.js`. The
+	 * default version loads with subresource integrity; another version loads
+	 * without it.
+	 * @default '2026-10-30.1'
+	 */
+	version?: string;
+
+	/**
+	 * The Databuddy script URL. Overrides `version` and loads without
+	 * subresource integrity.
 	 * @default 'https://cdn.databuddy.cc/databuddy.2026-10-30.1.js'
 	 */
 	scriptUrl?: string;
@@ -336,8 +350,8 @@ export interface DatabuddyReplayOptions {
 	recordIframes?: boolean;
 
 	/**
-	 * The Databuddy replay script URL. The default is a date-versioned file
-	 * that loads with subresource integrity. A custom URL loads without it.
+	 * The Databuddy replay script URL. Overrides `version` and loads without
+	 * subresource integrity.
 	 * @default 'https://cdn.databuddy.cc/replay.2026-10-30.1.js'
 	 */
 	scriptUrl?: string;
@@ -421,7 +435,8 @@ const createDatabuddyScript = function createDatabuddyScript(
 		options.loadMode === 'always'
 			? databuddyAlwaysLoadManifest
 			: databuddyManifest;
-	const loader = resolvePinnedScript(options.scriptUrl, pinnedScripts.loader);
+	const version = trimToUndefined(options.version) ?? defaultVersion;
+	const loader = resolveCdnScript('databuddy', version, options.scriptUrl);
 
 	const script = resolveManifest(manifest, {
 		apiUrl,
@@ -448,9 +463,10 @@ const createDatabuddyScript = function createDatabuddyScript(
 	}
 
 	const replayOptions = options.replay === true ? {} : options.replay;
-	const replayScript = resolvePinnedScript(
-		replayOptions.scriptUrl,
-		pinnedScripts.replay
+	const replayScript = resolveCdnScript(
+		'replay',
+		version,
+		replayOptions.scriptUrl
 	);
 	const replay = createReplayLoader({
 		apiUrl,

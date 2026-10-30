@@ -96,6 +96,15 @@ describe('databuddy', () => {
 		expect(script.attributes).not.toHaveProperty('integrity');
 	});
 
+	it('loads another version without the pinned integrity', () => {
+		const script = databuddy({ clientId: 'db_123', version: '2026-10-01.1' });
+
+		expect(script.src).toBe(
+			'https://cdn.databuddy.cc/databuddy.2026-10-01.1.js'
+		);
+		expect(script.attributes).not.toHaveProperty('integrity');
+	});
+
 	it('sets a data attribute for each feature switch', () => {
 		const script = databuddy({
 			clientId: 'db_123',

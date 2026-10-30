@@ -302,6 +302,27 @@ describe('databuddy contract', () => {
 		expect(replayScripts[0]?.hasAttribute('integrity')).toBe(false);
 	});
 
+	it('loads replay.js from another version without integrity', () => {
+		const { replayScripts } = probeDatabuddyScripts();
+
+		loadScripts(
+			[
+				databuddy({
+					clientId: 'db-contract',
+					replay: true,
+					version: '2026-10-01.1',
+				}),
+			],
+			grantedMeasurementConsents
+		);
+
+		expect(replayScripts).toHaveLength(1);
+		expect(replayScripts[0]?.src).toBe(
+			'https://cdn.databuddy.cc/replay.2026-10-01.1.js'
+		);
+		expect(replayScripts[0]?.hasAttribute('integrity')).toBe(false);
+	});
+
 	it('loads replay.js on grant, stops it on refusal and loads it again on a later grant', () => {
 		const { replayScripts, stop } = probeDatabuddyScripts();
 		const script = databuddy({
