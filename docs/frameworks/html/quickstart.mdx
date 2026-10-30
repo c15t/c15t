@@ -126,11 +126,6 @@ If no banner appears, the policy for your location may not ask for one. See
   the tag logs a warning saying so; `data-acknowledge-no-records` hides it.
   Not recommended for production environments. Before c15t 3.2 this file
   was `c15t.offline.js`. The old name still works until c15t v4.
-- **A self-hosted backend.** A [self-hosted c15t backend](/docs/self-host/overview)
-  serves the hosted bundle at `/c15t.js` with its backend URL already
-  configured, so the tag needs only a `src`:
-  `<script src="https://consent.example.com/c15t.js" defer></script>`, with
-  your backend's origin in place of `consent.example.com`.
 - **From a CDN.** Load a pinned version from jsDelivr. Use `c15t.js` with
   `data-backend-url` for hosted mode:
   `<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js" data-backend-url="https://your-project.inth.app" defer></script>`.
