@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { resolvePolicyRules } from './policy-resolution';
 import { inspectPolicyRules, normalizePolicyRule } from './policy-rule';
@@ -13,6 +13,21 @@ const presetNames = Object.keys(
 ) as (keyof typeof policyRulePresets)[];
 
 describe('policyRulePresets', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	// Browsers before Chrome 98, Firefox 94 and Safari 15.4 lack it.
+	test.each(
+		presetNames.filter((name) => policyRulePresets[name]().legacyMaterial)
+	)('%s copies legacy material without structuredClone', (name) => {
+		vi.stubGlobal('structuredClone', undefined);
+		const first = policyRulePresets[name]();
+		const second = policyRulePresets[name]();
+		expect(second).toEqual(first);
+		expect(second.legacyMaterial).not.toBe(first.legacyMaterial);
+	});
+
 	test.each(presetNames)('%s normalizes with review metadata', (name) => {
 		const rule = policyRulePresets[name]();
 		expect(() => normalizePolicyRule(rule)).not.toThrow();

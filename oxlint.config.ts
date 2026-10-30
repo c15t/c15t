@@ -34,6 +34,30 @@ const nonReactFrameworkFiles = [
 	'packages/vue/**/*.{js,jsx,ts,tsx}',
 ] as const;
 
+// Source that runs in browsers or React Native, where newer globals are not
+// guaranteed. Server-only packages (backend, cli, node-sdk) are left out.
+const browserPackageFiles = [
+	'astro',
+	'browser',
+	'c15t',
+	'core',
+	'dev-tools',
+	'iab',
+	'integrations',
+	'logger',
+	'nextjs',
+	'react',
+	'react-native',
+	'schema',
+	'scripts',
+	'solid',
+	'svelte',
+	'tanstack-start',
+	'translations',
+	'ui',
+	'vue',
+].map((name) => `packages/${name}/src/**/*.{js,jsx,ts,tsx}`);
+
 // These rules reported existing violations during the migration. Every
 // Ultracite rule not listed here was clean and remains enabled as an error.
 // Re-enable deferred rules in focused changes that also fix their violations.
@@ -131,12 +155,27 @@ export default defineConfig({
 	],
 	overrides: [
 		{
+			files: browserPackageFiles,
+			rules: {
+				'no-restricted-globals': [
+					'error',
+					{
+						message:
+							'Chrome < 98, Firefox < 94 and Safari < 15.4 lack it. Use the package copyPlainData helper.',
+						name: 'structuredClone',
+					},
+				],
+			},
+		},
+		{
 			files: [
 				'**/*.{test,spec,test-d,spec-d}.{ts,tsx,js,jsx}',
 				'**/__tests__/**/*.{ts,tsx,js,jsx}',
 			],
 			plugins: ['vitest'],
 			rules: {
+				// Tests run on Node, which has structuredClone.
+				'no-restricted-globals': 'off',
 				// Loading the plugin also enables its default rules. Adopt only
 				// these two checks from Ultracite's Vitest preset for now.
 				...Object.fromEntries(

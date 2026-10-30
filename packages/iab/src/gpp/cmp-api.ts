@@ -9,6 +9,7 @@
  * @packageDocumentation
  */
 
+import { copyPlainData } from '../copy-plain-data';
 import { encodeGPPString } from './encoder';
 import { GPP_VERSION } from './sections';
 import type {
@@ -194,7 +195,7 @@ export const createGPPCmpApi = function createGPPCmpApi(
 		parsedSections: Object.fromEntries(
 			state.sections
 				.filter((section) => section.parsed !== null)
-				.map((section) => [section.prefix, structuredClone(section.parsed)])
+				.map((section) => [section.prefix, copyPlainData(section.parsed)])
 		) as GPPPingData['parsedSections'],
 		sectionList: state.sections.map((section) => section.id),
 		signalStatus: state.signalStatus,
@@ -233,7 +234,7 @@ export const createGPPCmpApi = function createGPPCmpApi(
 		const parsed = readableSection(parameter.slice(0, separator));
 		const name = parameter.slice(separator + 1);
 		const subsection = parsed?.find((entry) => Object.hasOwn(entry, name));
-		return subsection ? structuredClone(subsection[name]) : null;
+		return subsection ? copyPlainData(subsection[name]) : null;
 	};
 
 	const api: GPPApi = (command, handler, parameter) => {
@@ -267,7 +268,7 @@ export const createGPPCmpApi = function createGPPCmpApi(
 				break;
 			case 'getSection': {
 				const parsed = readableSection(parameter);
-				handler(parsed ? structuredClone(parsed) : null, true);
+				handler(parsed ? copyPlainData(parsed) : null, true);
 				break;
 			}
 			case 'getField':

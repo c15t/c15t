@@ -211,3 +211,28 @@ test('withholds a cached TC string when the policy stops using TCF', async () =>
 	expect(data.gdprApplies).toBe(false);
 	expect(data).not.toHaveProperty('tcString');
 });
+
+// Browsers before Chrome 98, Firefox 94 and Safari 15.4 lack it.
+test('serves cached TC data without structuredClone', async () => {
+	vi.stubGlobal('structuredClone', undefined);
+	try {
+		const tcString = await savedString();
+		const api = createCMPApi({ cmpId: 28, gvl: completeGVL });
+		disposers.push(api.destroy);
+		api.updateConsent(tcString, undefined, true);
+		const read = async () => {
+			const callback = vi.fn();
+			window.__tcfapi?.('getTCData', 2, callback);
+			await vi.waitFor(() => expect(callback).toHaveBeenCalled());
+			return callback.mock.calls[0]?.[0];
+		};
+
+		const first = await read();
+		first.purpose.consents[1] = false;
+		const cached = await read();
+		expect(cached).toMatchObject({ tcString });
+		expect(cached.purpose.consents[1]).toBe(true);
+	} finally {
+		vi.unstubAllGlobals();
+	}
+});

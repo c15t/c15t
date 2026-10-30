@@ -10,6 +10,7 @@
  * (`records.ts`).
  */
 import type { AllConsentNames } from '../consent/consent-types';
+import { copyPlainData } from '../libs/copy-plain-data';
 import type { ExperimentAssignment, ExperimentGate } from '../libs/experiment';
 import {
 	mergeDeclaredVendors,
@@ -62,10 +63,10 @@ const copyDeclaredVendor = function copyDeclaredVendor(
 ): ResolvedVendor {
 	const copy: ResolvedVendor = {
 		...vendor,
-		category: structuredClone(vendor.category),
+		category: copyPlainData(vendor.category),
 	};
 	if (vendor.ownerCategory !== undefined) {
-		copy.ownerCategory = structuredClone(vendor.ownerCategory);
+		copy.ownerCategory = copyPlainData(vendor.ownerCategory);
 	}
 	if (vendor.ownerDetails !== undefined) {
 		copy.ownerDetails = { ...vendor.ownerDetails };
