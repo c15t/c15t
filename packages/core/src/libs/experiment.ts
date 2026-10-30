@@ -177,7 +177,10 @@ export const isExperimentArm = function isExperimentArm(
 	experiment: ConsentExperiment,
 	name: string
 ): boolean {
-	return name === CONTROL_ARM || Object.hasOwn(experiment.arms, name);
+	return (
+		name === CONTROL_ARM ||
+		Object.prototype.hasOwnProperty.call(experiment.arms, name)
+	);
 };
 
 /** What an arm changes; `undefined` for `control` or an unknown arm. */
@@ -185,7 +188,8 @@ const armChanges = function armChanges(
 	experiment: ConsentExperiment,
 	name: string
 ): ExperimentArm | undefined {
-	return name !== CONTROL_ARM && Object.hasOwn(experiment.arms, name)
+	return name !== CONTROL_ARM &&
+		Object.prototype.hasOwnProperty.call(experiment.arms, name)
 		? (experiment.arms as Record<string, ExperimentArm>)[name]
 		: undefined;
 };
@@ -452,7 +456,7 @@ export const experimentConfigError = function experimentConfigError(
 	experiment: ConsentExperiment
 ): string | null {
 	const label = `c15t experiment "${experiment.id}"`;
-	if (Object.hasOwn(experiment.arms, CONTROL_ARM)) {
+	if (Object.prototype.hasOwnProperty.call(experiment.arms, CONTROL_ARM)) {
 		return `${label}: \`control\` is your \`presentation\`; do not list it in \`arms\`.`;
 	}
 	if (
@@ -496,7 +500,14 @@ export const experimentArmWeights = function experimentArmWeights(
 		| Record<string, number | undefined>
 		| undefined;
 	return names.map((name) =>
-		split ? Math.max(0, (Object.hasOwn(split, name) ? split[name] : 0) ?? 0) : 1
+		split
+			? Math.max(
+					0,
+					(Object.prototype.hasOwnProperty.call(split, name)
+						? split[name]
+						: 0) ?? 0
+				)
+			: 1
 	);
 };
 
@@ -535,7 +546,7 @@ export const pickExperimentArm = function pickExperimentArm(
 			return assignment(name);
 		}
 	}
-	return assignment(names.at(-1) ?? CONTROL_ARM);
+	return assignment(names[names.length - 1] ?? CONTROL_ARM);
 };
 
 /**

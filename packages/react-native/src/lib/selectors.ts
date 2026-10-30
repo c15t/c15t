@@ -247,7 +247,7 @@ export const shallowEqual = function shallowEqual<T>(
 
 	return currentKeys.every(
 		(key) =>
-			Object.hasOwn(nextRecord, key) &&
+			Object.prototype.hasOwnProperty.call(nextRecord, key) &&
 			Object.is((current as Record<string, unknown>)[key], nextRecord[key])
 	);
 };

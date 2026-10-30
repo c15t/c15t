@@ -8,6 +8,7 @@
 
 import type { CMPApi, CMPApiConfig, GlobalVendorList } from '@c15t/core';
 
+import { copyPlainData } from '../copy-plain-data';
 import { forEachSequential } from '../for-each-sequential';
 import { CMP_VERSION_NUMBER } from './cmp-defaults';
 import { assertValidCmpId } from './cmp-id';
@@ -361,7 +362,7 @@ export const createCMPApi = function createCMPApi(
 			cachedTCData.addtlConsent === addtlConsent &&
 			!eventStatus
 		) {
-			return { ...structuredClone(cachedTCData), listenerId };
+			return { ...copyPlainData(cachedTCData), listenerId };
 		}
 		const string = tcString;
 		const consentData = currentConsentData;
@@ -387,7 +388,7 @@ export const createCMPApi = function createCMPApi(
 
 		// Cache a private copy of the data
 		if (!eventStatus) {
-			cachedTCData = structuredClone(tcData);
+			cachedTCData = copyPlainData(tcData);
 		}
 
 		return tcData;

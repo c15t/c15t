@@ -237,7 +237,10 @@ export const validatePublisherRestrictions =
 			);
 			if (
 				context.gvl &&
-				!Object.hasOwn(context.gvl.purposes ?? {}, purposeId)
+				!Object.prototype.hasOwnProperty.call(
+					context.gvl.purposes ?? {},
+					purposeId
+				)
 			) {
 				fail(
 					`publisherRestrictions[${index}].purposeId ${purposeId} is not a purpose in the vendor list.`
@@ -357,7 +360,7 @@ export const sameListedRestrictions = function sameListedRestrictions(
 		const entries: string[] = [];
 		for (const { purposeId, restrictionType, vendorIds } of restrictions) {
 			for (const vendorId of vendorIds) {
-				if (Object.hasOwn(vendors ?? {}, vendorId)) {
+				if (Object.prototype.hasOwnProperty.call(vendors ?? {}, vendorId)) {
 					entries.push(`${purposeId}-${vendorId}-${restrictionType}`);
 				}
 			}

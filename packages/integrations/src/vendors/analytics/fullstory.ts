@@ -338,7 +338,7 @@ const regionLabel = /^[a-z]{2,3}[0-9]+$/u;
 // Matches @fullstory/browser 2.1.2's orgLocale rules.
 const orgLocale = (orgId: string): string | undefined => {
 	const sections = orgId.split('-');
-	const locale = sections.at(-1);
+	const locale = sections[sections.length - 1];
 	if (
 		sections.length < 3 ||
 		(sections[0]?.length ?? 0) > 1 ||

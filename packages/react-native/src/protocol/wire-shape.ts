@@ -166,7 +166,7 @@ export const describeSnapshotWireDrift = function describeSnapshotWireDrift(
 	const problems: string[] = [];
 
 	for (const key of SNAPSHOT_KEYS) {
-		if (!Object.hasOwn(candidate, key)) {
+		if (!Object.prototype.hasOwnProperty.call(candidate, key)) {
 			problems.push(
 				`${key}: required by the snapshot type, absent from the payload`
 			);
@@ -200,7 +200,7 @@ export const describeSnapshotWireDrift = function describeSnapshotWireDrift(
 		let missing = 0;
 
 		for (const key of owned.required) {
-			if (!Object.hasOwn(value, key)) {
+			if (!Object.prototype.hasOwnProperty.call(value, key)) {
 				missing += 1;
 				problems.push(
 					`${owned.path}.${key}: required here, absent from the payload`

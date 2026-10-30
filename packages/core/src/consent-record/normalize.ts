@@ -114,7 +114,7 @@ export const normalizeLegacyConsentRecord =
 				reason: 'malformed',
 			};
 		}
-		if (Object.hasOwn(input, 'version')) {
+		if (Object.prototype.hasOwnProperty.call(input, 'version')) {
 			// A versioned envelope is not a v2 record; never fall through.
 			return {
 				issues: [{ code: 'unsupported-version', path: 'version' }],

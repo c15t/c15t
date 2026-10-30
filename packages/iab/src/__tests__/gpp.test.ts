@@ -285,6 +285,29 @@ describe('createGPP: US state sections', () => {
 	});
 });
 
+describe('createGPP: without structuredClone', () => {
+	// Browsers before Chrome 98, Firefox 94 and Safari 15.4 lack it.
+	test('answers ping, getSection and getField with private copies', () => {
+		vi.stubGlobal('structuredClone', undefined);
+		try {
+			const kernel = makeKernel(US_OPT_OUT, {
+				initialLocation: { countryCode: 'US', regionCode: 'CA' },
+			});
+			mount({ kernel });
+
+			const section = call<Record<string, unknown>[]>('getSection', 'usca');
+			expect(section.data[0]).toMatchObject({ SaleOptOut: 2 });
+			expect(call('getField', 'usca.SaleOptOut').data).toBe(2);
+			expect(ping().parsedSections.usca).toEqual(section.data);
+
+			(section.data[0] as Record<string, unknown>).SaleOptOut = 1;
+			expect(call('getField', 'usca.SaleOptOut').data).toBe(2);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+});
+
 describe('createGPP: options', () => {
 	test('the national approach uses usnat for every US visitor', () => {
 		const kernel = makeKernel(US_OPT_OUT, {

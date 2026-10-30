@@ -291,7 +291,7 @@
 				[next] = toolbarItems;
 				break;
 			case 'End':
-				next = toolbarItems.at(-1);
+				next = toolbarItems[toolbarItems.length - 1];
 				break;
 			default:
 				return;

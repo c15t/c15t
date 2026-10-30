@@ -344,7 +344,10 @@ export const resolveOptions = function resolveOptions(
 	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
 	// reaches `buildBootScript()` and throws a bare `TypeError` on an
 	// undefined adapter entry. Name the supported values instead.
-	if (options.ui !== undefined && !Object.hasOwn(UI_ADAPTERS, options.ui)) {
+	if (
+		options.ui !== undefined &&
+		!Object.prototype.hasOwnProperty.call(UI_ADAPTERS, options.ui)
+	) {
 		throw new Error(
 			`@c15t/astro: unknown \`ui\` ${JSON.stringify(options.ui)}. Supported adapters: ${UI_ADAPTER_NAMES.join(', ')}.`
 		);

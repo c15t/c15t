@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'oxlint';
 import antiSlop from 'ultracite/oxlint/anti-slop';
 import core from 'ultracite/oxlint/core';
@@ -33,6 +35,33 @@ const nonReactFrameworkFiles = [
 	'packages/svelte/**/*.{js,jsx,ts,tsx}',
 	'packages/vue/**/*.{js,jsx,ts,tsx}',
 ] as const;
+
+// Source that runs in browsers or React Native, where newer globals are not
+// guaranteed. Server-only packages (backend, cli, node-sdk) are left out.
+const browserPackageFiles = [
+	'astro',
+	'browser',
+	'c15t',
+	'core',
+	'dev-tools',
+	'iab',
+	'integrations',
+	'logger',
+	'nextjs',
+	'react',
+	'react-native',
+	'schema',
+	'scripts',
+	'solid',
+	'svelte',
+	'tanstack-start',
+	'translations',
+	'ui',
+	'vue',
+].map((name) => `packages/${name}/src/**/*.{js,jsx,ts,tsx,astro,svelte,vue}`);
+
+const noStructuredClone =
+	'Chrome < 98, Firefox < 94 and Safari < 15.4 lack it. Use the package copyPlainData helper.';
 
 // These rules reported existing violations during the migration. Every
 // Ultracite rule not listed here was clean and remains enabled as an error.
@@ -129,7 +158,62 @@ export default defineConfig({
 		'apps/shadcn-registry/vendor/**',
 		'packages/c15t/shims/**',
 	],
+	jsPlugins: [
+		{
+			name: 'c15t',
+			specifier: fileURLToPath(
+				new URL('scripts/oxlint-browser-built-ins.mjs', import.meta.url)
+			),
+		},
+	],
 	overrides: [
+		{
+			files: browserPackageFiles,
+			rules: {
+				// Safari 15.4 was the first Safari to ship any of these built-ins.
+				'c15t/no-array-at': 'error',
+				'no-restricted-globals': [
+					'error',
+					{
+						message: noStructuredClone,
+						name: 'structuredClone',
+					},
+				],
+				'no-restricted-properties': [
+					'error',
+					{
+						message: noStructuredClone,
+						object: 'globalThis',
+						property: 'structuredClone',
+					},
+					{
+						message: noStructuredClone,
+						object: 'window',
+						property: 'structuredClone',
+					},
+					{
+						message:
+							'Chrome < 93, Firefox < 92 and Safari < 15.4 lack it. Use Object.prototype.hasOwnProperty.call.',
+						object: 'Object',
+						property: 'hasOwn',
+					},
+					{
+						message:
+							'Chrome < 97, Firefox < 104 and Safari < 15.4 lack it. Loop from the end instead.',
+						property: 'findLast',
+					},
+					{
+						message:
+							'Chrome < 97, Firefox < 104 and Safari < 15.4 lack it. Loop from the end instead.',
+						property: 'findLastIndex',
+					},
+				],
+				// Ultracite's preset prefers the built-ins banned above.
+				'prefer-object-has-own': 'off',
+				'unicorn/prefer-at': 'off',
+				'unicorn/prefer-structured-clone': 'off',
+			},
+		},
 		{
 			files: [
 				'**/*.{test,spec,test-d,spec-d}.{ts,tsx,js,jsx}',
@@ -137,6 +221,10 @@ export default defineConfig({
 			],
 			plugins: ['vitest'],
 			rules: {
+				// Tests run on Node and current browsers, which have these.
+				'c15t/no-array-at': 'off',
+				'no-restricted-globals': 'off',
+				'no-restricted-properties': 'off',
 				// Loading the plugin also enables its default rules. Adopt only
 				// these two checks from Ultracite's Vitest preset for now.
 				...Object.fromEntries(

@@ -48,7 +48,7 @@ export const withoutSuperseded = function withoutSuperseded(
 	by: Supersession
 ): SavePayload | null {
 	const keys = OPTIONAL_CONSENT_CATEGORIES.filter((category) =>
-		Object.hasOwn(payload.confirmed.categories, category)
+		Object.prototype.hasOwnProperty.call(payload.confirmed.categories, category)
 	);
 	const kept = keys.filter((category) => !by.category(category));
 	let selected = payload;
@@ -110,7 +110,11 @@ export const supersededBy = function supersededBy(
 		return NOTHING_SUPERSEDED;
 	}
 	return {
-		category: (category) => Object.hasOwn(newer.confirmed.categories, category),
+		category: (category) =>
+			Object.prototype.hasOwnProperty.call(
+				newer.confirmed.categories,
+				category
+			),
 		vendors: newer.vendorChoice !== undefined,
 	};
 };

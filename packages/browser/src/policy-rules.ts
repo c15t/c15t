@@ -21,7 +21,10 @@ export const resolveRules = function resolveRules(
 			return entry;
 		}
 		// Own keys only: `'constructor'` would otherwise resolve to Object.
-		const preset = Object.hasOwn(policyRulePresets, entry)
+		const preset = Object.prototype.hasOwnProperty.call(
+			policyRulePresets,
+			entry
+		)
 			? (policyRulePresets[entry] as () => PolicyRule)
 			: undefined;
 		if (typeof preset !== 'function') {

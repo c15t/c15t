@@ -143,7 +143,7 @@ export const createTriggerToolbar = function createTriggerToolbar(
 		if (event.key === 'Home') {
 			[next] = items;
 		} else if (event.key === 'End') {
-			next = items.at(-1);
+			next = items[items.length - 1];
 		} else if (event.key === 'ArrowRight') {
 			next = items[(index + 1) % items.length];
 		} else if (event.key === 'ArrowLeft') {

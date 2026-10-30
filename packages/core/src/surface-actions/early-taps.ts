@@ -38,8 +38,16 @@ const LEAVE_TIMEOUT_MS = 3000;
  */
 const pickTap = (
 	taps: readonly EarlyConsentTap[]
-): EarlyConsentTap | undefined =>
-	taps.findLast((tap) => tap.action !== 'customize') ?? taps.at(-1);
+): EarlyConsentTap | undefined => {
+	// A loop, not `findLast`: Chrome 97, Firefox 104 and Safari 15.4 added it.
+	for (let index = taps.length - 1; index >= 0; index -= 1) {
+		const tap = taps[index];
+		if (tap && tap.action !== 'customize') {
+			return tap;
+		}
+	}
+	return taps[taps.length - 1];
+};
 
 /**
  * Whether the resolved policy is still the kind the visitor saw. The
