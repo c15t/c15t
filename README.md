@@ -34,6 +34,8 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Get started
 
+The fastest way to set up c15t, for you or your coding agent:
+
 ```bash
 npx @inth/cli c15t
 ```
