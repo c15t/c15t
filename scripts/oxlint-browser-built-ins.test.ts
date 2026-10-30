@@ -65,9 +65,11 @@ test('flags .at() calls, not fields, comments or strings', () => {
 				'export const interpolated = `${[1].at(-1)}`;',
 				'/* note */ export const last = [1].at(-1);',
 				'export const optional = [1]?.at(-2);',
+				"export const computed = [1]['at'](0);",
+				"export const other = [1]['map'](String);",
 			].join('\n'),
 		})
-	).toEqual(['source.ts:6', 'source.ts:7', 'source.ts:8']);
+	).toEqual(['source.ts:6', 'source.ts:7', 'source.ts:8', 'source.ts:9']);
 });
 
 test('flags .at() calls in component scripts', () => {

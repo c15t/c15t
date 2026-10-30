@@ -16,8 +16,9 @@ export default {
 						const { callee } = node;
 						if (
 							callee.type === 'MemberExpression' &&
-							!callee.computed &&
-							callee.property.name === 'at'
+							(callee.computed
+								? callee.property.value === 'at'
+								: callee.property.name === 'at')
 						) {
 							context.report({
 								message:
