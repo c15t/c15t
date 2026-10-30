@@ -36,10 +36,15 @@ const fixedInteger = function fixedInteger(
 const fibonacciInteger = function fibonacciInteger(value: number): string {
 	const sequence = [1, 2];
 	while (
-		(sequence.at(-1) ?? 0) + (sequence.at(-2) ?? 0) <= value &&
+		(sequence[sequence.length - 1] ?? 0) +
+			(sequence[sequence.length - 2] ?? 0) <=
+			value &&
 		sequence.length < 64
 	) {
-		sequence.push((sequence.at(-1) ?? 0) + (sequence.at(-2) ?? 0));
+		sequence.push(
+			(sequence[sequence.length - 1] ?? 0) +
+				(sequence[sequence.length - 2] ?? 0)
+		);
 	}
 	let remaining = value;
 	const digits: string[] = [];
@@ -65,8 +70,8 @@ export const fibonacciRange = function fibonacciRange(
 	const sorted = [...new Set(values)].sort((left, right) => left - right);
 	const groups: number[][] = [];
 	for (const value of sorted) {
-		const group = groups.at(-1);
-		if (group && group.at(-1) === value - 1) {
+		const group = groups[groups.length - 1];
+		if (group && group[group.length - 1] === value - 1) {
 			group.push(value);
 		} else {
 			groups.push([value]);
@@ -76,7 +81,7 @@ export const fibonacciRange = function fibonacciRange(
 	let bits = fixedInteger(groups.length, 12);
 	for (const group of groups) {
 		const first = group[0] ?? 0;
-		const last = group.at(-1) ?? first;
+		const last = group[group.length - 1] ?? first;
 		if (group.length === 1) {
 			bits += `0${fibonacciInteger(first - offset)}`;
 		} else {

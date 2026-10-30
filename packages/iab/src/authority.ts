@@ -184,7 +184,7 @@ const listedRestrictions = function listedRestrictions(
 		.map((restriction) => ({
 			...restriction,
 			vendorIds: restriction.vendorIds.filter((id) =>
-				Object.hasOwn(vendors ?? {}, id)
+				Object.prototype.hasOwnProperty.call(vendors ?? {}, id)
 			),
 		}))
 		.filter((restriction) => restriction.vendorIds.length > 0);
@@ -209,7 +209,7 @@ const adTechProviderAuthority = function adTechProviderAuthority(
 	const adTechProviderConsents: Record<string, boolean> = {};
 	for (const { id } of providers) {
 		const key = String(id);
-		if (Object.hasOwn(stored, key)) {
+		if (Object.prototype.hasOwnProperty.call(stored, key)) {
 			adTechProviderConsents[key] = stored[key] === true;
 		}
 	}
@@ -278,16 +278,25 @@ export const checkAuthority = async function checkAuthority(
 		for (const vendor of snapshot.iab.customVendors) {
 			const id = String(vendor.id);
 			// Numeric registered vendors are represented only by the TC string.
-			if (Object.hasOwn(snapshot.iab.gvl?.vendors ?? {}, id)) {
+			if (
+				Object.prototype.hasOwnProperty.call(
+					snapshot.iab.gvl?.vendors ?? {},
+					id
+				)
+			) {
 				continue;
 			}
 			Object.defineProperty(vendorConsents, id, {
 				enumerable: true,
-				value: customConsents[id] === true && Object.hasOwn(customConsents, id),
+				value:
+					customConsents[id] === true &&
+					Object.prototype.hasOwnProperty.call(customConsents, id),
 			});
 			Object.defineProperty(vendorLegitimateInterests, id, {
 				enumerable: true,
-				value: customLI[id] === true && Object.hasOwn(customLI, id),
+				value:
+					customLI[id] === true &&
+					Object.prototype.hasOwnProperty.call(customLI, id),
 			});
 		}
 		const authority: KernelIABAuthority = {

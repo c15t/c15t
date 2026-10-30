@@ -89,7 +89,8 @@ export const equalConfig = (
 		keys.length === configKeys(next).length &&
 		keys.every(
 			(key) =>
-				Object.hasOwn(next, key) && equalConfig(previous[key], next[key], seen)
+				Object.prototype.hasOwnProperty.call(next, key) &&
+				equalConfig(previous[key], next[key], seen)
 		)
 	);
 };

@@ -306,9 +306,9 @@ const handleToolbarKeyDown = function handleToolbarKeyDown(
 	} else if (event.key === 'ArrowLeft') {
 		next = items[(index - 1 + items.length) % items.length];
 	} else if (event.key === 'Home') {
-		next = items.at(0);
+		[next] = items;
 	} else if (event.key === 'End') {
-		next = items.at(-1);
+		next = items[items.length - 1];
 	}
 	if (!next) {
 		return;

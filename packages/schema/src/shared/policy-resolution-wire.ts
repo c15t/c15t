@@ -251,7 +251,9 @@ const unsupported = function unsupported(message: string): WireProblem {
 };
 
 const own = function own(value: Record<string, unknown>, key: string): unknown {
-	return Object.hasOwn(value, key) ? value[key] : undefined;
+	return Object.prototype.hasOwnProperty.call(value, key)
+		? value[key]
+		: undefined;
 };
 
 const readObject = function readObject(
@@ -552,7 +554,7 @@ const readMatched = function readMatched(
 
 const readWire = function readWire(input: unknown): PolicyResolution {
 	const raw = readObject(input, 'policyResolution', WIRE_KEYS);
-	if (!Object.hasOwn(raw, 'version')) {
+	if (!Object.prototype.hasOwnProperty.call(raw, 'version')) {
 		throw invalid('policyResolution.version is required');
 	}
 	if (own(raw, 'version') !== POLICY_CONTRACT_VERSION) {

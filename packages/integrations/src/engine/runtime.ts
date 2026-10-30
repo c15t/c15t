@@ -476,7 +476,7 @@ const executeStep = function executeStep(step: ManifestStep): void {
 
 						return (...args: unknown[]) => {
 							const callback =
-								typeof args.at(-1) === 'function'
+								typeof args[args.length - 1] === 'function'
 									? (args.pop() as (result: unknown) => void)
 									: undefined;
 

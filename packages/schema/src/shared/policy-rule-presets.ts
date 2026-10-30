@@ -1,3 +1,4 @@
+import { copyPlainData } from './copy-plain-data';
 import { legacyPresetMaterial } from './legacy-preset-material';
 import type { PolicyRule, PolicyRuleReview } from './policy-rule';
 import { policyMatchers } from './policy-runtime';
@@ -157,21 +158,21 @@ const quebecRule = function quebecRule(): PolicyRule {
 const europeOptInPreset = function europeOptInPreset(): PolicyRule {
 	return {
 		...europeRule('opt-in'),
-		legacyMaterial: structuredClone(legacyPresetMaterial.europeOptIn),
+		legacyMaterial: copyPlainData(legacyPresetMaterial.europeOptIn),
 	};
 };
 
 const europeIabPreset = function europeIabPreset(): PolicyRule {
 	return {
 		...europeRule('iab'),
-		legacyMaterial: structuredClone(legacyPresetMaterial.europeIab),
+		legacyMaterial: copyPlainData(legacyPresetMaterial.europeIab),
 	};
 };
 
 const quebecOptInPreset = function quebecOptInPreset(): PolicyRule {
 	return {
 		...quebecRule(),
-		legacyMaterial: structuredClone(legacyPresetMaterial.quebecOptIn),
+		legacyMaterial: copyPlainData(legacyPresetMaterial.quebecOptIn),
 	};
 };
 
@@ -507,11 +508,11 @@ export const policyRulePresets: PolicyRulePresets = {
 		),
 	californiaOptIn: () => ({
 		...californiaRule('opt-in'),
-		legacyMaterial: structuredClone(legacyPresetMaterial.californiaOptIn),
+		legacyMaterial: copyPlainData(legacyPresetMaterial.californiaOptIn),
 	}),
 	californiaOptOut: () => ({
 		...californiaRule('opt-out'),
-		legacyMaterial: structuredClone(legacyPresetMaterial.californiaOptOut),
+		legacyMaterial: copyPlainData(legacyPresetMaterial.californiaOptOut),
 	}),
 	canadaOptIn: () => canadaRule('opt-in'),
 	canadaOptOut: () => canadaRule('opt-out'),
@@ -768,7 +769,7 @@ export const policyRulePresets: PolicyRulePresets = {
 	worldNone: () => worldNoneRule(),
 	worldOptOutNoPrompt: () => ({
 		...worldOptOutNoPromptRule(),
-		legacyMaterial: structuredClone(legacyPresetMaterial.worldOptOutNoPrompt),
+		legacyMaterial: copyPlainData(legacyPresetMaterial.worldOptOutNoPrompt),
 	}),
 };
 

@@ -170,7 +170,10 @@ export const createSaveOutbox = function createSaveOutbox({
 				// A narrowed replay is still this action; disjoint confirmations
 				// sharing its timestamp remain free to retry independently.
 				Object.keys(payload.confirmed.categories).every((category) =>
-					Object.hasOwn(pending.confirmed.categories, category)
+					Object.prototype.hasOwnProperty.call(
+						pending.confirmed.categories,
+						category
+					)
 				)
 		);
 	// What requests wait for after the pre-send macrotask: see `hold()`.

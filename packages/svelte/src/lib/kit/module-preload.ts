@@ -94,7 +94,9 @@ export const injectModulePreloads = function injectModulePreloads(
 		const nonce = ownNonce && NONCE.test(ownNonce) ? ownNonce : pageNonce;
 		const nonceAttribute = nonce ? ` nonce="${nonce}"` : '';
 		for (const token of tokens) {
-			const href = Object.hasOwn(hrefs, token) ? hrefs[token] : undefined;
+			const href = Object.prototype.hasOwnProperty.call(hrefs, token)
+				? hrefs[token]
+				: undefined;
 			if (!isChunkURL(href) || seen.has(href)) {
 				continue;
 			}

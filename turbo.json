@@ -255,7 +255,11 @@
 			"outputs": []
 		},
 		"lint": {
-			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/oxlint.config.ts"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/oxlint.config.ts",
+				"$TURBO_ROOT$/scripts/oxlint-browser-built-ins.mjs"
+			],
 			"dependsOn": ["transit"]
 		},
 		"check-types": {

@@ -108,7 +108,9 @@ export const unflattenObject = function unflattenObject(
 			if (k === undefined) {
 				continue;
 			}
-			const existing = Object.hasOwn(current, k) ? current[k] : undefined;
+			const existing = Object.prototype.hasOwnProperty.call(current, k)
+				? current[k]
+				: undefined;
 			if (
 				typeof existing !== 'object' ||
 				existing === null ||

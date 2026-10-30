@@ -98,7 +98,7 @@ const survivesJSON = function survivesJSON(value: unknown): boolean {
 	const prototype = Object.getPrototypeOf(value);
 	return (
 		(prototype === Object.prototype || prototype === null) &&
-		!Object.hasOwn(value, '__proto__') &&
+		!Object.prototype.hasOwnProperty.call(value, '__proto__') &&
 		Object.values(value).every(survivesJSON)
 	);
 };

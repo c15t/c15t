@@ -41,14 +41,18 @@ export const selectTranslationOverride = function selectTranslationOverride(
 	if (!overrides) {
 		return undefined;
 	}
-	const exact = Object.hasOwn(overrides, language)
+	const exact = Object.prototype.hasOwnProperty.call(overrides, language)
 		? overrides[language]
 		: undefined;
 	if (exact) {
 		return exact;
 	}
 	const primary = language.split('-')[0]?.toLowerCase();
-	if (primary && primary !== language && Object.hasOwn(overrides, primary)) {
+	if (
+		primary &&
+		primary !== language &&
+		Object.prototype.hasOwnProperty.call(overrides, primary)
+	) {
 		return overrides[primary];
 	}
 	return undefined;

@@ -216,7 +216,7 @@ const mergeInitTranslations = function mergeInitTranslations(
 const readInitResolution = function readInitResolution(
 	response: InitResponse
 ): PolicyResolution {
-	if (Object.hasOwn(response, 'policyResolution')) {
+	if (Object.prototype.hasOwnProperty.call(response, 'policyResolution')) {
 		return readPolicyResolutionWire(response.policyResolution);
 	}
 	return { policy: null, reason: 'invalid-payload', status: 'failed' };

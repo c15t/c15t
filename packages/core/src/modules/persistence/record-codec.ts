@@ -518,7 +518,7 @@ const parseBooleanMap = function parseBooleanMap(
 			issues.push({ code: 'malformed-encoding', path: entryPath });
 			continue;
 		}
-		if (Object.hasOwn(map, id)) {
+		if (Object.prototype.hasOwnProperty.call(map, id)) {
 			issues.push({ code: 'duplicate-key', path: entryPath });
 			continue;
 		}
