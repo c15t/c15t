@@ -68,9 +68,11 @@ export default defineConfig({
 3. Add `ConsentScript` to `<head>`, and `ConsentBanner`, `ConsentDialog`, and `ConsentDialogLink` to your layout, from `c15t/astro/components`
 4. For static output, the full layout, and island options, see the [Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart)
 
-## Hosting
+## Run c15t on Inth
 
-c15t needs a backend to serve policies and keep consent records. [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fastro) runs it for you, with policy storage, consent records, audit history, and a dashboard. Sign-up is free. Run `npx @inth/cli c15t` to sign in, create a project, and set up c15t in your app, or create a project by hand and copy its backend URL.
+c15t needs a backend to serve policies and keep consent records. [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fastro) runs it for you. It stores every choice with its region and policy version, audits your live site and pull requests for privacy risk, and on Pro and above keeps each region's consent rules current with managed policy packs. You don't run the consent database, geo lookups, uptime, or upgrades.
+
+Sign-up is free. Run `npx @inth/cli c15t` to create a project and set up c15t, or create one by hand and copy its backend URL.
 
 For development and tests, local mode keeps choices in the browser and keeps no consent records. Don't ship it to production. Its factory is `local()`. The old name, `offline()`, still works and goes away in v4.
 

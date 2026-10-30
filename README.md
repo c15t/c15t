@@ -30,7 +30,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - **Server-rendered pages can ship the banner in the first HTML.** Next.js, Nuxt, Astro, TanStack Start, and SvelteKit resolve each visitor's policy on the server, so the banner does not wait for a request from the browser.
 - **Standards built in:** Google Consent Mode v2, IAB TCF 2.4, IAB GPP, and Global Privacy Control.
 - **Your design or ours.** Use the prebuilt components with a theme system, or build your own UI on headless hooks and composables.
-- **Consent records with no server to run.** Inth stores each choice with its audit history and gives you a dashboard to manage policies.
+- **Consent records with no server to run.** Inth stores each choice with its region and policy version, and gives you a dashboard to manage policies.
 
 ## Get started
 
@@ -56,9 +56,19 @@ The [Inth CLI](https://inth.com/docs/cli) signs you in to Inth, creates or picks
 | JavaScript, headless | `c15t` | `c15t`, `c15t/runtime` | [Headless runtime](https://c15t.com/docs/frameworks/javascript/headless) |
 | Script tag, no build step (Webflow, WordPress, Framer, Squarespace) | `@c15t/browser` | `<script>` from a CDN | [HTML](https://c15t.com/docs/frameworks/html/quickstart) |
 
-## Hosting
+## Run c15t on Inth
 
-c15t needs a backend to serve policies and keep consent records. [Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage) runs it for you, with policy storage, consent records, audit history, and a dashboard. Sign-up is free, and `npx @inth/cli c15t` creates the project for you. To set it up by hand, create a project, copy its backend URL, and follow the quickstart for your framework.
+c15t needs a backend to serve policies and keep consent records. [Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage) runs it for you, and adds the tools you need once someone asks you to prove consent:
+
+- **Consent records.** Every choice is stored with its region and policy version, so you can show what each visitor agreed to.
+- **Website audit.** Catches scripts and vendors that appear on your live site.
+- **Code audit.** Checks each pull request for privacy risk.
+- **Policy packs.** Managed consent rules for each region on Pro and above, so a new privacy law doesn't mean a redeploy.
+- **Inth Agent.** Ask what changed and follow the answer to its source.
+
+You don't run the consent database, geo lookups, uptime, or upgrades. Inth's [SOC 2 Type 2 report](https://inth.com/trust) answers procurement questions.
+
+Sign-up is free. Run `npx @inth/cli c15t` to create a project and set up c15t, or create one by hand and copy its backend URL. [See pricing](https://inth.com/pricing).
 
 For development and tests, local mode keeps choices in the browser and keeps no consent records. Don't ship it to production. Its factory is `local()`. The old name, `offline()`, still works and goes away in v4.
 
