@@ -41,13 +41,9 @@ const SOCIAL_PROOF_LINE =
  */
 const renderHostingSection = (npmBadgeName: string) => `## Hosting
 
-c15t needs somewhere to keep policies and consent records. Pick one:
+c15t needs a backend to serve policies and keep consent records. [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName}) runs it for you, with policy storage, consent records, audit history, and a dashboard. Sign-up is free. Run \`npx @inth/cli c15t\` to sign in, create a project, and set up c15t in your app, or create a project by hand and copy its backend URL.
 
-- **Hosted on [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName})**: Inth runs the backend for you. You get policy storage, consent records, audit history, and a dashboard, with no database or server to run. Sign-up is free.
-- **Self-hosted**: Run [\`@c15t/backend\`](https://www.npmjs.com/package/@c15t/backend) on your own server with PostgreSQL, MySQL, or SQLite. You own migrations, backups, and uptime. See the [self-hosting guide](https://c15t.com/docs/self-host/quickstart).
-- **Offline**: Choices stay in the browser, with no consent records. Use it for local development, previews, and demos, not production.
-
-The frontend code is the same for Inth and a self-hosted backend. Only the backend URL changes.`;
+For development and tests, local mode keeps choices in the browser and keeps no consent records. Don't ship it to production. Its factory is \`local()\`. The old name, \`offline()\`, still works and goes away in v4.`;
 
 // Types
 interface PackageReadmeConfig {

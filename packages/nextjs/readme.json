@@ -15,7 +15,7 @@
 		"Next.js 15 or 16",
 		"React 18 or 19",
 		"Node.js 20.19 or later",
-		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests"
+		"An [Inth project](https://inth.com) (free sign-up). For development and tests, local mode needs no backend"
 	],
 	"manualInstallation": [
 		"",

@@ -12,7 +12,7 @@
 	],
 	"prerequisites": [
 		"A page where you can add a `<script>` tag",
-		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests"
+		"An [Inth project](https://inth.com) (free sign-up). For development and tests, local mode needs no backend"
 	],
 	"manualInstallation": [
 		"",
@@ -37,7 +37,7 @@
 	"quickStartLink": "https://c15t.com/docs/frameworks/html/quickstart",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Which Script to Load": "| File | Use it for |\n| --- | --- |\n| `c15t.js` | Inth or a self-hosted backend. Set `data-backend-url`. A self-hosted backend also serves a preconfigured script at `/c15t.js` |\n| `c15t.local.js` | Local mode, for development and tests: choices stay in the browser, with local policy rules, and c15t keeps no server-side record of consent. Before 3.2.0 this file was `c15t.offline.js` |\n| `c15t.headless.js` | The runtime without UI, for your own banner. Can inline or fetch the backend's cacheable `/manifest` |\n| `c15t.iab.js` | IAB TCF 2.4. Configure `iab` with your registered CMP ID and vendor list. See the [IAB example](https://c15t.com/docs/frameworks/html/iab) |\n| `c15t.devtools.js` | A DevTools panel, with a Location tab to try policies by region |\n| `c15t.gpp.js` | IAB GPP (`__gpp`) for US state opt-outs. Also available as `mountGPP` from `@c15t/browser/gpp` |"
+		"Which Script to Load": "| File | Use it for |\n| --- | --- |\n| `c15t.js` | Production, with Inth. Set `data-backend-url` to your project's backend URL |\n| `c15t.local.js` | Local mode, for development and tests: choices stay in the browser, with local policy rules, and c15t keeps no server-side record of consent. Before 3.2.0 this file was `c15t.offline.js` |\n| `c15t.headless.js` | The runtime without UI, for your own banner. Can inline or fetch the backend's cacheable `/manifest` |\n| `c15t.iab.js` | IAB TCF 2.4. Configure `iab` with your registered CMP ID and vendor list. See the [IAB example](https://c15t.com/docs/frameworks/html/iab) |\n| `c15t.devtools.js` | A DevTools panel, with a Location tab to try policies by region |\n| `c15t.gpp.js` | IAB GPP (`__gpp`) for US state opt-outs. Also available as `mountGPP` from `@c15t/browser/gpp` |"
 	},
 	"showHosting": true
 }

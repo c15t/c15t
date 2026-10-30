@@ -22,7 +22,7 @@ The guide uses [Inth](https://inth.com) for policies and consent records.
    origins.
 3. Copy the project's backend URL.
 
-A self-hosted backend or local mode works too; see
+For development and tests, local mode needs no backend; see
 [other setups](#other-setups).
 
 The guide uses `hosted()` mode. The browser asks your backend for each
@@ -136,9 +136,6 @@ opt-in in Europe and unknown locations, use opt-out in US privacy states, and
 show no banner where no consent law applies. Pass `local({ policyRules })` to use your own.
 [Data fetching](/docs/concepts/data-fetching#when-should-i-use-local-mode)
 explains the trade-offs.
-
-**A self-hosted backend** uses the same setup with your own backend URL. See
-[self-hosting](/docs/self-host/overview).
 
 **A bundled policy** with `manifest()` saves the `/init` request in a few
 cases; see [bundle the policy at build time](#bundle-the-policy-at-build-time).

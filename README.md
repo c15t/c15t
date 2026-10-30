@@ -20,7 +20,7 @@ c15t is the open standard for cookie banners. It's an open-source cookie consent
 
 c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, unkey.dev, mintlify.com, and sazabi.com.
 
-**[Docs](https://c15t.com/docs)** · **[Hosted on Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage)** · **[Discord](https://c15t.link/discord)**
+**[Docs](https://c15t.com/docs)** · **[Sign up for Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage)** · **[Discord](https://c15t.link/discord)**
 
 ## Why c15t
 
@@ -30,7 +30,15 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - **Server-rendered pages can ship the banner in the first HTML.** Next.js, Nuxt, Astro, TanStack Start, and SvelteKit resolve each visitor's policy on the server, so the banner does not wait for a request from the browser.
 - **Standards built in:** Google Consent Mode v2, IAB TCF 2.4, IAB GPP, and Global Privacy Control.
 - **Your design or ours.** Use the prebuilt components with a theme system, or build your own UI on headless hooks and composables.
-- **Your data where you want it.** Keep consent records on Inth, on a backend you run, or in the browser only.
+- **Consent records with no server to run.** Inth stores each choice with its audit history and gives you a dashboard to manage policies.
+
+## Get started
+
+```bash
+npx @inth/cli c15t
+```
+
+The [Inth CLI](https://inth.com/docs/cli) signs you in to Inth, creates or picks a project, and sets up c15t in your app. Then pick how. A coding agent fits c15t to your layout and moves your analytics behind consent. `inth c15t scaffold` writes your framework's quickstart files instead. Add `--claude`, `--codex`, `--cursor`, or `--grok` to go straight to that agent.
 
 ## Supported Frameworks
 
@@ -48,15 +56,11 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 
 ## Hosting
 
-c15t needs somewhere to keep policies and consent records. Pick one:
+c15t needs a backend to serve policies and keep consent records. [Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage) runs it for you, with policy storage, consent records, audit history, and a dashboard. Sign-up is free, and `npx @inth/cli c15t` creates the project for you. To set it up by hand, create a project, copy its backend URL, and follow the quickstart for your framework.
 
-- **Hosted on [Inth](https://inth.com?utm_source=github&utm_medium=repo_homepage)**: Inth runs the backend for you. You get policy storage, consent records, audit history, and a dashboard, with no database or server to run. Sign-up is free.
-- **Self-hosted**: Run [`@c15t/backend`](./packages/backend) on your own server with PostgreSQL, MySQL, or SQLite. You own migrations, backups, and uptime. See the [self-hosting guide](https://c15t.com/docs/self-host/quickstart).
-- **Offline**: Choices stay in the browser, with no consent records. Use it for local development, previews, and demos, not production.
+For development and tests, local mode keeps choices in the browser and keeps no consent records. Don't ship it to production. Its factory is `local()`. The old name, `offline()`, still works and goes away in v4.
 
-The frontend code is the same for Inth and a self-hosted backend. Only the backend URL changes.
-
-## Example
+## Manual setup
 
 A Next.js App Router app with the prebuilt banner, the preference dialog, and PostHog held until the visitor allows measurement. Install c15t and the vendor loaders:
 
@@ -64,7 +68,7 @@ A Next.js App Router app with the prebuilt banner, the preference dialog, and Po
 pnpm add c15t @c15t/integrations
 ```
 
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your Inth backend URL in `.env.local`, then add three files:
+[Create an Inth project](https://inth.com?utm_source=github&utm_medium=repo_homepage) and set `NEXT_PUBLIC_C15T_BACKEND_URL` to its backend URL in `.env.local`. Then add three files:
 
 ```ts
 // next.config.ts
@@ -158,13 +162,10 @@ YouTube and Google Maps use consent-gated embeds with no extra package. The [Def
 | [`@c15t/iab`](./packages/iab) | IAB TCF 2.4 and GPP for programmatic advertising | <a href="https://www.npmjs.com/package/@c15t/iab"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/iab.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/iab.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 | [`@c15t/translations`](./packages/translations) | Banner and dialog text in 53 languages | <a href="https://www.npmjs.com/package/@c15t/translations"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/translations.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/translations.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 | [`@c15t/ui`](./packages/ui) | The primitives, CSS, and theme tokens behind the c15t components | <a href="https://www.npmjs.com/package/@c15t/ui"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/ui.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/ui.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-| [`@c15t/backend`](./packages/backend) | The self-hosted consent backend, for PostgreSQL, MySQL, or SQLite | <a href="https://www.npmjs.com/package/@c15t/backend"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/backend.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/backend.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 | [`@c15t/node-sdk`](./packages/node-sdk) | Read and write consent records from your server | <a href="https://www.npmjs.com/package/@c15t/node-sdk"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/node-sdk.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/node-sdk.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 | [`@c15t/dev-tools`](./packages/dev-tools) | Inspect consent state while you develop | <a href="https://www.npmjs.com/package/@c15t/dev-tools"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/dev-tools.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/dev-tools.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 | [`@c15t/schema`](./packages/schema) | Valibot schemas and TypeScript types for the consent API | <a href="https://www.npmjs.com/package/@c15t/schema"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/schema.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/schema.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
 | [`@c15t/logger`](./packages/logger) | The structured logger that c15t packages use | <a href="https://www.npmjs.com/package/@c15t/logger"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/@c15t/logger.svg?variant=outline&size=sm&mode=dark"><img src="https://shieldcn.dev/npm/@c15t/logger.svg?variant=outline&size=sm&mode=light" alt="npm"></picture></a> |
-
-To set up c15t from the terminal, run `inth c15t` from the [Inth CLI](https://c15t.com/docs/cli/overview). It starts your coding agent with the c15t setup prompt or writes your framework's quickstart files.
 
 [`@c15t/scripts`](./packages/scripts) is deprecated. It re-exports `@c15t/integrations` for older imports and goes away in v4.
 
