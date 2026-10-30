@@ -103,6 +103,7 @@ export default defineConfig({
 					index: './src/index.ts',
 					offline: './src/offline.ts',
 					'postcss-tailwind3': './src/postcss-tailwind3.ts',
+					prefetch: './src/prefetch.ts',
 				},
 			},
 		},
