@@ -17,7 +17,9 @@ describe('databuddy', () => {
 
 		expect(script.alwaysLoad).toBeUndefined();
 		expect(script.category).toBe('measurement');
-		expect(script.src).toBe('https://cdn.databuddy.cc/databuddy.js');
+		expect(script.src).toBe(
+			'https://cdn.databuddy.cc/databuddy.2026-10-30.1.js'
+		);
 	});
 
 	it('seeds the client ID, API URL and disabled flag when no configs are passed', () => {
@@ -84,6 +86,25 @@ describe('databuddy', () => {
 		});
 	});
 
+	it('loads a custom script URL without the pinned integrity', () => {
+		const script = databuddy({
+			clientId: 'db_123',
+			scriptUrl: 'https://example.com/databuddy.js',
+		});
+
+		expect(script.src).toBe('https://example.com/databuddy.js');
+		expect(script.attributes).not.toHaveProperty('integrity');
+	});
+
+	it('loads another version without the pinned integrity', () => {
+		const script = databuddy({ clientId: 'db_123', version: '2026-10-01.1' });
+
+		expect(script.src).toBe(
+			'https://cdn.databuddy.cc/databuddy.2026-10-01.1.js'
+		);
+		expect(script.attributes).not.toHaveProperty('integrity');
+	});
+
 	it('sets a data attribute for each feature switch', () => {
 		const script = databuddy({
 			clientId: 'db_123',
@@ -103,6 +124,8 @@ describe('databuddy', () => {
 			'data-track-interactions': 'false',
 			'data-track-outgoing-links': 'true',
 			'data-track-web-vitals': 'false',
+			integrity:
+				'sha384-xXKfqQUu53gQi7i1OUzZ1t/rlpkyILPqMsDxO4MQH70gAX/yiDVUj1JogQaW0M2s',
 		});
 	});
 
@@ -127,11 +150,15 @@ describe('databuddy', () => {
 		});
 
 		expect(script.alwaysLoad).toBe(true);
-		expect(script.src).toBe('https://cdn.databuddy.cc/databuddy.js');
+		expect(script.src).toBe(
+			'https://cdn.databuddy.cc/databuddy.2026-10-30.1.js'
+		);
 		expect(script.attributes).toEqual({
 			crossorigin: 'anonymous',
 			'data-api-url': 'https://basket.databuddy.cc',
 			'data-client-id': 'db_123',
+			integrity:
+				'sha384-xXKfqQUu53gQi7i1OUzZ1t/rlpkyILPqMsDxO4MQH70gAX/yiDVUj1JogQaW0M2s',
 		});
 
 		script.onBeforeLoad?.(

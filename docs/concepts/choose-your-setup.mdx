@@ -1,6 +1,6 @@
 ---
 title: Choose your setup
-description: Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
+description: Pick the c15t setup for your framework and rendering mode, and set up the consent backend on Inth.
 group: concepts
 ---
 
@@ -39,16 +39,15 @@ to the alternatives it rules out.
 Solid has no c15t adapter. Use the [headless runtime](/docs/frameworks/javascript/headless#use-c15t-with-solid)
 and subscribe to it from your components.
 
-## Decide who runs the consent backend
+## Set up the consent backend
 
 The backend supplies policies and stores consent records. Every setup above
-works with each option; only the URL changes.
+uses [Inth](https://inth.com), and sign-up is free. Create the project before
+you write any code.
 
-| Option | Use it when |
-| --- | --- |
-| [Inth](https://inth.com) | You want hosted policies and consent records. The guides use this. |
-| [Self-hosted c15t backend](/docs/self-host/overview) | You need to run the service and its database yourself. |
-| [Local mode](/docs/concepts/modes#local) | Local development and tests. Policies live in your code and choices stay in the browser. c15t keeps no server-side record of consent. Not recommended for production environments. |
+For development and tests, [local mode](/docs/concepts/modes#local) needs no
+backend. Policies live in your code and choices stay in the browser. c15t keeps
+no server-side record of consent, so don't ship local mode to production.
 
 To use Inth, create a project, set its policy rules, add your site's origin to
 its trusted origins, and copy the backend URL. The guides use the placeholder

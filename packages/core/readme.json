@@ -11,7 +11,7 @@
 	],
 	"prerequisites": [
 		"Node.js 20.19 or later",
-		"An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests"
+		"An [Inth project](https://inth.com) (free sign-up). For development and tests, local mode needs no backend"
 	],
 	"manualInstallation": [
 		"",
@@ -32,7 +32,7 @@
 	"githubLink": "https://github.com/c15t/c15t",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Related Packages": "- [c15t](https://www.npmjs.com/package/c15t): this engine plus the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters in one install\n- [@c15t/browser](https://www.npmjs.com/package/@c15t/browser): a stock banner and preference dialog for plain JavaScript and script-tag sites\n- [@c15t/integrations](https://www.npmjs.com/package/@c15t/integrations): consent-aware analytics, tag manager, pixel, and widget loaders\n- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): the self-hosted consent backend"
+		"Related Packages": "- [c15t](https://www.npmjs.com/package/c15t): this engine plus the React, Next.js, Vue, Nuxt, Astro, and TanStack Start adapters in one install\n- [@c15t/browser](https://www.npmjs.com/package/@c15t/browser): a stock banner and preference dialog for plain JavaScript and script-tag sites\n- [@c15t/integrations](https://www.npmjs.com/package/@c15t/integrations): consent-aware analytics, tag manager, pixel, and widget loaders"
 	},
 	"showHosting": true
 }

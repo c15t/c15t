@@ -38,7 +38,7 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Next.js 15 or 16
 - React 18 or 19
 - Node.js 20.19 or later
-- An [Inth project](https://inth.com) (free sign-up), a [self-hosted backend](https://c15t.com/docs/self-host/quickstart), or local mode for development and tests
+- An [Inth project](https://inth.com) (free sign-up). For development and tests, local mode needs no backend
 
 ## Installation
 
@@ -113,15 +113,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 5. For the full setup, see the [Next.js quickstart](https://c15t.com/docs/frameworks/next/quickstart)
 
-## Hosting
+## Run c15t on Inth
 
-c15t needs somewhere to keep policies and consent records. Pick one:
+c15t needs a backend to serve policies and keep consent records. [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnextjs) runs it for you. It stores every choice with its region and policy version, audits your live site and pull requests for privacy risk, and on Pro and above keeps each region's consent rules current with managed policy packs. You don't run the consent database, geo lookups, uptime, or upgrades.
 
-- **Hosted on [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnextjs)**: Inth runs the backend for you. You get policy storage, consent records, audit history, and a dashboard, with no database or server to run. Sign-up is free.
-- **Self-hosted**: Run [`@c15t/backend`](https://www.npmjs.com/package/@c15t/backend) on your own server with PostgreSQL, MySQL, or SQLite. You own migrations, backups, and uptime. See the [self-hosting guide](https://c15t.com/docs/self-host/quickstart).
-- **Offline**: Choices stay in the browser, with no consent records. Use it for local development, previews, and demos, not production.
+Sign-up is free. Run `npx @inth/cli c15t` to create a project and set up c15t, or create one by hand and copy its backend URL.
 
-The frontend code is the same for Inth and a self-hosted backend. Only the backend URL changes.
+For development and tests, local mode keeps choices in the browser and keeps no consent records. Don't ship it to production. Its factory is `local()`. The old name, `offline()`, still works and goes away in v4.
 
 ## Documentation
 

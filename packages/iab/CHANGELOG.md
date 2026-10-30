@@ -1,3 +1,30 @@
+## @c15t/iab@3.2.1
+
+### Consent provider works again in browsers before Safari 15.4
+
+Since 3.0, the consent provider has used `structuredClone`, `Object.hasOwn`,
+`Array.prototype.at` and `Array.prototype.findLast`. Safari 15.4 was the first
+Safari to ship them, and Chrome added them between 92 and 98. Without them, the
+provider failed to mount or the banner did not render: Chrome and Android
+WebView before 98, Firefox before 104, Safari and iOS Safari before 15.4, and
+Samsung Internet before 18.
+
+c15t no longer calls these built-ins in browser code. You can remove a polyfill
+you added only for c15t.
+
+## @c15t/iab@3.2.0
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/iab@3.2.0-canary.0 (canary)
 
 ### Rewrite npm descriptions for search

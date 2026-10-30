@@ -115,6 +115,8 @@ interface DefaultComProbeConsent {
 }
 
 interface DefaultComPixelProbeRuntime {
+	consent?: DefaultComProbeConsent;
+	consentSetterInstalled?: boolean;
 	key?: string;
 	q?: ['setConsent', DefaultComProbeConsent][];
 	setConsent?: (consent: DefaultComProbeConsent) => void;
@@ -390,18 +392,16 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			"The key comes from Default's public homepage Pixel bootstrap; public visibility does not establish collection authorization. Collection endpoints and Vector scripts remain blocked; do not broaden the loader allowlist. This checks Pixel bootstrap, queue drain and real consent-setter installation. It does not validate account configuration, event delivery or complete shutdown after withdrawal. The standalone Forms SDK has no separate probe.",
 		runtimeCheck: () => {
 			const pixel = (window as DefaultComProbeWindow).__defaultPixel__;
-			const setter = pixel?.setConsent;
-			const setterSource =
-				typeof setter === 'function' ? setter.toString() : '';
-			// The downloaded index.js drains q, then installs
-			// f.setConsent=h=>he.setConsent(h). The bootstrap only pushes to q.
+			// The runtime publishes consent state and an installation marker
+			// after replaying q. The bootstrap only queues consent updates.
 			return check(
 				Array.isArray(pixel?.q) &&
 					pixel.q.length === 0 &&
-					typeof setter === 'function' &&
-					setterSource.includes('.setConsent(') &&
-					!setterSource.includes('.push('),
-				'Default Pixel drained its consent queue and installed the upstream consent setter'
+					typeof pixel.setConsent === 'function' &&
+					pixel.consentSetterInstalled === true &&
+					pixel.consent?.analytics === true &&
+					pixel.consent.marketing === true,
+				`Default Pixel queue length=${pixel?.q?.length}; consent setter installed=${pixel?.consentSetterInstalled}; analytics=${pixel?.consent?.analytics}; marketing=${pixel?.consent?.marketing}`
 			);
 		},
 		tier: 'full',
@@ -1327,7 +1327,7 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					disabled: false,
 				},
 			}),
-		loaderUrlSubstring: 'cdn.databuddy.cc/databuddy.js',
+		loaderUrlSubstring: 'cdn.databuddy.cc/databuddy.',
 		runtimeCheck: () =>
 			check(
 				typeof window.databuddy?.track === 'function',

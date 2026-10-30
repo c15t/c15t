@@ -1,3 +1,54 @@
+## @c15t/translations@3.2.1
+
+### Consent provider works again in browsers before Safari 15.4
+
+Since 3.0, the consent provider has used `structuredClone`, `Object.hasOwn`,
+`Array.prototype.at` and `Array.prototype.findLast`. Safari 15.4 was the first
+Safari to ship them, and Chrome added them between 92 and 98. Without them, the
+provider failed to mount or the banner did not render: Chrome and Android
+WebView before 98, Firefox before 104, Safari and iOS Safari before 15.4, and
+Samsung Internet before 18.
+
+c15t no longer calls these built-ins in browser code. You can remove a polyfill
+you added only for c15t.
+
+## @c15t/translations@3.2.0
+
+### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages
+
+`@c15t/translations` now ships consent copy for Japanese (`ja`), Thai
+(`th`), Malay (`ms`), Vietnamese (`vi`), Turkish (`tr`), Tamil (`ta`),
+Telugu (`te`), Marathi (`mr`), Kannada (`kn`), Malayalam (`ml`) and Punjabi
+in Gurmukhi script (`pa`).
+
+Import one with `@c15t/translations/<code>`, or load them all with
+`@c15t/translations/all`. `manifest()` loads them on demand like the other
+languages, and the backend serves them from `/init`.
+
+### Add Arabic, Bangla, Haitian Creole, Korean, Russian, Urdu and Yiddish
+
+`@c15t/translations` now ships consent copy for `ar`, `bn`, `ht`, `ko`,
+`ru`, `ur` and `yi`. Along with the existing Spanish, Chinese, Italian,
+Polish and French, that covers the 12 languages New York State's language
+access law names for state agencies.
+
+Import one with `@c15t/translations/<code>`, or load them all with
+`@c15t/translations/all`. `manifest()` loads them on demand like the other
+languages, and the backend serves them from `/init`.
+
+Arabic, Urdu and Yiddish render right to left.
+
+### Rewrite npm descriptions for search
+
+npm search scores a phrase in the description far above the same words in
+keywords or the README. Each package description now names the phrases
+people search for that package: "cookie banner", "cookie consent manager",
+"consent management platform" and "Google Consent Mode v2" on `c15t`,
+"React cookie banner" on `@c15t/react`, "Vue cookie consent" on `@c15t/vue`,
+and so on. `c15t` keeps "The open standard for cookie banners". Supporting
+packages describe their role in c15t instead of repeating the main
+package's phrases. Keyword lists are shorter. No code changes.
+
 ## @c15t/translations@3.2.0-canary.0 (canary)
 
 ### Add Japanese, Thai, Malay, Vietnamese, Turkish and six Indian languages
