@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "3.2.0",
+	"version": "3.2.1",
 	"description": "Translations for c15t in 53 languages. Typed i18n strings for c15t banners, dialogs and preference centers.",
 	"keywords": [
 		"c15t",
