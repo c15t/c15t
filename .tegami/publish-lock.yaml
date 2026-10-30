@@ -1,123 +1,119 @@
 c15t:release:
-  - branch: main
-    id: npm:@c15t/core
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/iab
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/dev-tools
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/react
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/svelte
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/vue
-    version: 3.2.1
-  - branch: main
-    id: npm:c15t
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/cli
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/tanstack-start
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/schema
-    version: 3.1.2
-  - branch: main
-    id: npm:@c15t/integrations
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/astro
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/scripts
-    version: 3.1.1
-  - branch: main
-    id: npm:@c15t/node-sdk
-    version: 3.2.1
-  - branch: main
-    id: npm:@c15t/ui
-    version: 3.1.1
-  - branch: main
-    id: npm:@c15t/backend
-    version: 3.2.1
-  - branch: main
+  - branch: canary
     id: npm:@c15t/browser
-    version: 3.2.1
-  - branch: main
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/schema
+    version: 3.1.3-canary.0
+  - branch: canary
+    id: npm:@c15t/scripts
+    version: 3.1.2-canary.0
+  - branch: canary
+    id: npm:@c15t/backend
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/tanstack-start
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/svelte
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/cli
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/integrations
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/node-sdk
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/dev-tools
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/vue
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/react
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:c15t
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/astro
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/ui
+    version: 3.1.2-canary.0
+  - branch: canary
+    id: npm:@c15t/iab
+    version: 3.2.2-canary.0
+  - branch: canary
+    id: npm:@c15t/core
+    version: 3.2.2-canary.0
+  - branch: canary
     id: npm:@c15t/nextjs
-    version: 3.2.1
-  - branch: main
+    version: 3.2.2-canary.0
+  - branch: canary
     id: npm:@c15t/translations
-    version: 3.2.1
+    version: 3.2.2-canary.0
 core:changelogs:
   - content: "---\npackages:\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n  \"@c15t/iab\":\n    type: patch\n  \"@c15t/integrations\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/translations\":\n    type: patch\n  \"@c15t/ui\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Consent provider works again in browsers before Safari 15.4\n\nSince 3.0, the consent provider has used `structuredClone`, `Object.hasOwn`,\n`Array.prototype.at` and `Array.prototype.findLast`. Safari 15.4 was the first\nSafari to ship them, and Chrome added them between 92 and 98. Without them, the\nprovider failed to mount or the banner did not render: Chrome and Android\nWebView before 98, Firefox before 104, Safari and iOS Safari before 15.4, and\nSamsung Internet before 18.\n\nc15t no longer calls these built-ins in browser code. You can remove a polyfill\nyou added only for c15t.\n"
     filename: 2026-10-30-no-structured-clone.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: patch\n---\n\n### Load Databuddy scripts with subresource integrity\n\n`databuddy()` now loads date-versioned copies of `databuddy.js` and\n`replay.js` from the `@databuddy/sdk` 3.4.2 release, each with an `integrity`\nattribute. The browser does not run a file that has changed on the CDN. A\ncustom `scriptUrl` or `replay.scriptUrl` loads without `integrity`, as before.\nPass `version` to load another Databuddy release, such as\n`version: '2026-10-01.1'`. Other versions load without `integrity`.\nIf your Content Security Policy lists the exact Databuddy script URLs, allow\nthe new file names under `https://cdn.databuddy.cc/`.\n"
-    filename: 2026-10-30-databuddy-sri.md
-    v: 0.0.0
 core:packages:
   - changelogIds:
       - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/core
-    updated: true
-  - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/iab
-    updated: true
-  - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/dev-tools
-    updated: true
-  - id: npm:@c15t/react
-    updated: true
-  - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/svelte
-    updated: true
-  - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/vue
-    updated: true
-  - id: npm:c15t
-    updated: true
-  - id: npm:@c15t/cli
-    updated: true
-  - id: npm:@c15t/tanstack-start
+    id: npm:@c15t/browser
     updated: true
   - changelogIds:
       - 2026-10-30-no-structured-clone.md
     id: npm:@c15t/schema
     updated: true
-  - changelogIds:
-      - 2026-10-30-databuddy-sri.md
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/integrations
-    updated: true
-  - id: npm:@c15t/astro
-    updated: true
   - id: npm:@c15t/scripts
-    updated: true
-  - id: npm:@c15t/node-sdk
-    updated: true
-  - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/ui
     updated: true
   - id: npm:@c15t/backend
     updated: true
   - id: npm:@c15t/logger
     updated: false
+  - id: npm:@c15t/tanstack-start
+    updated: true
   - changelogIds:
       - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/browser
+    id: npm:@c15t/svelte
+    updated: true
+  - id: npm:@c15t/cli
+    updated: true
+  - changelogIds:
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/integrations
+    updated: true
+  - id: npm:@c15t/node-sdk
+    updated: true
+  - changelogIds:
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/dev-tools
+    updated: true
+  - changelogIds:
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/vue
+    updated: true
+  - id: npm:@c15t/react
+    updated: true
+  - id: npm:c15t
+    updated: true
+  - id: npm:@c15t/astro
+    updated: true
+  - changelogIds:
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/ui
+    updated: true
+  - changelogIds:
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/iab
+    updated: true
+  - changelogIds:
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/core
     updated: true
   - id: npm:@c15t/nextjs
     updated: true
@@ -126,43 +122,43 @@ core:packages:
     id: npm:@c15t/translations
     updated: true
 npm:packages:
-  - distTag: latest
-    id: npm:@c15t/core
-  - distTag: latest
-    id: npm:@c15t/iab
-  - distTag: latest
-    id: npm:@c15t/dev-tools
-  - distTag: latest
-    id: npm:@c15t/react
-  - distTag: latest
-    id: npm:@c15t/svelte
-  - distTag: latest
-    id: npm:@c15t/vue
-  - distTag: latest
-    id: npm:c15t
-  - distTag: latest
-    id: npm:@c15t/cli
-  - distTag: latest
-    id: npm:@c15t/tanstack-start
-  - distTag: latest
-    id: npm:@c15t/schema
-  - distTag: latest
-    id: npm:@c15t/integrations
-  - distTag: latest
-    id: npm:@c15t/astro
-  - distTag: latest
-    id: npm:@c15t/scripts
-  - distTag: latest
-    id: npm:@c15t/node-sdk
-  - distTag: latest
-    id: npm:@c15t/ui
-  - distTag: latest
-    id: npm:@c15t/backend
-  - distTag: latest
-    id: npm:@c15t/logger
-  - distTag: latest
+  - distTag: canary
     id: npm:@c15t/browser
-  - distTag: latest
+  - distTag: canary
+    id: npm:@c15t/schema
+  - distTag: canary
+    id: npm:@c15t/scripts
+  - distTag: canary
+    id: npm:@c15t/backend
+  - distTag: canary
+    id: npm:@c15t/logger
+  - distTag: canary
+    id: npm:@c15t/tanstack-start
+  - distTag: canary
+    id: npm:@c15t/svelte
+  - distTag: canary
+    id: npm:@c15t/cli
+  - distTag: canary
+    id: npm:@c15t/integrations
+  - distTag: canary
+    id: npm:@c15t/node-sdk
+  - distTag: canary
+    id: npm:@c15t/dev-tools
+  - distTag: canary
+    id: npm:@c15t/vue
+  - distTag: canary
+    id: npm:@c15t/react
+  - distTag: canary
+    id: npm:c15t
+  - distTag: canary
+    id: npm:@c15t/astro
+  - distTag: canary
+    id: npm:@c15t/ui
+  - distTag: canary
+    id: npm:@c15t/iab
+  - distTag: canary
+    id: npm:@c15t/core
+  - distTag: canary
     id: npm:@c15t/nextjs
-  - distTag: latest
+  - distTag: canary
     id: npm:@c15t/translations
