@@ -149,8 +149,10 @@ export const resolveTranslations = function resolveTranslations(
 	// the same fallback the app's messages get.
 	const primary = language.split('-')[0]?.toLowerCase();
 	const base =
-		(Object.hasOwn(catalogue, language) ? catalogue[language] : undefined) ??
-		(primary && Object.hasOwn(catalogue, primary)
+		(Object.prototype.hasOwnProperty.call(catalogue, language)
+			? catalogue[language]
+			: undefined) ??
+		(primary && Object.prototype.hasOwnProperty.call(catalogue, primary)
 			? catalogue[primary]
 			: undefined) ??
 		(defaultTranslationConfig.translations.en as TranslationsResponse);

@@ -460,7 +460,7 @@ const applyPii = (client: SentryClient, state: ClientState): void => {
 	if (dataCollection && state.collection) {
 		const denied = deniedDataCollection();
 		for (const field of Object.keys(denied) as (keyof typeof denied)[]) {
-			if (Object.hasOwn(state.collection, field)) {
+			if (Object.prototype.hasOwnProperty.call(state.collection, field)) {
 				dataCollection[field] = state.piiAllowed
 					? state.collection[field]
 					: denied[field];

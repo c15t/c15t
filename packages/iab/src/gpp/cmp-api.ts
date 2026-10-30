@@ -233,7 +233,9 @@ export const createGPPCmpApi = function createGPPCmpApi(
 		}
 		const parsed = readableSection(parameter.slice(0, separator));
 		const name = parameter.slice(separator + 1);
-		const subsection = parsed?.find((entry) => Object.hasOwn(entry, name));
+		const subsection = parsed?.find((entry) =>
+			Object.prototype.hasOwnProperty.call(entry, name)
+		);
 		return subsection ? copyPlainData(subsection[name]) : null;
 	};
 

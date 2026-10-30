@@ -214,7 +214,7 @@ const decodeLegacyCompact = function decodeLegacyCompact(
 		}
 		let current = result;
 		for (const segment of path.slice(0, -1)) {
-			const existing = Object.hasOwn(current, segment)
+			const existing = Object.prototype.hasOwnProperty.call(current, segment)
 				? current[segment]
 				: undefined;
 			if (!isPlainRecord(existing)) {
@@ -222,7 +222,7 @@ const decodeLegacyCompact = function decodeLegacyCompact(
 			}
 			current = current[segment] as Record<string, unknown>;
 		}
-		const leaf = path.at(-1);
+		const leaf = path[path.length - 1];
 		if (leaf === undefined) {
 			continue;
 		}
@@ -506,7 +506,7 @@ export const decodeStoredConsentCandidate =
 			);
 		} else if (
 			isPlainRecord(candidate.value) &&
-			Object.hasOwn(candidate.value, 'version')
+			Object.prototype.hasOwnProperty.call(candidate.value, 'version')
 		) {
 			format = 'v3';
 			result = decodeEnvelope(

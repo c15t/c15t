@@ -42,7 +42,10 @@ const pushClassNames = function pushClassNames(
 	const dictionary = value as ClassDictionary;
 
 	for (const key in dictionary) {
-		if (Object.hasOwn(dictionary, key) && dictionary[key]) {
+		if (
+			Object.prototype.hasOwnProperty.call(dictionary, key) &&
+			dictionary[key]
+		) {
 			tokens.push(key);
 		}
 	}

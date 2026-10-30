@@ -395,3 +395,39 @@ describe('replayEarlyConsentTaps', () => {
 		expect(hidden()).toBe(false);
 	});
 });
+
+// Chrome before 97, Firefox before 104 and Safari before 15.4 lack it.
+describe('replayEarlyConsentTaps without Array#findLast', () => {
+	const { findLast } = Array.prototype;
+	beforeEach(() => {
+		Reflect.deleteProperty(Array.prototype, 'findLast');
+	});
+	afterEach(() => {
+		// oxlint-disable-next-line no-extend-native -- Restores the built-in.
+		Array.prototype.findLast = findLast;
+	});
+
+	test('mounts a banner nobody tapped', () => {
+		const runtime = createRuntime();
+		const stop = replayEarlyConsentTaps(runtime.kernel, {
+			started: () => true,
+		});
+		stop();
+		expect(hidden()).toBe(false);
+	});
+
+	test('replays the last accept or reject, not a later customize', async () => {
+		runScript();
+		renderBanner();
+		tap('accept');
+		tap('customize');
+		const runtime = createRuntime();
+		replayEarlyConsentTaps(runtime.kernel, {
+			started: () => runtime.started,
+		});
+		await startAndInit(runtime);
+		expect(
+			runtime.kernel.getSnapshot().explicitChoice?.categories.marketing
+		).toMatchObject({ value: true });
+	});
+});

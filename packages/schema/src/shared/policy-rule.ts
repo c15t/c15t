@@ -283,7 +283,9 @@ const REVIEW_KEYS = [
 
 /** Own property value, or `undefined` when the key is inherited or absent. */
 const own = function own(value: Record<string, unknown>, key: string): unknown {
-	return Object.hasOwn(value, key) ? value[key] : undefined;
+	return Object.prototype.hasOwnProperty.call(value, key)
+		? value[key]
+		: undefined;
 };
 
 /** Own keys not in the allowlist, including non-enumerable ones. */

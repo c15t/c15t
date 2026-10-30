@@ -1907,7 +1907,8 @@ export const createIAB = function createIAB(
 			Object.fromEntries(
 				Object.entries(choices).filter(
 					([id]) =>
-						Object.hasOwn(iab.gvl?.vendors ?? {}, id) && !customIds.has(id)
+						Object.prototype.hasOwnProperty.call(iab.gvl?.vendors ?? {}, id) &&
+						!customIds.has(id)
 				)
 			);
 		// Legitimate interest a restriction introduces applies until the

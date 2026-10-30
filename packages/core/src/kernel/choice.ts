@@ -114,7 +114,7 @@ const splitSaveInput = function splitSaveInput(
 	if (rawInput === undefined || typeof rawInput !== 'object') {
 		return { input: rawInput, vendors: undefined };
 	}
-	if (!Object.hasOwn(rawInput, 'vendors')) {
+	if (!Object.prototype.hasOwnProperty.call(rawInput, 'vendors')) {
 		return { input: rawInput, vendors: undefined };
 	}
 	const { vendors, ...categories } = rawInput;
@@ -413,7 +413,7 @@ const vendorChoicePayload = function vendorChoicePayload(
 	// granted a vendor they turned off, and a later redeclaration would
 	// split the devices. Locally the gate already ignores it.
 	for (const id of denied) {
-		if (!Object.hasOwn(grants, id)) {
+		if (!Object.prototype.hasOwnProperty.call(grants, id)) {
 			Object.defineProperty(grants, id, {
 				configurable: true,
 				enumerable: true,
@@ -427,7 +427,7 @@ const vendorChoicePayload = function vendorChoicePayload(
 	// vendor, so the grant is explicit rather than left for the backend to
 	// read as an omission.
 	for (const id of previous?.denied ?? []) {
-		if (!Object.hasOwn(grants, id)) {
+		if (!Object.prototype.hasOwnProperty.call(grants, id)) {
 			Object.defineProperty(grants, id, {
 				configurable: true,
 				enumerable: true,
@@ -684,7 +684,7 @@ const validAdditionalConsent = function validAdditionalConsent(
 		consented.every((id) => switches[id] === true) &&
 		new Set(disclosed).size === disclosed.length &&
 		disclosed.length === Object.keys(switches).length &&
-		disclosed.every((id) => Object.hasOwn(switches, id))
+		disclosed.every((id) => Object.prototype.hasOwnProperty.call(switches, id))
 	);
 };
 

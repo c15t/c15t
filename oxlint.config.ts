@@ -58,6 +58,9 @@ const browserPackageFiles = [
 	'vue',
 ].map((name) => `packages/${name}/src/**/*.{js,jsx,ts,tsx}`);
 
+const noStructuredClone =
+	'Chrome < 98, Firefox < 94 and Safari < 15.4 lack it. Use the package copyPlainData helper.';
+
 // These rules reported existing violations during the migration. Every
 // Ultracite rule not listed here was clean and remains enabled as an error.
 // Re-enable deferred rules in focused changes that also fix their violations.
@@ -157,14 +160,49 @@ export default defineConfig({
 		{
 			files: browserPackageFiles,
 			rules: {
+				// Safari 15.4 was the first Safari to ship any of these built-ins.
+				// `scripts/browser-built-ins.test.ts` also catches `.at()` calls,
+				// which a property ban can't tell from fields named `at`.
 				'no-restricted-globals': [
 					'error',
 					{
-						message:
-							'Chrome < 98, Firefox < 94 and Safari < 15.4 lack it. Use the package copyPlainData helper.',
+						message: noStructuredClone,
 						name: 'structuredClone',
 					},
 				],
+				'no-restricted-properties': [
+					'error',
+					{
+						message: noStructuredClone,
+						object: 'globalThis',
+						property: 'structuredClone',
+					},
+					{
+						message: noStructuredClone,
+						object: 'window',
+						property: 'structuredClone',
+					},
+					{
+						message:
+							'Chrome < 93, Firefox < 92 and Safari < 15.4 lack it. Use Object.prototype.hasOwnProperty.call.',
+						object: 'Object',
+						property: 'hasOwn',
+					},
+					{
+						message:
+							'Chrome < 97, Firefox < 104 and Safari < 15.4 lack it. Loop from the end instead.',
+						property: 'findLast',
+					},
+					{
+						message:
+							'Chrome < 97, Firefox < 104 and Safari < 15.4 lack it. Loop from the end instead.',
+						property: 'findLastIndex',
+					},
+				],
+				// Ultracite's preset prefers the built-ins banned above.
+				'prefer-object-has-own': 'off',
+				'unicorn/prefer-at': 'off',
+				'unicorn/prefer-structured-clone': 'off',
 			},
 		},
 		{
@@ -174,8 +212,9 @@ export default defineConfig({
 			],
 			plugins: ['vitest'],
 			rules: {
-				// Tests run on Node, which has structuredClone.
+				// Tests run on Node and current browsers, which have these.
 				'no-restricted-globals': 'off',
+				'no-restricted-properties': 'off',
 				// Loading the plugin also enables its default rules. Adopt only
 				// these two checks from Ultracite's Vitest preset for now.
 				...Object.fromEntries(

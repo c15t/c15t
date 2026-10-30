@@ -132,7 +132,10 @@ export const migrateLegacyTranslationKeys =
 	function migrateLegacyTranslationKeys<
 		TranslationsType extends Partial<Translations>,
 	>(translations: TranslationsType): TranslationsType {
-		if (!isPlainObject(translations) || !Object.hasOwn(translations, 'frame')) {
+		if (
+			!isPlainObject(translations) ||
+			!Object.prototype.hasOwnProperty.call(translations, 'frame')
+		) {
 			return translations;
 		}
 		const { frame, ...rest } = translations;

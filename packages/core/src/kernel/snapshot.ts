@@ -129,7 +129,7 @@ export const buildDraft = function buildDraft(
 	let any = false;
 	for (const category of OPTIONAL_CONSENT_CATEGORIES) {
 		if (
-			Object.hasOwn(input, category) &&
+			Object.prototype.hasOwnProperty.call(input, category) &&
 			typeof input[category] === 'boolean'
 		) {
 			draft[category] = input[category];

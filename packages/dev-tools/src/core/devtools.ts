@@ -252,7 +252,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 						defaults
 					);
 				} else if (
-					Object.hasOwn(input, category) &&
+					Object.prototype.hasOwnProperty.call(input, category) &&
 					typeof input[category] === 'boolean'
 				) {
 					values[category] = input[category];
@@ -266,7 +266,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 			for (const category of getConsentCategories()) {
 				if (
 					category !== 'necessary' &&
-					Object.hasOwn(input, category) &&
+					Object.prototype.hasOwnProperty.call(input, category) &&
 					typeof input[category] === 'boolean'
 				) {
 					draft[category] = input[category];

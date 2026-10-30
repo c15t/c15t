@@ -74,7 +74,9 @@ export const ownValue = function ownValue(
 	value: Record<string, unknown>,
 	key: string
 ): unknown {
-	return Object.hasOwn(value, key) ? value[key] : undefined;
+	return Object.prototype.hasOwnProperty.call(value, key)
+		? value[key]
+		: undefined;
 };
 
 /**

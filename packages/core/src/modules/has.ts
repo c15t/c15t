@@ -202,14 +202,17 @@ export const hasIABConsent = function hasIABConsent(
 		const needsConsent = !needsLI || bases.consent.length > 0;
 		if (
 			needsLI &&
-			(!Object.hasOwn(iab.vendorLegitimateInterests, key) ||
+			(!Object.prototype.hasOwnProperty.call(
+				iab.vendorLegitimateInterests,
+				key
+			) ||
 				iab.vendorLegitimateInterests[key] !== true)
 		) {
 			return false;
 		}
 		if (
 			needsConsent &&
-			(!Object.hasOwn(iab.vendorConsents, key) ||
+			(!Object.prototype.hasOwnProperty.call(iab.vendorConsents, key) ||
 				iab.vendorConsents[key] !== true)
 		) {
 			return false;
@@ -218,17 +221,19 @@ export const hasIABConsent = function hasIABConsent(
 	return (
 		bases.consent.every(
 			(id) =>
-				Object.hasOwn(iab.purposeConsents, id) &&
+				Object.prototype.hasOwnProperty.call(iab.purposeConsents, id) &&
 				iab.purposeConsents[id] === true
 		) &&
 		bases.legitimateInterest.every(
 			(id) =>
-				Object.hasOwn(iab.purposeLegitimateInterests, id) &&
-				iab.purposeLegitimateInterests[id] === true
+				Object.prototype.hasOwnProperty.call(
+					iab.purposeLegitimateInterests,
+					id
+				) && iab.purposeLegitimateInterests[id] === true
 		) &&
 		(target.iabSpecialFeatures ?? []).every(
 			(id) =>
-				Object.hasOwn(iab.specialFeatureOptIns, id) &&
+				Object.prototype.hasOwnProperty.call(iab.specialFeatureOptIns, id) &&
 				iab.specialFeatureOptIns[id] === true
 		)
 	);
@@ -333,7 +338,9 @@ const vendorDeclaration = function vendorDeclaration(
 ): IABVendorDeclaration | undefined {
 	const vendors = snapshot.iab?.gvl?.vendors;
 	const key = String(vendorId);
-	return vendorId !== undefined && vendors && Object.hasOwn(vendors, key)
+	return vendorId !== undefined &&
+		vendors &&
+		Object.prototype.hasOwnProperty.call(vendors, key)
 		? vendors[key]
 		: undefined;
 };
