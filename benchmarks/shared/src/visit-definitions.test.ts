@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -5,6 +7,7 @@ import {
 	describeColdState,
 	formatColdState,
 	savedConsentVisits,
+	storedConsentReadyExpression,
 } from './visit-definitions';
 
 describe('savedConsentVisits', () => {
@@ -161,5 +164,24 @@ describe('describeColdState', () => {
 			browserCache: 'warm',
 			sdkManifestCache: 'not-applicable',
 		});
+	});
+});
+
+describe('storedConsentReadyExpression', () => {
+	it.each([
+		['', null, false],
+		['c15t-other=value', null, false],
+		['c15t=recorded-choice', '[{"attempts":0,"payload":{}}]', false],
+		['other=value; c15t=recorded-choice', null, true],
+	])('checks cookie %s and pending saves %s', (cookie, pending, ready) => {
+		expect(
+			runInNewContext(storedConsentReadyExpression, {
+				document: { cookie },
+				localStorage: {
+					getItem: (key: string) =>
+						key === 'c15t-v3-pending-consent-saves:v1' ? pending : null,
+				},
+			})
+		).toBe(ready);
 	});
 });
