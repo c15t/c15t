@@ -141,6 +141,35 @@ export const Animated = {
 	}),
 };
 
+/** Timing curves are not measured in the host renderer. */
+export const Easing = {
+	bezier:
+		(_x1: number, _y1: number, _x2: number, _y2: number) => (value: number) =>
+			value,
+};
+
+/** Layout changes have no frames in the host renderer. */
+export const LayoutAnimation = {
+	Properties: { scaleY: 'scaleY' },
+	Types: { easeInEaseOut: 'easeInEaseOut' },
+	configureNext: (_config: unknown) => undefined,
+	create: (duration: number, type: string, property: string) => ({
+		duration,
+		property,
+		type,
+	}),
+};
+
+/** Gesture handlers remain attached to their host node. */
+export const PanResponder = {
+	create: (config: Record<string, unknown>) => ({ panHandlers: config }),
+};
+
+/** Explanations do not open an operating system window in a benchmark. */
+export const Alert = {
+	alert: (_title: string, _message?: string, _buttons?: unknown[]) => undefined,
+};
+
 /** `AppState`, always active: nothing here backgrounds the process. */
 export const AppState = {
 	addEventListener: (
@@ -180,8 +209,8 @@ export const BackHandler = {
 
 /** `Platform`, pinned to iOS, which is the surface the contract describes first. */
 export const Platform = {
+	OS: 'ios' as const,
 	Version: '18.0',
-	os: 'ios' as const,
 	select: <SelectedType>(
 		map: Record<string, SelectedType | undefined>
 	): SelectedType | undefined => map.ios ?? map.default,
@@ -238,6 +267,62 @@ export const View = hostComponent('rnbench-view');
 export const ScrollView = hostComponent('rnbench-scroll');
 /** `Switch`, reporting `false` rather than a real thumb position. */
 export const Switch = hostComponent('rnbench-switch');
+/** Search fields keep their input handlers. */
+export const TextInput = hostComponent('rnbench-input');
+
+interface BenchSection<ItemType> {
+	readonly data: readonly ItemType[];
+}
+
+interface BenchSectionListProps<
+	ItemType,
+	SectionType extends BenchSection<ItemType>,
+> {
+	readonly ListEmptyComponent?: ReactNode;
+	readonly ListFooterComponent?: ReactNode;
+	readonly ListHeaderComponent?: ReactNode;
+	readonly keyExtractor: (item: ItemType, index: number) => string;
+	readonly renderItem: (info: {
+		item: ItemType;
+		index: number;
+		section: SectionType;
+	}) => ReactNode;
+	readonly renderSectionFooter?: (info: { section: SectionType }) => ReactNode;
+	readonly renderSectionHeader?: (info: { section: SectionType }) => ReactNode;
+	readonly sections: readonly SectionType[];
+}
+
+/** Render the list's contents so measurements can find its actual controls. */
+export const SectionList = <
+	ItemType,
+	SectionType extends BenchSection<ItemType>,
+>(
+	props: BenchSectionListProps<ItemType, SectionType>
+): ReactNode =>
+	createElement(
+		'rnbench-list',
+		props,
+		props.ListHeaderComponent,
+		props.sections.length === 0
+			? props.ListEmptyComponent
+			: props.sections.map((section, sectionIndex) =>
+					createElement(
+						'rnbench-section',
+						{ key: sectionIndex },
+						props.renderSectionHeader?.({ section }),
+						section.data.map((item, index) =>
+							createElement(
+								'rnbench-row',
+								{ key: props.keyExtractor(item, index) },
+								props.renderItem({ index, item, section })
+							)
+						),
+						props.renderSectionFooter?.({ section })
+					)
+				),
+		props.ListFooterComponent
+	);
+
 /** `Modal`, rendered inline because there is no window to present over. */
 export const Modal = hostComponent('rnbench-modal');
 /** `KeyboardAvoidingView`. */
@@ -266,6 +351,7 @@ export const StyleSheet = {
 		styles: StyleType
 	): StyleType => styles,
 	flatten: (style: unknown): unknown => style,
+	hairlineWidth: 1 / 3,
 };
 
 /**

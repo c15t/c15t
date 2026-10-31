@@ -1,131 +1,197 @@
 /**
- * The words an IAB disclosure is allowed to use, and nothing else.
+ * Copy for the IAB TCF surfaces.
  *
- * The strings are `iab.preferenceCenter`, `iab.common`, and `iab.banner.title`
- * in `packages/translations/src/translations/en.ts`, copied rather than
- * imported: that bundle is a runtime dependency of the web surfaces and this
- * package ships without one, so a phone carries the English the product ships
- * and a host passes {@link ConsentIabDrawerProps.copy} to say anything else.
- *
- * `{count}` stays a placeholder in the templates rather than becoming a
- * function, so an override keeps the same hole to fill and one interpolation
- * rule covers every count on the surface.
- *
- * Three counts are spelled out here instead -- how many purposes, special
- * purposes, and features one partner claims. The web builds that line inline in
- * `vendor-list.tsx` with its own singular and plural, and there is no key for it
- * in the bundle to copy, so the mirror writes the same words the same way.
- *
- * @packageDocumentation
+ * English fallbacks follow `@c15t/translations` (`iab.banner`,
+ * `iab.preferenceCenter`), reworded for an app rather than a website. A host
+ * passes its own strings through `copy` on the IAB components.
  */
 
-/** Every string one disclosure renders. */
+/** Every string the IAB surfaces render. */
 export interface ConsentIabCopy {
-	/** Label for the grant-everything action. */
+	/** Accept every purpose, feature, and partner. */
 	readonly acceptAll: string;
-	/** Label for the control that leaves the disclosure without saving. */
+	/** Accessibility label of the navigation bar's back button. */
+	readonly back: string;
+	/** First-layer body. `{partnerCount}` becomes the number of partners. */
+	readonly bannerDescription: string;
+	/** First-layer heading. */
+	readonly bannerTitle: string;
+	/** Accessibility label of the close button. */
 	readonly close: string;
-	/** Heading over the partners that are absent from the GVL. */
+	/** A partner's consent switch. */
+	readonly consent: string;
+	/** A partner's cookie lifetime row. */
+	readonly cookieLifetime: string;
+	/** Heading over partners not registered with the IAB. */
 	readonly customPartners: string;
-	/** Body of the disclosure, under its heading. */
+	/** A duration of exactly one day. `{count}` becomes 1. */
+	readonly day: string;
+	/** A duration. `{count}` becomes the number of days. */
+	readonly days: string;
+	/** Text under the manage screen's title. */
 	readonly description: string;
-	/** Heading of the locked essential-functions section. */
+	/** Heading over the special purposes, which cannot be refused. */
 	readonly essentialTitle: string;
-	/** Heading over a partner's claimed features. */
+	/** Heading over a purpose's illustrations. */
+	readonly examples: string;
+	/** Heading over the informational features. */
 	readonly features: string;
-	/**
-	 * Explains that features only serve the purposes the subject chooses. Shown
-	 * when the model carries no `featuresStandardText`.
-	 */
+	/** Text under the features when the GVL carries no standard text. */
 	readonly featuresDescription: string;
-	/** Heading of the informational features section. */
-	readonly featuresTitle: string;
-	/** Heading over the partners that are registered with the TCF. */
+	/** Heading over IAB-registered partners. */
 	readonly iabVendors: string;
-	/** Heading of the legitimate-interest leg of a partner's disclosure. */
+	/** A partner's legitimate interest switch. */
 	readonly legitimateInterest: string;
-	/** Short form of that basis, in a partner row's badge. */
-	readonly legitimateInterestShort: string;
-	/** Label for the action that objects to a legitimate-interest claim. */
-	readonly objectButton: string;
-	/** What that action reads once the objection is held. */
-	readonly objected: string;
-	/** How many partners claim a row, in the row's own meta line. */
-	readonly partners: string;
-	/** What a reader hears for a stack whose switches are split. */
+	/** First-layer note about legitimate interest and the right to object. */
+	readonly legitimateInterestNotice: string;
+	/** First-layer action that opens the manage screen. */
+	readonly manage: string;
+	/** Empty search result. `{searchTerm}` becomes the query. */
+	readonly noVendorsFound: string;
+	/** Spoken after a row's title on the button that explains the row. */
+	readonly moreInfo: string;
+	/** Dismisses an explanation alert. */
+	readonly ok: string;
+	/** A stack where some, not all, purposes are allowed. */
 	readonly partiallyEnabled: string;
-	/** The purposes tab, and the heading over a partner's consent claims. */
+	/** A count of exactly one partner. `{count}` becomes 1. */
+	readonly partner: string;
+	/** A partner count. `{count}` becomes the number. */
+	readonly partners: string;
+	/** Heading over the partners that use one purpose. */
+	readonly partnersUsing: string;
+	/** A partner's privacy policy link. */
+	readonly privacyPolicy: string;
+	/** The purposes segment and heading. */
 	readonly purposes: string;
-	/** Label for the deny-everything action. */
+	/** Refuse every purpose, feature, and partner. */
 	readonly rejectAll: string;
-	/** The right a subject holds over a legitimate-interest claim. */
+	/** A partner's data retention row. */
+	readonly retention: string;
+	/** Explanation behind the legitimate interest info button. */
 	readonly rightToObject: string;
-	/** Label for the action that writes the whole selection. */
+	/** Save the switches as they stand. */
 	readonly saveSettings: string;
-	/** Heading over a partner's claimed special features. */
+	/** Placeholder of the partner search field. */
+	readonly search: string;
+	/** Heading over the special features. */
 	readonly specialFeatures: string;
-	/** Heading over a partner's claimed special purposes. */
+	/** Heading over a partner's special purposes. */
 	readonly specialPurposes: string;
-	/** Heading of the disclosure. */
+	/** Heading over a partner's storage facts. */
+	readonly storage: string;
+	/** A partner's device storage disclosure link. */
+	readonly storageDisclosure: string;
+	/** Manage screen heading. */
 	readonly title: string;
-	/** The vendors tab. */
+	/** A partner's non-cookie storage row. */
+	readonly usesNonCookieAccess: string;
+	/** The partners segment. */
 	readonly vendors: string;
 }
 
-/** The English the web surfaces ship. */
+/** English fallbacks. */
 export const ENGLISH_IAB_COPY: ConsentIabCopy = {
 	acceptAll: 'Accept All',
+	back: 'Back',
+	bannerDescription:
+		'We and our {partnerCount} partners store and/or access information on your device and process personal data, such as unique identifiers and usage data, for this app, to:',
+	bannerTitle: 'We value your privacy',
 	close: 'Close',
+	consent: 'Consent',
+	cookieLifetime: 'Cookie lifetime',
 	customPartners: 'Custom Partners',
+	day: '{count} day',
+	days: '{count} days',
 	description:
-		'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.',
+		'Choose which purposes and partners may use your data. You can change this at any time.',
 	essentialTitle: 'Essential Functions (Required)',
+	examples: 'Examples',
 	features: 'Features',
 	featuresDescription:
 		'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
-	featuresTitle: 'Features',
 	iabVendors: 'IAB Registered Vendors',
 	legitimateInterest: 'Legitimate Interest',
-	legitimateInterestShort: 'Leg. Interest',
-	objectButton: 'Object',
-	objected: 'Objected',
+	legitimateInterestNotice:
+		'Some partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time.',
+	manage: 'Manage options',
+	moreInfo: 'More info',
+	noVendorsFound: 'No vendors found matching "{searchTerm}"',
+	ok: 'OK',
 	partiallyEnabled: 'Partially enabled',
+	partner: '{count} partner',
 	partners: '{count} partners',
+	partnersUsing: 'Partners Using This Purpose',
+	privacyPolicy: 'Privacy Policy',
 	purposes: 'Purposes',
 	rejectAll: 'Reject All',
+	retention: 'Data retention',
 	rightToObject:
 		'You have the right to object to processing based on legitimate interest.',
 	saveSettings: 'Save Settings',
+	search: 'Search vendors',
 	specialFeatures: 'Special Features',
 	specialPurposes: 'Special Purposes',
+	storage: 'Storage',
+	storageDisclosure: 'Storage Disclosure',
 	title: 'Privacy Settings',
+	usesNonCookieAccess: 'Non-cookie storage',
 	vendors: 'Vendors',
 };
 
-/** Copy a host passes in, on top of the English. */
+/** Host overrides for any subset of {@link ConsentIabCopy}. */
 export type ConsentIabCopyOverrides = Partial<ConsentIabCopy>;
 
 /**
- * Fill a `{count}` template.
+ * Fill one placeholder in a template.
  *
- * @param template - Copy carrying a `{count}` placeholder.
- * @param count - Number to put in its place.
- * @returns The line as the subject reads it.
+ * @param template - Template holding the placeholder.
+ * @param value - Value to put in its place.
+ * @param placeholder - Placeholder name, without braces.
+ * @returns The filled string.
  */
 export const withCount = function withCount(
 	template: string,
-	count: number
+	value: number | string,
+	placeholder = 'count'
 ): string {
-	return template.replace('{count}', String(count));
+	return template.replace(`{${placeholder}}`, String(value));
 };
 
 /**
- * A heading with the size of the list beside it, the way both tabs and both
- * partner legs write theirs: `Purposes (11)`.
+ * A partner count, singular for one.
  *
- * @param label - The heading's own word.
- * @param count - How many entries follow it.
- * @returns The label and its count.
+ * @param copy - Copy in force.
+ * @param count - Number of partners.
+ * @returns The count in words, as in "1 partner" or "3 partners".
+ */
+export const partnerCount = function partnerCount(
+	copy: ConsentIabCopy,
+	count: number
+): string {
+	return withCount(count === 1 ? copy.partner : copy.partners, count);
+};
+
+/**
+ * A number of days, singular for one.
+ *
+ * @param copy - Copy in force.
+ * @param count - Number of days.
+ * @returns The duration in words, as in "1 day" or "365 days".
+ */
+export const dayCount = function dayCount(
+	copy: ConsentIabCopy,
+	count: number
+): string {
+	return withCount(count === 1 ? copy.day : copy.days, count);
+};
+
+/**
+ * Append a total to a label, as in "Vendors (42)".
+ *
+ * @param label - Label to extend.
+ * @param count - Total to append.
+ * @returns The label with its total.
  */
 export const withTotal = function withTotal(
 	label: string,
@@ -135,45 +201,10 @@ export const withTotal = function withTotal(
 };
 
 /**
- * The meta line under a partner's name: how many of each TCF object it claims.
+ * Merge host overrides onto the English fallbacks.
  *
- * It mirrors the string `vendor-list.tsx` builds -- `4 purposes, 2 special, 1
- * feature` -- including the way it drops a clause that is empty and leaves
- * `special` unpluralised.
- *
- * @param counts - How many of each object the partner claims.
- * @param counts.features - Claimed features.
- * @param counts.purposes - Claimed purposes.
- * @param counts.specialPurposes - Claimed special purposes.
- * @returns The clause, without a trailing comma.
- */
-export const partnerClaims = function partnerClaims(counts: {
-	features: number;
-	purposes: number;
-	specialPurposes: number;
-}): string {
-	const parts = [
-		`${String(counts.purposes)} ${counts.purposes === 1 ? 'purpose' : 'purposes'}`,
-	];
-
-	if (counts.specialPurposes > 0) {
-		parts.push(`, ${String(counts.specialPurposes)} special`);
-	}
-
-	if (counts.features > 0) {
-		parts.push(
-			`, ${String(counts.features)} ${counts.features === 1 ? 'feature' : 'features'}`
-		);
-	}
-
-	return parts.join('');
-};
-
-/**
- * Resolve the copy one disclosure renders.
- *
- * @param overrides - Strings the host wants to write itself.
- * @returns Every string, with the English under any hole.
+ * @param overrides - Host strings.
+ * @returns Copy with every key filled.
  */
 export const resolveIabCopy = function resolveIabCopy(
 	overrides?: ConsentIabCopyOverrides
