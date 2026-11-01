@@ -40,7 +40,12 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       skip_performance: true
-      release_affected: ${{ github.ref == 'refs/heads/canary' }}
+      # Canary always selects checks since the last successful release. Main
+      # keeps full checks, except for a merged version PR: its parent has usually
+      # passed them, and the diff since then is version metadata. Selection
+      # still diffs against the last successful release, so a parent that
+      # failed or is still running stays in range.
+      release_affected: ${{ github.ref == 'refs/heads/canary' || startsWith(github.event.head_commit.message, 'Version Packages') }}
       skip_mobile_device: true
 
   publish:

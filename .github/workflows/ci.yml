@@ -129,8 +129,42 @@ jobs:
         with:
           scope: build
 
+  # Types do not depend on Node, so they run once, beside the test legs rather
+  # than ahead of the Node 24 tests.
+  types:
+    name: Package types
+    permissions:
+      contents: read
+      id-token: write
+    needs: [repository, build]
+    if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          node-version: '24'
+          built: ${{ needs.build.result == 'success' }}
+          cache-scope: types
+      - name: Read selected checks
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ci-plan
+      - name: Check types
+        run: bun scripts/ci-run.ts types
+      - name: Check test types
+        if: ${{ !cancelled() }}
+        run: bun scripts/ci-run.ts testTypes
+      - uses: ./.github/actions/save-turbo-cache
+        if: ${{ success() && github.event_name != 'pull_request' }}
+        with:
+          scope: types
+
   packages:
-    name: Package behavior and types (Node ${{ matrix.node }})
+    name: Package behavior (Node ${{ matrix.node }})
     permissions:
       contents: read
       id-token: write
@@ -139,9 +173,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     # Tests run on each supported Node major, since runtime APIs such as
-    # undici's Request differ between them. Types, coverage and the cache
-    # save do not depend on Node and run once. `C15T_CI_NODE` reaches test
-    # hashes through `transit`, so one leg's cached results never pass another.
+    # undici's Request differ between them. Coverage and the cache save do not
+    # depend on Node and run once. `C15T_CI_NODE` reaches test hashes through
+    # `transit`, so one leg's cached results never pass another.
     strategy:
       fail-fast: false
       matrix:
@@ -163,14 +197,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: ci-plan
-      - name: Check types
-        if: matrix.node == '24'
-        run: bun scripts/ci-run.ts types
-      - name: Check test types
-        if: ${{ !cancelled() && matrix.node == '24' }}
-        run: bun scripts/ci-run.ts testTypes
       - name: Run tests
-        if: ${{ !cancelled() }}
         run: bun scripts/ci-run.ts tests
       - name: Summarize coverage
         if: ${{ !cancelled() && matrix.node == '24' }}
@@ -551,6 +578,7 @@ jobs:
       [
         repository,
         build,
+        types,
         packages,
         backend,
         browser,

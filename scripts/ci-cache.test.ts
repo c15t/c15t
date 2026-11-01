@@ -50,6 +50,7 @@ describe('completed CI task caches', () => {
 		for (const [job, scope, lastCommand] of [
 			['repository', 'repository', 'bun turbo run build:docs'],
 			['build', 'build', 'bun scripts/ci-run.ts build'],
+			['types', 'types', 'bun scripts/ci-run.ts testTypes'],
 			['packages', 'packages', 'bun scripts/ci-run.ts tests'],
 			['backend', 'backend', 'bun turbo run test --filter=@c15t/backend'],
 			[
