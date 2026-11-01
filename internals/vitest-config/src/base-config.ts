@@ -70,6 +70,9 @@ export const baseConfig = defineConfig({
 			reportOnFailure: true,
 			reportsDirectory: './coverage',
 		},
+		// Node 25+ defines a global `localStorage` that is undefined without
+		// `--localstorage-file`, hiding the test DOM's storage.
+		execArgv: ['--no-experimental-webstorage'],
 		maxWorkers,
 	},
 });

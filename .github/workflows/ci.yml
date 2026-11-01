@@ -140,11 +140,14 @@ jobs:
     timeout-minutes: 40
     # Tests run on each supported Node major, since runtime APIs such as
     # undici's Request differ between them. Types, coverage and the cache
-    # save do not depend on Node and run once.
+    # save do not depend on Node and run once. `C15T_CI_NODE` reaches test
+    # hashes through `transit`, so one leg's cached results never pass another.
     strategy:
       fail-fast: false
       matrix:
         node: ['22', '24', '26']
+    env:
+      C15T_CI_NODE: ${{ matrix.node }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -259,6 +262,8 @@ jobs:
       matrix:
         node: ['22', '24', '26']
         integration: ${{ fromJSON(needs.repository.outputs.integrations) }}
+    env:
+      C15T_CI_NODE: ${{ matrix.node }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:

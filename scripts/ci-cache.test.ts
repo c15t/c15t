@@ -22,6 +22,29 @@ describe('completed CI task caches', () => {
 		expect(steps[restore].with.key).toContain('inputs.cache-scope');
 	});
 
+	it('keeps cached test results apart between Node matrix legs', () => {
+		const ci = read('.github/workflows/ci.yml');
+		for (const job of ['packages', 'browser']) {
+			expect(ci.jobs[job].env?.C15T_CI_NODE, job).toBe(`\${{ matrix.node }}`);
+		}
+		// Test tasks depend on `transit`, so its env reaches their hashes
+		// while build hashes stay shared.
+		const turbo = read('turbo.json');
+		expect(turbo.tasks.transit.env).toContain('C15T_CI_NODE');
+		const unkeyed = Object.entries<{
+			cache?: boolean;
+			dependsOn?: string[];
+		}>(turbo.tasks)
+			.filter(
+				([name, task]) =>
+					/^test(?::|$)/u.test(name.split('#').at(-1) ?? '') &&
+					task.cache !== false &&
+					!task.dependsOn?.includes('transit')
+			)
+			.map(([name]) => name);
+		expect(unkeyed).toEqual([]);
+	});
+
 	it('saves each job after its work with a distinct key on every retry', () => {
 		const ci = read('.github/workflows/ci.yml');
 		for (const [job, scope, lastCommand] of [

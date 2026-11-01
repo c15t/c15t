@@ -217,6 +217,8 @@ export default mergeConfig(
 					test: {
 						environment: 'jsdom',
 						exclude: [SSR_TEST_GLOB],
+						// Not extended from the base config; see its `execArgv`.
+						execArgv: ['--no-experimental-webstorage'],
 						include: [
 							'src/**/*.test.ts',
 							'src/**/*.test.svelte.ts',
@@ -235,6 +237,7 @@ export default mergeConfig(
 					},
 					test: {
 						environment: 'node',
+						execArgv: ['--no-experimental-webstorage'],
 						include: [SSR_TEST_GLOB],
 						name: 'ssr',
 					},

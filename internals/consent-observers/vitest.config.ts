@@ -6,6 +6,9 @@ export default defineConfig({
 		// DOM tests opt in per file with `@vitest-environment jsdom`; server
 		// request tests stay on plain Node like a real server render.
 		environment: 'node',
+		// Node 25+ defines a global `localStorage` that is undefined without
+		// `--localstorage-file`, hiding jsdom's storage.
+		execArgv: ['--no-experimental-webstorage'],
 		include: ['tests/**/*.test.{ts,tsx}'],
 		passWithNoTests: false,
 		restoreMocks: true,

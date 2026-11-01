@@ -13,6 +13,9 @@ export default defineConfig({
 		// panel carries its stylesheet as a string, so keep this one real.
 		css: { include: [/dev-tools\.css/u] },
 		environment: 'jsdom',
+		// Node 25+ defines a global `localStorage` that is undefined without
+		// `--localstorage-file`, hiding jsdom's storage.
+		execArgv: ['--no-experimental-webstorage'],
 		include: ['**/__tests__/**/*.test.ts'],
 		mockReset: true,
 	},
