@@ -17,7 +17,7 @@ permissions: {}
 jobs:
   zizmor:
     name: zizmor
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     permissions:
       contents: read
       actions: read

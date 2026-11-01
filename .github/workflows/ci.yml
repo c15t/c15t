@@ -47,7 +47,7 @@ jobs:
       contents: read
       actions: read
       id-token: write
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     outputs:
       build: ${{ steps.plan.outputs.build }}
       packageChecks: ${{ steps.plan.outputs.packageChecks }}
@@ -106,7 +106,7 @@ jobs:
       id-token: write
     needs: repository
     if: needs.repository.outputs.build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -129,25 +129,26 @@ jobs:
         with:
           scope: build
 
-  packages:
-    name: Package behavior and types
+  # Types do not depend on Node, so they run once, beside the test legs rather
+  # than ahead of the Node 24 tests.
+  types:
+    name: Package types
     permissions:
       contents: read
       id-token: write
     needs: [repository, build]
     if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
+          node-version: '24'
           built: ${{ needs.build.result == 'success' }}
-          browsers: ${{ needs.repository.outputs.testBrowsers }}
-          cache-scope: packages
+          cache-scope: types
       - name: Read selected checks
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -157,16 +158,54 @@ jobs:
       - name: Check test types
         if: ${{ !cancelled() }}
         run: bun scripts/ci-run.ts testTypes
+      - uses: ./.github/actions/save-turbo-cache
+        if: ${{ success() && github.event_name != 'pull_request' }}
+        with:
+          scope: types
+
+  packages:
+    name: Package behavior (Node ${{ matrix.node }})
+    permissions:
+      contents: read
+      id-token: write
+    needs: [repository, build]
+    if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
+    timeout-minutes: 40
+    # Tests run on each supported Node major, since runtime APIs such as
+    # undici's Request differ between them. Coverage and the cache save do not
+    # depend on Node and run once. `C15T_CI_NODE` reaches test hashes through
+    # `transit`, so one leg's cached results never pass another.
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24', '26']
+    env:
+      C15T_CI_NODE: ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          node-version: ${{ matrix.node }}
+          built: ${{ needs.build.result == 'success' }}
+          browsers: ${{ needs.repository.outputs.testBrowsers }}
+          cache-scope: packages
+      - name: Read selected checks
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ci-plan
       - name: Run tests
-        if: ${{ !cancelled() }}
         run: bun scripts/ci-run.ts tests
       - name: Summarize coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.node == '24' }}
         env:
           CI_DIFF_BASE: ${{ needs.repository.outputs.baseRef }}
         run: bun scripts/coverage-summary.ts --plan ci-plan.json
       - name: Save coverage and test evidence
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.node == '24' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: package-test-reports
@@ -178,7 +217,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
       - uses: ./.github/actions/save-turbo-cache
-        if: ${{ success() && github.event_name != 'pull_request' }}
+        if: ${{ success() && github.event_name != 'pull_request' && matrix.node == '24' }}
         with:
           scope: packages
 
@@ -189,7 +228,7 @@ jobs:
       id-token: write
     needs: [repository, build]
     if: needs.repository.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     timeout-minutes: 30
     services:
       postgres:
@@ -240,34 +279,38 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    name: Browser integration (${{ matrix.kind }})
+    name: Browser integration (${{ matrix.integration.kind }}, Node ${{ matrix.node }})
     needs: [repository, build]
     if: needs.repository.outputs.integrations != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.repository.outputs.integrations) }}
+        node: ['22', '24', '26']
+        integration: ${{ fromJSON(needs.repository.outputs.integrations) }}
+    env:
+      C15T_CI_NODE: ${{ matrix.node }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
+          node-version: ${{ matrix.node }}
           built: 'true'
           browsers: 'true'
-          cache-scope: browser-${{ matrix.kind }}
+          cache-scope: browser-${{ matrix.integration.kind }}
       - name: Run selected integration contracts
         env:
-          CI_INTEGRATION: ${{ matrix.kind }}
-          CI_TARGETS: ${{ matrix.targets }}
+          CI_INTEGRATION: ${{ matrix.integration.kind }}
+          CI_TARGETS: ${{ matrix.integration.targets }}
         run: bun scripts/ci-browser.ts
       - name: Save browser evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: browser-${{ matrix.kind }}
+          name: browser-${{ matrix.integration.kind }}-node${{ matrix.node }}
           include-hidden-files: true
           path: |
             internals/fixtures/acceptance/artifacts/
@@ -277,13 +320,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - uses: ./.github/actions/save-turbo-cache
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && matrix.node == '24'
         with:
-          scope: browser-${{ matrix.kind }}
+          scope: browser-${{ matrix.integration.kind }}
 
   # Mobile SDK. The native kernels speak their own toolchains, so no JS job can cover
   # them: Swift needs a macOS runner with Xcode, and the Android library assembly needs
-  # the Android SDK, which the GitHub-hosted Ubuntu image ships.
+  # the Android SDK, which Depot's Ubuntu image ships.
   #
   # Cost per selected pull request, with both legs in parallel: roughly 10 minutes of
   # macOS (SwiftPM debug build, two `swift test` runs, then the benchmark run, which
@@ -291,8 +334,9 @@ jobs:
   # projects for the Android byte rows) and roughly 8 minutes of Ubuntu (two Gradle
   # assemblies, the SDK's vitest suite, one benchmark run). The macOS leg is the
   # expensive one: a macOS runner bills roughly eight times an Ubuntu runner, so this
-  # job rather than the browser matrix is what a mobile pull request pays for. Both legs
-  # use GitHub-hosted runners only, so nothing here waits on a self-hosted machine.
+  # job rather than the browser matrix is what a mobile pull request pays for. iOS runs
+  # on a GitHub-hosted macOS runner and Android on a Depot Ubuntu runner (GitHub's
+  # for fork pull requests; see .github/CI.md).
   #
   # Native sources, protocol/spec changes, mobile benchmark inputs and full
   # validation select this job. Affected JavaScript tests run in `packages`.
@@ -314,7 +358,7 @@ jobs:
             runner: macos-latest
           - kind: android-js
             report: mobile-android-js
-            runner: ubuntu-latest
+            runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     env:
       # Xcode versions this job accepts, most preferred first. 27 is the version
       # native/CONTRACT.md and packages/react-native/ios/README.md standardise on, and the
@@ -535,6 +579,7 @@ jobs:
       [
         repository,
         build,
+        types,
         packages,
         backend,
         browser,
@@ -542,7 +587,7 @@ jobs:
         bundle,
         performance,
       ]
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     steps:
       - name: Check selected jobs
         env:

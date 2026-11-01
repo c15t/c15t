@@ -10,7 +10,7 @@
 //   `.ssr.test.ts` run here.
 import { resolve } from 'node:path';
 
-import { baseConfig } from '@c15t/vitest-config/base';
+import { baseConfig, webStorageExecArgv } from '@c15t/vitest-config/base';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { transformWithEsbuild } from 'vite';
 import { defineConfig, mergeConfig } from 'vitest/config';
@@ -217,6 +217,8 @@ export default mergeConfig(
 					test: {
 						environment: 'jsdom',
 						exclude: [SSR_TEST_GLOB],
+						// Not extended from the base config.
+						execArgv: webStorageExecArgv,
 						include: [
 							'src/**/*.test.ts',
 							'src/**/*.test.svelte.ts',
@@ -235,6 +237,7 @@ export default mergeConfig(
 					},
 					test: {
 						environment: 'node',
+						execArgv: webStorageExecArgv,
 						include: [SSR_TEST_GLOB],
 						name: 'ssr',
 					},

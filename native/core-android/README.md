@@ -157,7 +157,7 @@ assemblies only; the device-build group that could host a connected run is advis
 design and builds the example apps against a generic destination with no emulator booted
 and no device attached, so it proves linking and compiling, not behaviour. Making the
 connected suite gating needs a device no hosted runner gives today. Both Android legs of
-`.github/workflows/ci.yml` are `ubuntu-latest`, which exposes no KVM, so neither a boot
+`.github/workflows/ci.yml` are `depot-ubuntu-24.04-4`, which exposes no KVM, so neither a boot
 step in the required `mobile` group nor a promoted `mobileBrowserOrDevice` job can start
 an emulator there. The workable options are a runner with nested virtualization or a
 device cloud, and the second also means dropping that group's advisory status and its

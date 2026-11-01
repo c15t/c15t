@@ -16,6 +16,16 @@ const maxWorkers = process.env.TURBO_HASH
 	? Math.max(2, Math.floor(availableParallelism() / 4))
 	: undefined;
 
+/**
+ * Node 25+ defines a global `localStorage` that is undefined without
+ * `--localstorage-file`, hiding the test DOM's storage. Earlier Node doesn't
+ * need the flag, and Node before 22.4 refuses to start with it.
+ */
+export const webStorageExecArgv =
+	Number.parseInt(process.versions.node, 10) >= 25
+		? ['--no-experimental-webstorage']
+		: [];
+
 // Configure proper output structure for coverage files
 export const baseConfig = defineConfig({
 	test: {
@@ -70,6 +80,7 @@ export const baseConfig = defineConfig({
 			reportOnFailure: true,
 			reportsDirectory: './coverage',
 		},
+		execArgv: webStorageExecArgv,
 		maxWorkers,
 	},
 });

@@ -209,6 +209,7 @@ describe('release validation', () => {
 					needs: [
 						'repository',
 						'build',
+						'types',
 						'packages',
 						'backend',
 						'browser',
@@ -239,16 +240,44 @@ describe('release validation', () => {
 		});
 	});
 
-	it('selects canary release checks since a successful ancestor and keeps full validation full', () => {
-		expect(readWorkflow('release')).toMatchObject({
-			jobs: {
-				checks: {
-					with: {
-						release_affected: `\${{ github.ref == 'refs/heads/canary' }}`,
-					},
-				},
-			},
-		});
+	it.each([
+		{ message: 'fix(core): read params', ref: 'refs/heads/canary', want: true },
+		{ message: undefined, ref: 'refs/heads/canary', want: true },
+		{
+			message: 'Version Packages (#1678)\n\n## Versions',
+			ref: 'refs/heads/main',
+			want: true,
+		},
+		{ message: 'fix(core): read params', ref: 'refs/heads/main', want: false },
+		{
+			message: 'docs: mention Version Packages',
+			ref: 'refs/heads/main',
+			want: false,
+		},
+		// Manual runs carry no head commit.
+		{ message: undefined, ref: 'refs/heads/main', want: false },
+	])(
+		'selects release checks on $ref for "$message": $want',
+		({ message, ref, want }) => {
+			const workflow = readWorkflow('release') as {
+				jobs: { checks: { with: { release_affected: string } } };
+			};
+			const expression = workflow.jobs.checks.with.release_affected
+				.replace(/^\$\{\{/u, '')
+				.replace(/\}\}$/u, '');
+			// Actions' startsWith ignores case and treats null as an empty string.
+			const startsWith = (value: unknown, prefix: string) =>
+				String(value ?? '')
+					.toLowerCase()
+					.startsWith(prefix.toLowerCase());
+			// Actions reads a property of a missing object as null; JavaScript
+			// would throw, so a manual run gets a head commit without a message.
+			const github = { event: { head_commit: { message } }, ref };
+			expect(runInNewContext(expression, { github, startsWith })).toBe(want);
+		}
+	);
+
+	it('feeds release selection into the planner and keeps full validation full', () => {
 		expect(readWorkflow('ci')).toMatchObject({
 			jobs: {
 				repository: {
@@ -363,7 +392,15 @@ describe('release validation', () => {
 		});
 	});
 
-	it.each(['repository', 'build', 'packages', 'backend', 'browser', 'bundle'])(
+	it.each([
+		'repository',
+		'build',
+		'types',
+		'packages',
+		'backend',
+		'browser',
+		'bundle',
+	])(
 		'blocks failed or cancelled %s checks when release benchmarks are skipped',
 		(job) => {
 			const script = execFileSync(
