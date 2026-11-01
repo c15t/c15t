@@ -18,8 +18,8 @@ const maxWorkers = process.env.TURBO_HASH
 
 /**
  * Node 25+ defines a global `localStorage` that is undefined without
- * `--localstorage-file`, hiding the test DOM's storage. Older Node does not
- * know the flag and refuses to start with it.
+ * `--localstorage-file`, hiding the test DOM's storage. Earlier Node doesn't
+ * need the flag, and Node before 22.4 refuses to start with it.
  */
 export const webStorageExecArgv =
 	Number.parseInt(process.versions.node, 10) >= 25
