@@ -122,23 +122,25 @@ changes and remains useful during development.
 Docs and generated package docs do not select runtime work. Runtime changes
 follow reverse dependencies, while builds include forward dependencies of all
 selected hosts. Unknown paths, root config, lockfiles and removed packages
-select everything. Nightly runs, manual full runs, and releases on `main`
-cover the entire graph, except merged version PRs on `main`, described below. Stable check `CI complete` fails if any required selected
-job fails or cancels.
+select everything. Nightly runs, manual full runs, and releases on `main` cover
+the entire graph, except commits whose message starts with `Version Packages`,
+described below. Stable check `CI complete` fails if any required selected job
+fails or cancels.
 Release runs skip runtime benchmarks so publishing does not wait for timing
 measurements. Tests, builds, consumer bundle budgets, and package validation
 remain required. Quick runtime comparisons still gate affected PRs. Full
 validation and manual CI runs still include full runtime comparisons.
 
 On `canary`, release checks compare with the last successful ancestor run of
-`release.yml`. `main` runs full checks, except when a merged version PR, whose
-commit message starts with `Version Packages`, selects the same way. Its parent
-has usually passed release checks already, so publishing waits only for
-repository checks (lint, formatting, tooling tests and docs) and builds. Failed
-and superseded pushes stay in that range until a later run validates them.
-Missing history, API errors, and unreadable revisions fall back to full checks.
-Release selection ignores workspace-version-only changes in `bun.lock`.
-Publish-lock metadata does not select runtime tests.
+`release.yml`. `main` runs full checks, except for a commit whose message starts
+with `Version Packages`, which selects the same way. The workflow does not check
+where that commit came from; it is normally a merged version PR, whose parent
+has already passed release checks, so publishing waits only for repository
+checks (lint, formatting, tooling tests and docs) and builds. Failed and
+superseded pushes stay in that range until a later run validates them. Missing
+history, API errors, and unreadable revisions fall back to full checks. Release
+selection ignores workspace-version-only changes in `bun.lock`. Publish-lock
+metadata does not select runtime tests.
 Version-only workspace manifests
 select builds of those packages and their dependencies without selecting runtime
 consumers. Real dependency or resolution changes still select full validation.
