@@ -597,6 +597,21 @@ describe('init route', () => {
 		});
 	});
 
+	test('reads query inputs from a request Next.js wraps in a Proxy', async () => {
+		// Next.js route handlers receive the request through a Proxy; undici
+		// cannot copy one with `new Request(proxy)`.
+		const real = request('/api/c15t/init?v=3.1.0&contract=1&country=DE');
+		const proxied = new Proxy(real, {
+			get: (target, prop) => target[prop as keyof Request],
+		});
+		const response = await route({ fetch: upstream() })(proxied);
+		expect(response.status).toBe(200);
+		expect(await response.json()).toMatchObject({
+			location: { countryCode: 'DE' },
+			policyResolution: { policyId: 'eu-opt-in', status: 'matched' },
+		});
+	});
+
 	test('fails a client that declares an unknown contract in the query', async () => {
 		const response = await route({ fetch: upstream() })(
 			request('/api/c15t/init?contract=99&country=DE')

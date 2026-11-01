@@ -1005,11 +1005,16 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 		// as query parameters, so a cross-origin `/init` needs no preflight.
 		// Folded onto their header names, every reader below, the backend
 		// fallback and the session report see one set of inputs.
+		// Rebuilt from its parts: Next.js hands route handlers a Proxy of the
+		// request, and `new Request(proxy)` throws reading undici's private
+		// fields. `/init` is GET or HEAD, so there is no body to carry.
 		const request = INIT_PARAM_HEADERS.some(([param]) =>
 			url.searchParams.has(param)
 		)
-			? new Request(incoming, {
+			? new Request(url, {
 					headers: applyInitParamsToHeaders(url, incoming.headers),
+					method: incoming.method,
+					signal: incoming.signal,
 				})
 			: incoming;
 		const budget = createBudget(

@@ -633,7 +633,8 @@
 			"outputs": []
 		},
 		"transit": {
-			"dependsOn": ["^transit"]
+			"dependsOn": ["^transit"],
+			"env": ["C15T_CI_NODE"]
 		},
 		"@c15t/integrations#build": {
 			"dependsOn": ["^build"],
@@ -682,7 +683,7 @@
 			"dependsOn": ["build", "^build"]
 		},
 		"@c15t/next-bundle-bench#test": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["^build", "transit"],
 			"outputs": []
 		},
 		"@c15t/backend-bench#build": {
