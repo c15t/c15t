@@ -16,15 +16,13 @@ const authenticates = (
 	event: string,
 	ref: string,
 	repository = 'c15t/c15t',
-	runnerName = 'GitHub Actions 1000077281'
+	runnerEnvironment = 'github-hosted'
 ): boolean =>
 	runInNewContext(authentication.if, {
 		contains: (values: string[], value: string) => values.includes(value),
 		fromJSON: JSON.parse,
 		github: { event_name: event, ref, repository },
-		runner: { name: runnerName },
-		startsWith: (value: string, prefix: string) =>
-			value.toLowerCase().startsWith(prefix.toLowerCase()),
+		runner: { environment: runnerEnvironment },
 	});
 
 describe('CI remote cache authentication', () => {
@@ -51,17 +49,20 @@ describe('CI remote cache authentication', () => {
 		expect(authenticates('issue_comment', 'refs/heads/canary')).toBe(false);
 	});
 
-	// Depot runners point Turbo at Depot Cache, where a Vercel token is useless.
-	it('leaves trusted runs on Depot runners to Depot Cache', () => {
-		for (const branch of ['main', 'canary']) {
-			expect(
-				authenticates(
-					'push',
-					`refs/heads/${branch}`,
-					'c15t/c15t',
-					'depot-rxhnt78z55'
-				)
-			).toBe(false);
+	// Depot runners register as self-hosted and point Turbo at Depot Cache,
+	// where a Vercel token is useless. Any runner GitHub does not host stays out.
+	it('leaves trusted runs on self-hosted runners to their own cache', () => {
+		for (const event of ['push', 'schedule', 'workflow_dispatch']) {
+			for (const branch of ['main', 'canary']) {
+				expect(
+					authenticates(
+						event,
+						`refs/heads/${branch}`,
+						'c15t/c15t',
+						'self-hosted'
+					)
+				).toBe(false);
+			}
 		}
 	});
 
