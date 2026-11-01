@@ -29,7 +29,7 @@ jobs:
       contents: read
       id-token: write
     name: Consumer bundle budgets
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5

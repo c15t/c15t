@@ -189,12 +189,13 @@ macOS plus 8 Ubuntu minutes. Both groups take Xcode 27, the version
 `macos-latest` ships; the Swift sources build on either because the expanded
 tracking request is found by selector at runtime rather than by declaration.
 They export `DEVELOPER_DIR` instead of switching `xcode-select`, cache SwiftPM,
-Gradle and CocoaPods, and use GitHub-hosted runners only. Files under `native/` own no workspace, so they
+Gradle and CocoaPods, and run iOS on GitHub-hosted macOS and Android on
+`depot-ubuntu-24.04-4`. Files under `native/` own no workspace, so they
 still widen to a full run.
 
 The Android kernel's instrumented suite in `src/androidTest` runs on a booted
 emulator and belongs to neither group. Neither Android leg can host it: both are
-`ubuntu-latest`, which exposes no KVM, and a connected run that finds no device
+`depot-ubuntu-24.04-4`, which exposes no KVM, and a connected run that finds no device
 answers as a pass rather than a skip. Until a runner with nested virtualization
 or a device cloud is wired up, that suite is a local and pre-release gate, run
 before any change to storage, keystore, launch, or lifecycle, as
