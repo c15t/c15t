@@ -19,8 +19,9 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the binding's autolinking as a host app resolves it, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
 | Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
 
-Package tests and browser groups run on Node 22, 24 and 26. Type checks,
-coverage and the Turbo cache save run on the Node 24 leg only. Each leg sets
+Package tests and browser groups run on Node 22, 24 and 26. Coverage and the
+Turbo cache save run on the Node 24 leg only. Type checks run once, on Node 24,
+in their own job beside the test legs. Each leg sets
 `C15T_CI_NODE`, which the `transit` task hashes, so a cached test result from
 one Node version never passes another.
 
@@ -122,7 +123,7 @@ Docs and generated package docs do not select runtime work. Runtime changes
 follow reverse dependencies, while builds include forward dependencies of all
 selected hosts. Unknown paths, root config, lockfiles and removed packages
 select everything. Nightly runs, manual full runs, and releases on `main`
-cover the entire graph. Stable check `CI complete` fails if any required selected
+cover the entire graph, except merged version PRs on `main`, described below. Stable check `CI complete` fails if any required selected
 job fails or cancels.
 Release runs skip runtime benchmarks so publishing does not wait for timing
 measurements. Tests, builds, consumer bundle budgets, and package validation

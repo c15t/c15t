@@ -392,7 +392,15 @@ describe('release validation', () => {
 		});
 	});
 
-	it.each(['repository', 'build', 'packages', 'backend', 'browser', 'bundle'])(
+	it.each([
+		'repository',
+		'build',
+		'types',
+		'packages',
+		'backend',
+		'browser',
+		'bundle',
+	])(
 		'blocks failed or cancelled %s checks when release benchmarks are skipped',
 		(job) => {
 			const script = execFileSync(
