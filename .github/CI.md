@@ -130,7 +130,10 @@ remain required. Quick runtime comparisons still gate affected PRs. Full
 validation and manual CI runs still include full runtime comparisons.
 
 On `canary`, release checks compare with the last successful ancestor run of
-`release.yml`. Failed and superseded pushes stay in that range until a later
+`release.yml`. `main` runs full checks, except when a merged version PR, whose
+commit message starts with `Version Packages`, selects the same way. Its
+parent has usually passed release checks already, so publishing waits only for
+builds. Failed and superseded pushes stay in that range until a later
 run validates them. Missing history, API errors, and unreadable revisions fall
 back to full checks. Release selection ignores workspace-version-only changes
 in `bun.lock`. Publish-lock metadata does not select runtime tests.
