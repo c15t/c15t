@@ -1,3 +1,7 @@
+self-hosted-runner:
+  # Depot's managed GitHub Actions runners.
+  labels:
+    - depot-ubuntu-24.04-4
 paths:
   .github/workflows/release.yml:
     ignore:

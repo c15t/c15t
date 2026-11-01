@@ -31,7 +31,7 @@ jobs:
       id-token: write
     name: Select native app builds
     if: ${{ !inputs.built }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     outputs:
       selected: ${{ steps.plan.outputs.mobileBrowserOrDevice }}
     steps:
@@ -70,7 +70,7 @@ jobs:
           - kind: ios
             runner: macos-latest
           - kind: android
-            runner: ubuntu-latest
+            runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     env:
       # Same acceptance list as the mobile job above, and for the same reason.
       C15T_XCODE_VERSIONS: '27 26'
