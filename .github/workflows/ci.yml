@@ -47,7 +47,7 @@ jobs:
       contents: read
       actions: read
       id-token: write
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     outputs:
       build: ${{ steps.plan.outputs.build }}
       packageChecks: ${{ steps.plan.outputs.packageChecks }}
@@ -106,7 +106,7 @@ jobs:
       id-token: write
     needs: repository
     if: needs.repository.outputs.build == 'true'
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -138,7 +138,7 @@ jobs:
       id-token: write
     needs: [repository, build]
     if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -170,7 +170,7 @@ jobs:
       id-token: write
     needs: [repository, build]
     if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     timeout-minutes: 40
     # Tests run on each supported Node major, since runtime APIs such as
     # undici's Request differ between them. Coverage and the cache save do not
@@ -228,7 +228,7 @@ jobs:
       id-token: write
     needs: [repository, build]
     if: needs.repository.outputs.backend == 'true'
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     timeout-minutes: 30
     services:
       postgres:
@@ -282,7 +282,7 @@ jobs:
     name: Browser integration (${{ matrix.integration.kind }}, Node ${{ matrix.node }})
     needs: [repository, build]
     if: needs.repository.outputs.integrations != '[]'
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -335,7 +335,8 @@ jobs:
   # assemblies, the SDK's vitest suite, one benchmark run). The macOS leg is the
   # expensive one: a macOS runner bills roughly eight times an Ubuntu runner, so this
   # job rather than the browser matrix is what a mobile pull request pays for. iOS runs
-  # on a GitHub-hosted macOS runner and Android on a Depot Ubuntu runner.
+  # on a GitHub-hosted macOS runner and Android on a Depot Ubuntu runner (GitHub's
+  # for fork pull requests; see .github/CI.md).
   #
   # Native sources, protocol/spec changes, mobile benchmark inputs and full
   # validation select this job. Affected JavaScript tests run in `packages`.
@@ -357,7 +358,7 @@ jobs:
             runner: macos-latest
           - kind: android-js
             report: mobile-android-js
-            runner: depot-ubuntu-24.04-4
+            runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     env:
       # Xcode versions this job accepts, most preferred first. 27 is the version
       # native/CONTRACT.md and packages/react-native/ios/README.md standardise on, and the
@@ -586,7 +587,7 @@ jobs:
         bundle,
         performance,
       ]
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
     steps:
       - name: Check selected jobs
         env:

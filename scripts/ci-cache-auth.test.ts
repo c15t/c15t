@@ -15,12 +15,16 @@ const authentication = action.runs.steps.find((step: { uses?: string }) =>
 const authenticates = (
 	event: string,
 	ref: string,
-	repository = 'c15t/c15t'
+	repository = 'c15t/c15t',
+	runnerName = 'GitHub Actions 1000077281'
 ): boolean =>
 	runInNewContext(authentication.if, {
 		contains: (values: string[], value: string) => values.includes(value),
 		fromJSON: JSON.parse,
 		github: { event_name: event, ref, repository },
+		runner: { name: runnerName },
+		startsWith: (value: string, prefix: string) =>
+			value.toLowerCase().startsWith(prefix.toLowerCase()),
 	});
 
 describe('CI remote cache authentication', () => {
@@ -45,6 +49,20 @@ describe('CI remote cache authentication', () => {
 			false
 		);
 		expect(authenticates('issue_comment', 'refs/heads/canary')).toBe(false);
+	});
+
+	// Depot runners point Turbo at Depot Cache, where a Vercel token is useless.
+	it('leaves trusted runs on Depot runners to Depot Cache', () => {
+		for (const branch of ['main', 'canary']) {
+			expect(
+				authenticates(
+					'push',
+					`refs/heads/${branch}`,
+					'c15t/c15t',
+					'depot-rxhnt78z55'
+				)
+			).toBe(false);
+		}
 	});
 
 	it('selects a cache policy and revokes the short-lived token after the job', () => {

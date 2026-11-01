@@ -33,7 +33,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-24.04
-            runner: depot-ubuntu-24.04-4
+            runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
           - os: macos-15
             runner: macos-15
     runs-on: ${{ matrix.runner }}

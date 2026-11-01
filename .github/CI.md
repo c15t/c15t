@@ -25,6 +25,23 @@ in their own job beside the test legs. Each leg sets
 `C15T_CI_NODE`, which the `transit` task hashes, so a cached test result from
 one Node version never passes another.
 
+## Runners
+
+Linux jobs run on Depot's `depot-ubuntu-24.04-4` runners, except for pull
+requests from forks, which run on GitHub's `ubuntu-latest`. Depot shares its
+Actions cache across every branch of the repository, and its runners point
+Turbo at Depot Cache, which is shared the same way. A fork's code must not write
+entries that `main`, `canary` or a release later restores, so any workflow that
+can run pull request code picks its runner with
+`github.event.pull_request.head.repo.fork`. `scripts/ci-runners.test.ts` fails
+when such a workflow names a Depot runner without that check. On Depot runners
+the setup action skips the Vercel remote cache login; on GitHub's runners,
+trusted pushes still use Vercel as before.
+
+npm publishing stays on GitHub's `ubuntu-latest`, because npm trusted publishing
+accepts only GitHub-hosted runners. macOS jobs and Pullfrog stay on GitHub's
+runners too.
+
 ## Selection and local commands
 
 ### Native frontend CLI commands

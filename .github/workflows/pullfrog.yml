@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   pullfrog:
-    runs-on: depot-ubuntu-24.04-4
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
