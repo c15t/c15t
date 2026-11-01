@@ -29,7 +29,11 @@ describe('completed CI task caches', () => {
 			['build', 'build', 'bun scripts/ci-run.ts build'],
 			['packages', 'packages', 'bun scripts/ci-run.ts tests'],
 			['backend', 'backend', 'bun turbo run test --filter=@c15t/backend'],
-			['browser', `browser-\${{ matrix.kind }}`, 'bun scripts/ci-browser.ts'],
+			[
+				'browser',
+				`browser-\${{ matrix.integration.kind }}`,
+				'bun scripts/ci-browser.ts',
+			],
 			[
 				'mobile',
 				`mobile-\${{ matrix.kind }}`,

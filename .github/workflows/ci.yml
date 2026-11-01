@@ -130,7 +130,7 @@ jobs:
           scope: build
 
   packages:
-    name: Package behavior and types
+    name: Package behavior and types (Node ${{ matrix.node }})
     permissions:
       contents: read
       id-token: write
@@ -138,6 +138,13 @@ jobs:
     if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # Tests run on each supported Node major, since runtime APIs such as
+    # undici's Request differ between them. Types, coverage and the cache
+    # save do not depend on Node and run once.
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24', '26']
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -145,6 +152,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
+          node-version: ${{ matrix.node }}
           built: ${{ needs.build.result == 'success' }}
           browsers: ${{ needs.repository.outputs.testBrowsers }}
           cache-scope: packages
@@ -153,20 +161,21 @@ jobs:
         with:
           name: ci-plan
       - name: Check types
+        if: matrix.node == '24'
         run: bun scripts/ci-run.ts types
       - name: Check test types
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.node == '24' }}
         run: bun scripts/ci-run.ts testTypes
       - name: Run tests
         if: ${{ !cancelled() }}
         run: bun scripts/ci-run.ts tests
       - name: Summarize coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.node == '24' }}
         env:
           CI_DIFF_BASE: ${{ needs.repository.outputs.baseRef }}
         run: bun scripts/coverage-summary.ts --plan ci-plan.json
       - name: Save coverage and test evidence
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.node == '24' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: package-test-reports
@@ -178,7 +187,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
       - uses: ./.github/actions/save-turbo-cache
-        if: ${{ success() && github.event_name != 'pull_request' }}
+        if: ${{ success() && github.event_name != 'pull_request' && matrix.node == '24' }}
         with:
           scope: packages
 
@@ -240,7 +249,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    name: Browser integration (${{ matrix.kind }})
+    name: Browser integration (${{ matrix.integration.kind }}, Node ${{ matrix.node }})
     needs: [repository, build]
     if: needs.repository.outputs.integrations != '[]'
     runs-on: ubuntu-latest
@@ -248,26 +257,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.repository.outputs.integrations) }}
+        node: ['22', '24', '26']
+        integration: ${{ fromJSON(needs.repository.outputs.integrations) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
+          node-version: ${{ matrix.node }}
           built: 'true'
           browsers: 'true'
-          cache-scope: browser-${{ matrix.kind }}
+          cache-scope: browser-${{ matrix.integration.kind }}
       - name: Run selected integration contracts
         env:
-          CI_INTEGRATION: ${{ matrix.kind }}
-          CI_TARGETS: ${{ matrix.targets }}
+          CI_INTEGRATION: ${{ matrix.integration.kind }}
+          CI_TARGETS: ${{ matrix.integration.targets }}
         run: bun scripts/ci-browser.ts
       - name: Save browser evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: browser-${{ matrix.kind }}
+          name: browser-${{ matrix.integration.kind }}-node${{ matrix.node }}
           include-hidden-files: true
           path: |
             internals/fixtures/acceptance/artifacts/
@@ -277,9 +288,9 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - uses: ./.github/actions/save-turbo-cache
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && matrix.node == '24'
         with:
-          scope: browser-${{ matrix.kind }}
+          scope: browser-${{ matrix.integration.kind }}
 
   # Mobile SDK. The native kernels speak their own toolchains, so no JS job can cover
   # them: Swift needs a macOS runner with Xcode, and the Android library assembly needs

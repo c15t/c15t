@@ -19,6 +19,9 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the binding's autolinking as a host app resolves it, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
 | Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
 
+Package tests and browser groups run on Node 22, 24 and 26. Type checks,
+coverage and the Turbo cache save run on the Node 24 leg only.
+
 ## Selection and local commands
 
 ### Native frontend CLI commands
