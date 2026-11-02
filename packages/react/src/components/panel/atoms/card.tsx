@@ -77,7 +77,8 @@ type ConsentDialogHeaderProps = Omit<BoxProps, 'slotKey'> & {
 /**
  * The dialog's close button: an icon button labelled with the `common.close`
  * translation, or English when the bundle has none, so it always has an
- * accessible name. It sets the active UI to `'none'` and records nothing.
+ * accessible name. Like Escape, it closes the dialog and records nothing;
+ * the banner comes back if the policy still owes a choice.
  */
 const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 	const setActiveUI = useSetActiveUI();
