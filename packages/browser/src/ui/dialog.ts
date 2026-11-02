@@ -6,21 +6,36 @@ import { classes } from '../generated/styles';
 import type { ConsentDialogOptions } from '../types';
 import { renderBranding } from './branding';
 import { resolveCopy } from './copy';
-import { h, readDurationMs, supportsStartingStyle } from './dom';
+import { h, readDurationMs, supportsStartingStyle, svg } from './dom';
 import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 import { createWidget } from './widget';
 
 const DEFAULT_DURATION_MS = 200;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** The X the React, Vue and Svelte close buttons draw. */
+const createCloseIcon = function createCloseIcon(): SVGSVGElement {
+	const icon = svg('0 0 24 24', [], {
+		fill: 'none',
+		stroke: 'currentColor',
+		'stroke-width': 2,
+		style: 'height:1rem;width:1rem',
+	});
+	const path = document.createElementNS(SVG_NS, 'path');
+	path.setAttribute('d', 'M18 6 6 18M6 6l12 12');
+	icon.append(path);
+	return icon;
+};
 
 /**
  * The preference centre dialog.
  *
  * Opens when the kernel says `activeUI === 'dialog'`. Modal: focus is
  * trapped, the page stops scrolling. Escape closes it wherever focus is,
- * as in the React and Vue dialogs. Like the stock dialogs of the other
- * adapters it has no close button, and clicking the backdrop does not
- * close it: the visitor leaves through a choice or Escape.
+ * as in the React and Vue dialogs. Clicking the backdrop does not close
+ * it. The visitor leaves through a choice, Escape, or the close button
+ * that `showCloseButton` adds to the header.
  *
  * @param ctx - The mount context.
  * @param options - Dialog options.
@@ -130,7 +145,23 @@ export const createDialog = function createDialog(
 										})
 									),
 									'consentDialogDescription'
-								)
+								),
+								options.showCloseButton
+									? slot(
+											h(
+												'button',
+												{
+													'aria-label': t.common.close,
+													class: noStyle ? '' : styles.closeButton,
+													'data-testid': 'consent-dialog-close',
+													onclick: () => ctx.client.closeDialog(),
+													type: 'button',
+												},
+												createCloseIcon()
+											),
+											'consentDialogCloseButton'
+										)
+									: null
 							),
 							'consentDialogHeader'
 						),

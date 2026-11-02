@@ -80,3 +80,32 @@ describe('ConsentDialog open prop', () => {
 		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
 	});
 });
+
+describe('ConsentDialog showCloseButton', () => {
+	const CLOSE = '[data-testid="consent-dialog-close"]';
+
+	test('renders no close button by default', async () => {
+		render(Fixture, { open: true, options });
+		await waitFor(() => expect(query(ROOT)).not.toBeNull());
+
+		expect(query(CLOSE)).toBeNull();
+	});
+
+	test('the close button closes the dialog without recording consent', async () => {
+		render(Fixture, { options, showCloseButton: true });
+		await fireEvent.click(query('[data-testid="open-dialog"]') as HTMLElement);
+		await waitFor(() => expect(query(CLOSE)).not.toBeNull());
+
+		const button = query(CLOSE) as HTMLButtonElement;
+		expect(button.getAttribute('aria-label')).toBe('Close');
+		expect(
+			query('[data-testid="consent-dialog-header"]')?.contains(button)
+		).toBe(true);
+
+		await fireEvent.click(button);
+
+		await waitFor(() => expect(query(ROOT)).toBeNull());
+		// Nothing was recorded, so the policy still owes a choice.
+		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
+	});
+});

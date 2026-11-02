@@ -381,6 +381,8 @@ export interface ComponentSlots {
 	consentDialogHeader?: SlotStyle;
 	/** Dialog title text element. */
 	consentDialogTitle?: SlotStyle;
+	/** Close button in the dialog header, shown with `showCloseButton`. */
+	consentDialogCloseButton?: SlotStyle;
 	/** Dialog description text element. */
 	consentDialogDescription?: SlotStyle;
 	/** Dialog content region (typically holds ConsentWidget). */

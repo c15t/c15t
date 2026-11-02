@@ -45,6 +45,8 @@ export const TEST_IDS = {
 	consentDialog: {
 		branding: 'consent-dialog-branding',
 		card: 'consent-dialog-card',
+		// Rendered only with `showCloseButton` (Vue: `dialogShowCloseButton`).
+		closeButton: 'consent-dialog-close',
 		content: 'consent-dialog-content',
 		description: 'consent-dialog-description',
 		footer: 'consent-dialog-footer',

@@ -84,6 +84,11 @@ export interface ConsentBannerOptions {
 export interface ConsentDialogOptions {
 	/** Drop the "Secured by c15t" tag. */
 	hideBranding?: boolean;
+	/**
+	 * Show a close button in the dialog header. Clicking it closes the
+	 * dialog without recording consent, like Escape. Defaults to `false`.
+	 */
+	showCloseButton?: boolean;
 	/** Which legal links to render inline. `null` renders none. */
 	legalLinks?: (keyof LegalLinks)[] | null;
 	/** Skip the enter and exit transitions. Defaults to the UI option. */
