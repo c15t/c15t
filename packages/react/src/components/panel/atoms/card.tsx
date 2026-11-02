@@ -57,8 +57,6 @@ ConsentDialogCard.displayName = 'ConsentDialogCard';
 
 /**
  * Props for {@link ConsentDialogHeader}.
- *
- * @public
  */
 type ConsentDialogHeaderProps = Omit<BoxProps, 'slotKey'> & {
 	/**
@@ -381,8 +379,6 @@ const HeaderTitle = ConsentDialogHeaderTitle;
 const HeaderDescription = ConsentDialogHeaderDescription;
 const Content = ConsentDialogContent;
 const Footer = ConsentDialogFooter;
-
-export type { ConsentDialogHeaderProps };
 
 export {
 	Card,
