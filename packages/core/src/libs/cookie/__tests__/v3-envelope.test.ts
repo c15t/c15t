@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ConsentManagerInterface } from '../../../client/client-factory';
+import { fetchMock } from '../../../../vitest.setup';
+import {
+	type ConsentManagerInterface,
+	configureConsentManager,
+} from '../../../client/client-factory';
+import { API_ENDPOINTS } from '../../../client/types';
 import { createConsentManagerStore } from '../../../store';
 import { STORAGE_KEY_V2 } from '../../../store/initial-state';
 import {
@@ -104,6 +109,38 @@ describe('reading consent stored by c15t v3', () => {
 		expect(store.getState().has('marketing')).toBe(false);
 	});
 
+	it('links options.user on load without rewriting the v3 record', async () => {
+		setCookie(STORAGE_KEY_V2, V3_COOKIE);
+		window.localStorage.setItem(STORAGE_KEY_V2, V3_LOCAL_STORAGE);
+		vi.stubGlobal('document', { ...document, querySelectorAll: () => [] });
+		vi.stubGlobal(
+			'MutationObserver',
+			class {
+				disconnect() {}
+				observe() {}
+			}
+		);
+		fetchMock.mockImplementation((url: string) =>
+			String(url).includes(API_ENDPOINTS.PATCH_SUBJECT)
+				? Promise.resolve(new Response('{}', { status: 200 }))
+				: Promise.reject(new Error('offline'))
+		);
+
+		createConsentManagerStore(
+			configureConsentManager({ mode: 'hosted', backendURL: '/api/c15t' }),
+			{ user: { id: 'user_1', identityProvider: 'clerk' } }
+		);
+		await vi.waitFor(() =>
+			expect(fetchMock).toHaveBeenCalledWith(
+				expect.stringContaining(`${API_ENDPOINTS.PATCH_SUBJECT}/${SUBJECT_ID}`),
+				expect.objectContaining({ method: 'PATCH' })
+			)
+		);
+
+		expect(getCookie(STORAGE_KEY_V2)).toBe(V3_COOKIE);
+		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(V3_LOCAL_STORAGE);
+	});
+
 	it('keeps the subject ID when v2 saves over a v3 record', () => {
 		setCookie(STORAGE_KEY_V2, V3_COOKIE);
 		const stored = getConsentFromStorage<typeof EXPECTED>();
@@ -175,6 +212,37 @@ describe('reading consent stored by c15t v3', () => {
 		const stored = getConsentFromStorage<typeof EXPECTED>();
 
 		expect(stored?.consentInfo).not.toHaveProperty('materialPolicyFingerprint');
+	});
+
+	it('checks v2 choices v3 kept next to its own decisions', () => {
+		setCookie(STORAGE_KEY_V2, 'v=3&b=cfp|lmpf1&fn=1.1000.0&mk=1.900.1');
+
+		expect(getConsentFromStorage()).toMatchObject({
+			consentInfo: { materialPolicyFingerprint: 'mpf1' },
+		});
+	});
+
+	// An older v2 release merged a v3 localStorage record into the v2 record it
+	// saved, keeping the v3 fields next to the visitor's newer v2 choice.
+	it.each([
+		['localStorage', 'local'],
+		['cookie', 'cookie'],
+	])('reads a v2 record that kept v3 fields from %s as v2', (_name, where) => {
+		const record = {
+			...JSON.parse(V3_LOCAL_STORAGE),
+			consents: { ...EXPECTED.consents, measurement: false },
+			consentInfo: { subjectId: SUBJECT_ID, time: CONFIRMED_AT + 1 },
+		};
+		if (where === 'cookie') {
+			setCookie(STORAGE_KEY_V2, record);
+		} else {
+			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(record));
+		}
+
+		expect(getConsentFromStorage()).toMatchObject({
+			consents: { measurement: false },
+			consentInfo: { subjectId: SUBJECT_ID, time: CONFIRMED_AT + 1 },
+		});
 	});
 
 	it('reads identity and IAB custom vendor maps', () => {

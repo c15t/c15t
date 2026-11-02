@@ -60,6 +60,7 @@ export {
 export {
 	deleteConsentFromStorage,
 	getConsentFromStorage,
+	hasStoredV3ConsentRecord,
 	saveConsentToStorage,
 } from './storage';
 // Re-export types

@@ -337,7 +337,7 @@ export function getConsentFromStorage<ReturnType = unknown>(
 		storedRecord &&
 		(typeof storedRecord !== 'object' ||
 			Array.isArray(storedRecord) ||
-			'version' in storedRecord)
+			('version' in storedRecord && !('consents' in storedRecord)))
 	) {
 		getDebugLogger().log('Ignoring stored consent in an unknown format.');
 		return null;
@@ -474,6 +474,29 @@ export function getConsentFromStorage<ReturnType = unknown>(
 	}
 
 	return chosenData;
+}
+
+/**
+ * Whether the stored consent record is one c15t v3 wrote, read in the same
+ * order as {@link getConsentFromStorage}: the cookie, then localStorage.
+ *
+ * @param config - Storage configuration
+ * @returns `true` for a v3 record, even one with no usable decision
+ *
+ * @internal
+ */
+export function hasStoredV3ConsentRecord(config?: StorageConfig): boolean {
+	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	try {
+		const cookie = getCookie<unknown>(storageKey);
+		if (cookie) {
+			return isV3ConsentRecord(cookie);
+		}
+		const stored = window.localStorage.getItem(storageKey);
+		return stored ? isV3ConsentRecord(JSON.parse(stored)) : false;
+	} catch {
+		return false;
+	}
 }
 
 /**

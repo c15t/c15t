@@ -9,6 +9,7 @@
 
 import type { ResponseContext } from '../../client/types';
 import type { InitDataSource, SSRInitialData } from '../../store/type';
+import { hasStoredV3ConsentRecord, type StorageConfig } from '../cookie';
 import {
 	createRuntimeRequestContextMatcher,
 	matchesStoredRequestContext,
@@ -96,7 +97,7 @@ export async function initConsentManager(
 
 	// Process any pending consent sync from a previous page reload
 	// This fires the API call that was deferred when consent was revoked
-	processPendingConsentSync(manager, callbacks);
+	processPendingConsentSync(manager, callbacks, get().storageConfig);
 
 	// Try to use SSR-prefetched data first
 	const ssrResult = await tryUseSSRData(config);
@@ -341,10 +342,12 @@ function inspectBackendCache(headers: Headers): {
  *
  * @param manager - Consent manager client
  * @param callbacks - Store callbacks for error handling
+ * @param storageConfig - Storage configuration for the stored choice
  */
 function processPendingConsentSync(
 	manager: InitConsentManagerConfig['manager'],
-	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks']
+	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks'],
+	storageConfig: StorageConfig | undefined
 ): void {
 	try {
 		const pendingSync = localStorage.getItem(PENDING_CONSENT_SYNC_KEY);
@@ -354,6 +357,13 @@ function processPendingConsentSync(
 
 		// Clear immediately to prevent duplicate syncs
 		localStorage.removeItem(PENDING_CONSENT_SYNC_KEY);
+
+		// The queued choice was stored as a v2 record before the reload. A v3
+		// record in its place was saved by a v3 site since then, so the queued
+		// choice is older and replaying it would store it over the newer one.
+		if (hasStoredV3ConsentRecord(storageConfig)) {
+			return;
+		}
 
 		const data: PendingConsentSync = JSON.parse(pendingSync);
 		const { externalId: externalSubjectId, identityProvider } =

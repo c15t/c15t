@@ -107,13 +107,17 @@ function readBooleanMap(input: unknown): Record<string, boolean> | undefined {
  * Whether a stored value is a v3 record in either encoding: the compact
  * cookie string or the parsed localStorage JSON.
  *
+ * @remarks
+ * A v3 record never has `consents`. An object with both is a v2 record that
+ * an older v2 release merged over a v3 one, and its `consents` are newer.
+ *
  * @internal
  */
 export function isV3ConsentRecord(value: unknown): boolean {
 	if (typeof value === 'string') {
 		return value === COMPACT_PREFIX || value.startsWith(`${COMPACT_PREFIX}&`);
 	}
-	return isPlainObject(value) && value.version === 3;
+	return isPlainObject(value) && value.version === 3 && !('consents' in value);
 }
 
 /** The v2 fingerprint of a `legacy-v2` basis (`l<fingerprint>`). */
@@ -253,22 +257,17 @@ function parseJsonEnvelope(input: Record<string, unknown>): V3Envelope {
 }
 
 /**
- * The v2 material policy fingerprint every decision was made under, or
- * `undefined`. Only `legacy-v2` decisions carry one: v3's own fingerprint is
- * computed differently, and handing it to v2 would read as a policy change
- * and revoke every grant.
+ * The v2 material policy fingerprint the record's `legacy-v2` decisions were
+ * made under, so v2 asks again when its policy has changed. v3 keeps them for
+ * categories a later v3 save did not cover. v3's own `choice-v1` fingerprint
+ * is computed differently, and handing it to v2 would read as a policy change
+ * and revoke every grant, so those decisions are not checked here.
  */
-function sharedLegacyFingerprint(
+function findLegacyFingerprint(
 	decisions: readonly V3Decision[]
 ): string | undefined {
-	const [first, ...rest] = decisions;
-	const fingerprint = first?.legacyFingerprint;
-	if (!fingerprint) {
-		return undefined;
-	}
-	return rest.every((decision) => decision.legacyFingerprint === fingerprint)
-		? fingerprint
-		: undefined;
+	return decisions.find((decision) => decision.legacyFingerprint)
+		?.legacyFingerprint;
 }
 
 /**
@@ -334,7 +333,7 @@ export function convertV3ConsentRecord(value: unknown): V2RecordFromV3 | null {
 	if (envelope.identityProvider) {
 		consentInfo.identityProvider = envelope.identityProvider;
 	}
-	const fingerprint = sharedLegacyFingerprint(decisions);
+	const fingerprint = findLegacyFingerprint(decisions);
 	if (fingerprint) {
 		consentInfo.materialPolicyFingerprint = fingerprint;
 	}

@@ -157,6 +157,74 @@ describe('initConsentManager', () => {
 			).toBeNull();
 		});
 
+		const V3_JSON = JSON.stringify({
+			version: 3,
+			subject: { subjectId: 'existing-subject' },
+			categories: {
+				measurement: {
+					basis: { fingerprint: 'fp', kind: 'choice-v1' },
+					confirmedAt: 1_746_000_100_000,
+					value: true,
+				},
+			},
+		});
+		it.each([
+			['localStorage', 'local', V3_JSON],
+			[
+				'localStorage, every decision cleared',
+				'local',
+				JSON.stringify({ ...JSON.parse(V3_JSON), epoch: 1_746_000_200_000 }),
+			],
+			[
+				'cookie, every decision cleared',
+				'cookie',
+				'v=3&e=2000&b=cfp&fn=1.1000.0',
+			],
+		])('drops a pending consent sync older than a v3 record in %s', async (_name, where, record) => {
+			const readRecord = () =>
+				where === 'cookie'
+					? document.cookie.match(/(?:^|; )c15t=([^;]*)/)?.[1]
+					: window.localStorage.getItem('c15t');
+			if (where === 'cookie') {
+				document.cookie = `c15t=${record}; path=/`;
+			} else {
+				window.localStorage.setItem('c15t', record);
+			}
+			window.localStorage.setItem(
+				'c15t:pending-consent-sync',
+				JSON.stringify({
+					type: 'custom',
+					subjectId: 'existing-subject',
+					preferences: { necessary: true, measurement: false },
+					givenAt: 1_746_000_000_000,
+					domain: 'example.com',
+				})
+			);
+			mockManager = createMockConsentManager({
+				setConsent: vi.fn(),
+				init: vi.fn().mockResolvedValue({
+					data: createMockConsentBannerResponse(),
+					error: null,
+				}),
+			});
+
+			try {
+				await initConsentManager({
+					manager: mockManager,
+					get: storeGet,
+					set: storeSet,
+				});
+
+				expect(mockManager.setConsent).not.toHaveBeenCalled();
+				expect(
+					window.localStorage.getItem('c15t:pending-consent-sync')
+				).toBeNull();
+				expect(readRecord()).toBe(record);
+			} finally {
+				document.cookie = 'c15t=; path=/; max-age=0';
+			}
+		});
+
 		it('should use initial data when provided and valid', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
