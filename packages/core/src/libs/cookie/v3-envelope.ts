@@ -322,6 +322,7 @@ export function convertV3ConsentRecord(value: unknown): V2RecordFromV3 | null {
 	}
 
 	const consentInfo: ConsentInfo = {
+		readFromV3: true,
 		time: Math.max(...decisions.map((decision) => decision.confirmedAt)),
 	};
 	if (envelope.subjectId) {

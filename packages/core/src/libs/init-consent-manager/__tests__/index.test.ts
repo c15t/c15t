@@ -593,6 +593,55 @@ describe('initConsentManager', () => {
 			expect(state.activeUI).toBe('none');
 		});
 
+		it.each([
+			['without a policy fingerprint', undefined],
+			['with a different policy fingerprint', 'f'.repeat(64)],
+		])('does not rewrite a choice read from a v3 record %s', async (_name, materialPolicyFingerprint) => {
+			let state = createMockStoreState({
+				consentInfo: {
+					time: 1_700_000_000_000,
+					subjectId: 'sub_existing',
+					readFromV3: true,
+					...(materialPolicyFingerprint ? { materialPolicyFingerprint } : {}),
+				},
+				activeUI: 'none',
+			});
+			storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
+			storeSet = ((update) => {
+				state = {
+					...state,
+					...(typeof update === 'function' ? update(state) : update),
+				};
+			}) as StoreApi<ConsentStoreState>['setState'];
+			mockManager = createMockConsentManager({
+				init: vi.fn().mockResolvedValue({
+					data: createMockConsentBannerResponse({
+						policy: {
+							id: 'policy_runtime_gdpr',
+							model: 'opt-in',
+							consent: {
+								expiryDays: 365,
+								scopeMode: 'strict',
+								categories: ['necessary', 'measurement'],
+							},
+						},
+					}),
+					error: null,
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(saveConsentToStorage).not.toHaveBeenCalled();
+			expect(state.consentInfo?.materialPolicyFingerprint).toBe(
+				materialPolicyFingerprint
+			);
+		});
+
 		it('should pass overrides as headers to init', async () => {
 			mockState.overrides = {
 				country: 'FR',

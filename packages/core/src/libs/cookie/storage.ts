@@ -24,6 +24,8 @@ function sanitizeConsentInfo(
 	}
 
 	const sanitized = { ...consentInfo };
+	// Marks a choice read from a v3 record for this page only.
+	delete sanitized.readFromV3;
 	const { externalId, identityProvider } = sanitizeSubjectIdentifiers({
 		externalId: sanitized.externalId,
 		identityProvider: sanitized.identityProvider,

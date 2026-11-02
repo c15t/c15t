@@ -357,6 +357,10 @@ export async function updateStore(
 	if (currentState.consentInfo && currentPolicyFingerprint) {
 		const storedPolicyFingerprint =
 			currentState.consentInfo.materialPolicyFingerprint;
+		// Loading a page never rewrites a choice read from a v3 record. The v3
+		// site judges that record against its own policy fingerprint, and a
+		// v2 fingerprint written here could make it ask the visitor again.
+		const readFromV3 = currentState.consentInfo.readFromV3 === true;
 
 		if (
 			storedPolicyFingerprint &&
@@ -377,15 +381,18 @@ export async function updateStore(
 				consentInfo,
 			});
 			try {
-				saveConsentToStorage(
-					{ consents: resetConsents, consentInfo },
-					undefined,
-					currentState.storageConfig
-				);
+				if (!readFromV3) {
+					saveConsentToStorage(
+						{ consents: resetConsents, consentInfo },
+						undefined,
+						currentState.storageConfig
+					);
+				}
 			} catch (error) {
 				console.warn('Failed to persist consent re-prompt state:', error);
 			}
 		} else if (
+			!readFromV3 &&
 			!storedPolicyFingerprint &&
 			!currentState.consentInfo.requiresReconsent
 		) {

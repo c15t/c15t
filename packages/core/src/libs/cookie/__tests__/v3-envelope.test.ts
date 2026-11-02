@@ -40,7 +40,7 @@ const EXPECTED = {
 		measurement: true,
 		necessary: true,
 	},
-	consentInfo: { subjectId: SUBJECT_ID, time: CONFIRMED_AT },
+	consentInfo: { readFromV3: true, subjectId: SUBJECT_ID, time: CONFIRMED_AT },
 };
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
@@ -121,6 +121,7 @@ describe('reading consent stored by c15t v3', () => {
 		expect(cookie).toContain('c.marketing:1');
 		expect(cookie).toContain(`i.sid:${SUBJECT_ID}`);
 		expect(cookie).not.toContain('v=3');
+		expect(cookie).not.toContain('readFromV3');
 		expect(getConsentFromStorage()).toEqual({
 			consents: { ...EXPECTED.consents, marketing: true },
 			consentInfo: { subjectId: SUBJECT_ID, time: CONFIRMED_AT + 1 },
@@ -141,7 +142,7 @@ describe('reading consent stored by c15t v3', () => {
 				measurement: false,
 				necessary: true,
 			},
-			consentInfo: { subjectId: 'sub_a', time: 3000 },
+			consentInfo: { readFromV3: true, subjectId: 'sub_a', time: 3000 },
 		});
 	});
 

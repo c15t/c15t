@@ -302,6 +302,14 @@ export type ConsentInfo = {
 	requiresReconsent?: boolean;
 
 	/**
+	 * Set on a choice read from a c15t v3 record. Never stored: page load
+	 * does not rewrite the v3 record, so the v3 site keeps evaluating it
+	 * under its own policy fingerprint.
+	 * @internal
+	 */
+	readFromV3?: boolean;
+
+	/**
 	 * The identity provider that provided the external ID
 	 *
 	 * @remarks
