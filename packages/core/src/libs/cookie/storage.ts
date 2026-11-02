@@ -14,6 +14,7 @@ import { getDebugLogger } from '../debug';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import { deleteCookie, getCookie, setCookie } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
+import { convertV3ConsentRecord, isV3ConsentRecord } from './v3-envelope';
 
 function sanitizeConsentInfo(
 	consentInfo: ConsentInfo | null | undefined
@@ -320,6 +321,24 @@ export function getConsentFromStorage<ReturnType = unknown>(
 		cookieData = getCookie<ReturnType>(storageKey);
 	} catch (error) {
 		console.warn('Failed to read consent from cookie:', error);
+	}
+
+	// A v3 site on the same domain writes its own record format under the
+	// same key. Read it as a v2 record, and skip the sync below so loading a
+	// v2 page never rewrites the v3 record. Any other value that is not a v2
+	// record object reads as no stored consent instead of reaching the store.
+	const storedRecord: unknown = cookieData || localStorageData;
+	if (isV3ConsentRecord(storedRecord)) {
+		return convertV3ConsentRecord(storedRecord) as ReturnType | null;
+	}
+	if (
+		storedRecord &&
+		(typeof storedRecord !== 'object' ||
+			Array.isArray(storedRecord) ||
+			'version' in storedRecord)
+	) {
+		getDebugLogger().log('Ignoring stored consent in an unknown format.');
+		return null;
 	}
 
 	// Determine which data source to use
