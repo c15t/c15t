@@ -16,7 +16,7 @@ group: reference
   | `models` | `Model[]` | `['opt-in', 'opt-out', 'none']` | Policy models the dialog responds to. Under a model that is not listed, such as `iab`, it stays closed. |
   | `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which of the links configured in the provider `options.legalLinks` render after the description. Omitting the prop renders none. `null` hides them. |
   | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag in the card. |
-  | `showCloseButton` | `boolean` | `false` | Renders a close button in the top corner of the header. Clicking it closes the dialog without saving, like Escape. |
+  | `showCloseButton` | `boolean` | `false` | Renders a close button in the top corner of the header. Clicking it closes the dialog without saving, like Escape. With an `open` prop, it does not hide the dialog; set `open={false}` instead. |
   | `uiSource` | `string` | `'dialog'` | Source identifier recorded with saves made from this dialog. |
   | `scrollLock`, `trapFocus` | `boolean` | from `blocking` | Deprecated. Either one set to `false` makes the dialog non-blocking, unless the provider sets `presentation.preferences.blocking` explicitly, which wins. Prefer the provider option. |
   | `disableAnimation` | `boolean` | `false` | Skips the enter and exit animation of the backdrop and the card. |
