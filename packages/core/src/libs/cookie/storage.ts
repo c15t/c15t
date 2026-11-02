@@ -14,6 +14,7 @@ import { getDebugLogger } from '../debug';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import { deleteCookie, getCookie, setCookie } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
+import { convertV3ConsentRecord, isV3ConsentRecord } from './v3-envelope';
 
 function sanitizeConsentInfo(
 	consentInfo: ConsentInfo | null | undefined
@@ -23,6 +24,8 @@ function sanitizeConsentInfo(
 	}
 
 	const sanitized = { ...consentInfo };
+	// Marks a choice read from a v3 record for this page only.
+	delete sanitized.readFromV3;
 	const { externalId, identityProvider } = sanitizeSubjectIdentifiers({
 		externalId: sanitized.externalId,
 		identityProvider: sanitized.identityProvider,
@@ -322,6 +325,24 @@ export function getConsentFromStorage<ReturnType = unknown>(
 		console.warn('Failed to read consent from cookie:', error);
 	}
 
+	// A v3 site on the same domain writes its own record format under the
+	// same key. Read it as a v2 record, and skip the sync below so loading a
+	// v2 page never rewrites the v3 record. Any other value that is not a v2
+	// record object reads as no stored consent instead of reaching the store.
+	const storedRecord: unknown = cookieData || localStorageData;
+	if (isV3ConsentRecord(storedRecord)) {
+		return convertV3ConsentRecord(storedRecord) as ReturnType | null;
+	}
+	if (
+		storedRecord &&
+		(typeof storedRecord !== 'object' ||
+			Array.isArray(storedRecord) ||
+			('version' in storedRecord && !('consents' in storedRecord)))
+	) {
+		getDebugLogger().log('Ignoring stored consent in an unknown format.');
+		return null;
+	}
+
 	// Determine which data source to use
 	let chosenData: ReturnType | null = null;
 	let chosenSource: 'localStorage' | 'cookie' | null = null;
@@ -453,6 +474,29 @@ export function getConsentFromStorage<ReturnType = unknown>(
 	}
 
 	return chosenData;
+}
+
+/**
+ * Whether the stored consent record is one c15t v3 wrote, read in the same
+ * order as {@link getConsentFromStorage}: the cookie, then localStorage.
+ *
+ * @param config - Storage configuration
+ * @returns `true` for a v3 record, even one with no usable decision
+ *
+ * @internal
+ */
+export function hasStoredV3ConsentRecord(config?: StorageConfig): boolean {
+	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	try {
+		const cookie = getCookie<unknown>(storageKey);
+		if (cookie) {
+			return isV3ConsentRecord(cookie);
+		}
+		const stored = window.localStorage.getItem(storageKey);
+		return stored ? isV3ConsentRecord(JSON.parse(stored)) : false;
+	} catch {
+		return false;
+	}
 }
 
 /**

@@ -24,6 +24,8 @@ group: reference
 
   If the browser also blocks cookies, it cannot retain your choice across page loads. Do not use `enabled: false` to handle storage restrictions: that option grants every category.
 
+  c15t v3 stores the choice under the same `c15t` cookie and localStorage key, in a newer format. From 2.4.1, v2 reads that record: the visitor's categories, subject ID and linked user apply on the v2 site, and loading a v2 page leaves the v3 record as it is. When the visitor saves on the v2 site, v2 writes a v2 record, which v3 reads. Earlier v2 releases break on a v3 record, so upgrade every v2 app that shares a cookie domain with a v3 app to 2.4.1 or later before the v3 app ships.
+
   **2. Third-party scripts**
   When you load a tracking script (Google Analytics, Meta Pixel, etc.), that script sets its own cookies. Google Analytics creates `_ga` and `_gid` cookies. Meta creates `_fbp` and `_fbc`. These cookies are set by the script's code running in the browser - c15t prevents them by not loading the script until the user consents.
 

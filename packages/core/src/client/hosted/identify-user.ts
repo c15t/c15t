@@ -125,20 +125,25 @@ export async function identifyUser(
 		consentInfo?: ConsentInfo;
 	}>(storageConfig);
 
-	saveConsentToStorage(
-		{
-			consents: existingData?.consents || {},
-			consentInfo: {
-				...existingData?.consentInfo,
-				time: existingData?.consentInfo?.time || Date.now(),
-				subjectId,
-				externalId: body.externalId,
-				identityProvider: body.identityProvider,
+	// A choice read from a v3 record stays as v3 wrote it: the store passes
+	// `options.user` here on page load. The link below still reaches the
+	// backend.
+	if (!existingData?.consentInfo?.readFromV3) {
+		saveConsentToStorage(
+			{
+				consents: existingData?.consents || {},
+				consentInfo: {
+					...existingData?.consentInfo,
+					time: existingData?.consentInfo?.time || Date.now(),
+					subjectId,
+					externalId: body.externalId,
+					identityProvider: body.identityProvider,
+				},
 			},
-		},
-		undefined,
-		storageConfig
-	);
+			undefined,
+			storageConfig
+		);
+	}
 
 	// 2. Build the path with the subject ID
 	const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${subjectId}`;
