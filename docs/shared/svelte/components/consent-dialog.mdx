@@ -29,6 +29,7 @@ before the dialog renders. With `styles={false}`, it comes from your imported
 | `showTrigger` | `boolean` or trigger props | `false` | Renders a floating `ConsentDialogTrigger` with the dialog. Pass an object for `defaultPosition`, `persistPosition`, `showWhen`, `size`, `ariaLabel`, `noStyle` and `class`. |
 | `legalLinks` | array of `LegalLinks` keys, or `null` | every configured link | Which of the provider's `legalLinks` to show after the description. |
 | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
+| `showCloseButton` | `boolean` | `false` | Renders a close button in the top corner of the header. Clicking it closes the dialog without saving, like Escape. |
 | `models` | `Model[]` | `['opt-in', 'opt-out', 'iab', 'none']` | Policy models the dialog opens for. `none` is included so a policy with no prompt but a right to change preferences still opens it. |
 | `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes. |
 | `class` | `string` | none | Extra class on the dialog content. |
@@ -60,7 +61,8 @@ Customize button, `ConsentDialogLink`, `ConsentDialogTrigger`,
 `getConsentManager().setActiveUI('dialog')` or
 `getHeadlessConsent().openDialog()`.
 
-Escape closes the dialog. Clicks outside it do not, so a visitor cannot lose
+Escape closes the dialog, and so does the close button that
+`showCloseButton` adds. Clicks outside it do not, so a visitor cannot lose
 unsaved switches by accident. Closing without saving records nothing. If the
 policy still owes a choice, the banner comes back.
 
@@ -77,13 +79,15 @@ or `'none'` otherwise, and the dialog stays mounted until you set `open` to
   it and the page behind does not scroll. The provider's `presentation` can
   turn blocking off for the dialog.
 - Each category switch is a `switch` role labelled with the category title.
+- The close button from `showCloseButton` is a `<button>` named by the
+  `common.close` translation, with `data-testid="consent-dialog-close"`.
 - The root sets `dir` from the active language.
 
 ## Style the dialog
 
 `ConsentDialog` reads these theme slots: `consentDialog`, `consentDialogCard`,
-`consentDialogHeader`, `consentDialogTitle`, `consentDialogDescription`,
-`consentDialogContent` and `consentDialogTag`. The widget inside it reads the
+`consentDialogHeader`, `consentDialogTitle`, `consentDialogCloseButton`,
+`consentDialogDescription`, `consentDialogContent` and `consentDialogTag`. The widget inside it reads the
 `ConsentWidget` slots. The content element carries
 `data-testid="consent-dialog-root"` and `data-blocking="true"` while
 blocking.

@@ -548,3 +548,48 @@ describe('ConsentManager real transport completion', () => {
 		});
 	}
 });
+
+describe('ConsentManager close button', () => {
+	const closeButton = () =>
+		document.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-dialog-close"]'
+		);
+
+	test('renders no close button by default', async () => {
+		const { context, wrapper } = await renderManager();
+		try {
+			expect(
+				document.querySelector('[data-testid="consent-dialog-header"]')
+			).not.toBeNull();
+			expect(closeButton()).toBeNull();
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('dialogShowCloseButton closes the dialog without saving', async () => {
+		const { context, wrapper } = await renderManager({
+			dialogShowCloseButton: true,
+		});
+		try {
+			const button = closeButton();
+			expect(button).toBeInstanceOf(HTMLButtonElement);
+			expect(button?.getAttribute('aria-label')).toBe('Close');
+			expect(
+				document
+					.querySelector('[data-testid="consent-dialog-header"]')
+					?.contains(button ?? null)
+			).toBe(true);
+			const save = vi.spyOn(context.kernel.commands, 'save');
+
+			button?.click();
+			await flushPromises();
+
+			// The visitor still owes a choice, so the banner comes back.
+			expect(context.activeUI.value).toBe('banner');
+			expect(save).not.toHaveBeenCalled();
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+});

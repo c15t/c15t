@@ -22,6 +22,7 @@ import type {
 	BrandingSlotContext,
 	BrandingVariant,
 } from '~/components/shared/ui/branding';
+import { useSetActiveUI } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { ClassNameStyle } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -55,6 +56,69 @@ const ConsentDialogCard = createForwardRef<
 ConsentDialogCard.displayName = 'ConsentDialogCard';
 
 /**
+ * Props for {@link ConsentDialogHeader}.
+ *
+ * @public
+ */
+type ConsentDialogHeaderProps = Omit<BoxProps, 'slotKey'> & {
+	/**
+	 * Render a close button after the header's children. Clicking it closes
+	 * the dialog without recording consent, like Escape. Style it through
+	 * the `dialog.closeButton` slot.
+	 *
+	 * @defaultValue false
+	 */
+	showCloseButton?: boolean;
+};
+
+/**
+ * The dialog's close button: an icon button labelled with the `common.close`
+ * translation. It sets the active UI to `'none'` and records nothing.
+ */
+const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
+	const setActiveUI = useSetActiveUI();
+	const { common } = useTranslations();
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
+	const buttonProps = mergeSlotProps(components?.dialog?.closeButton, {
+		baseClassName: styles.closeButton,
+		noStyle: noStyle ?? contextNoStyle,
+	});
+
+	return (
+		<button
+			{...buttonProps}
+			type="button"
+			aria-label={common.close}
+			data-testid="consent-dialog-close"
+			onClick={() => setActiveUI('none')}
+		>
+			<svg
+				aria-hidden="true"
+				style={{ height: '1rem', width: '1rem' }}
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+			>
+				<line
+					x1="18"
+					y1="6"
+					x2="6"
+					y2="18"
+				/>
+				<line
+					x1="6"
+					y1="6"
+					x2="18"
+					y2="18"
+				/>
+			</svg>
+		</button>
+	);
+};
+
+/**
  * The header section of the consent dialog.
  * Should contain the ConsentDialogHeaderTitle and optionally ConsentDialogHeaderDescription.
  *
@@ -62,11 +126,20 @@ ConsentDialogCard.displayName = 'ConsentDialogCard';
  * - Provides semantic structure for accessibility
  * - Should be the first child of ConsentDialogCard
  * - Styled according to the theme configuration
+ * - With `showCloseButton`, renders a close button after its children
+ *
+ * @example
+ * ```tsx
+ * <ConsentDialog.Header showCloseButton>
+ *   <ConsentDialog.HeaderTitle />
+ *   <ConsentDialog.HeaderDescription />
+ * </ConsentDialog.Header>
+ * ```
  */
 const ConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => (
+	ConsentDialogHeaderProps
+>(({ children, showCloseButton = false, ...props }, ref) => (
 	<Box
 		ref={ref as Ref<HTMLDivElement>}
 		baseClassName={styles.header}
@@ -75,6 +148,7 @@ const ConsentDialogHeader = createForwardRef<
 		data-testid="consent-dialog-header"
 	>
 		{children}
+		{showCloseButton && <ConsentDialogCloseButton noStyle={props.noStyle} />}
 	</Box>
 ));
 ConsentDialogHeader.displayName = 'ConsentDialogHeader';
@@ -253,6 +327,7 @@ interface BrandingProps {
  * @param {boolean} [props.noStyle] - When true, removes default styling
  * @param {LegalLink[]} [props.legalLinks] - Legal document links to display in footer
  * @param {boolean} [props.hideBranding] - Whether to hide the branding in the footer
+ * @param {boolean} [props.showCloseButton] - Whether to show a close button in the header
  *
  * @example
  * ```tsx
@@ -272,13 +347,15 @@ const ConsentCustomizationCard = ({
 	noStyle,
 	legalLinks,
 	hideBranding,
+	showCloseButton,
 }: {
 	noStyle?: boolean;
 	legalLinks?: InlineLegalLinksProps['links'];
 	hideBranding?: boolean;
+	showCloseButton?: boolean;
 }) => (
 	<ConsentDialogCard>
-		<ConsentDialogHeader>
+		<ConsentDialogHeader showCloseButton={showCloseButton}>
 			<ConsentDialogHeaderTitle />
 			<ConsentDialogHeaderDescription legalLinks={legalLinks} />
 		</ConsentDialogHeader>
@@ -304,6 +381,8 @@ const HeaderTitle = ConsentDialogHeaderTitle;
 const HeaderDescription = ConsentDialogHeaderDescription;
 const Content = ConsentDialogContent;
 const Footer = ConsentDialogFooter;
+
+export type { ConsentDialogHeaderProps };
 
 export {
 	Card,

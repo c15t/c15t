@@ -705,6 +705,38 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it('renders no close button in the preference centre by default', async () => {
+		const { root, client } = await mount();
+		client.openDialog();
+
+		expect(query(root, 'consent-dialog-header')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-dialog-close"]')
+		).toBeNull();
+	});
+
+	it('closes the preference centre from showCloseButton without recording consent', async () => {
+		const { root, client } = await mount({
+			dialog: { showCloseButton: true },
+			theme: { slots: { consentDialogCloseButton: 'brand-close' } },
+		});
+		client.openDialog();
+
+		const close = query<HTMLButtonElement>(root, 'consent-dialog-close');
+		expect(close.getAttribute('aria-label')).toBe('Close');
+		expect(close.getAttribute('part')).toBe('consentDialogCloseButton');
+		expect(close.classList).toContain('brand-close');
+		expect(query(root, 'consent-dialog-header').contains(close)).toBe(true);
+
+		close.click();
+
+		expect(client.getSnapshot().activeUI).toBe('banner');
+		expect(client.hasConsented()).toBe(false);
+		expect(
+			root.querySelector('[data-testid="consent-dialog-root"]')
+		).toBeNull();
+	});
+
 	it('closes the preference centre on Escape pressed outside it', async () => {
 		const { root, client } = await mount(
 			{},

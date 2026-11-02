@@ -16,6 +16,7 @@ group: reference
   | `models` | `Model[]` | `['opt-in', 'opt-out', 'none']` | Policy models the dialog responds to. Under a model that is not listed, such as `iab`, it stays closed. |
   | `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which of the links configured in the provider `options.legalLinks` render after the description. Omitting the prop renders none. `null` hides them. |
   | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag in the card. |
+  | `showCloseButton` | `boolean` | `false` | Renders a close button in the top corner of the header. Clicking it closes the dialog without saving, like Escape. |
   | `uiSource` | `string` | `'dialog'` | Source identifier recorded with saves made from this dialog. |
   | `scrollLock`, `trapFocus` | `boolean` | from `blocking` | Deprecated. Either one set to `false` makes the dialog non-blocking, unless the provider sets `presentation.preferences.blocking` explicitly, which wins. Prefer the provider option. |
   | `disableAnimation` | `boolean` | `false` | Skips the enter and exit animation of the backdrop and the card. |
@@ -74,7 +75,9 @@ group: reference
   renders, so the first page load carries only the banner's rules.
 
   Without an `open` prop, Escape closes the dialog without saving. If the
-  policy still owes a choice, the banner comes back. Save Settings, Accept All and
+  policy still owes a choice, the banner comes back. With `showCloseButton`,
+  the close button does the same: it sets the active surface to `none` and
+  records nothing. Save Settings, Accept All and
   Reject All close it as soon as the choice is recorded in the browser, in
   the same task as the click; the exit animation still plays. The request to
   the backend runs afterwards and never reopens the dialog: a failed request
@@ -105,7 +108,8 @@ group: reference
   record.
 
   Copy comes from these translation keys: `consentManagerDialog.title`,
-  `consentManagerDialog.description`, `common.acceptAll`, `common.rejectAll`,
+  `consentManagerDialog.description`, `common.close` for the close button's
+  label, `common.acceptAll`, `common.rejectAll`,
   `common.save`, and `consentTypes.<category>.title` and `.description` for
   each row.
 </section>
@@ -122,7 +126,11 @@ group: reference
   around the whole panel; the `aria-labelledby` and `aria-describedby`
   wiring means a screen reader still announces the title and description as
   focus enters. Tab and Shift+Tab wrap inside the panel, and on close focus
-  returns to the element that opened the dialog. A non-blocking dialog manages no focus: nothing moves focus into the
+  returns to the element that opened the dialog. With `showCloseButton`, the
+  close button comes after the title and description in the tab order, so it
+  is the first tabbable control when the description has no legal links. It
+  is a `<button>` named by `common.close` ("Close" in English), with
+  `data-testid="consent-dialog-close"`. A non-blocking dialog manages no focus: nothing moves focus into the
   panel or back to the opener. The backdrop is `aria-hidden` and is not
   focusable.
 
@@ -141,12 +149,14 @@ group: reference
   open state, focus trap, scroll lock and backdrop, and accepts `open`,
   `models`, `noStyle`, `disableAnimation`, `scrollLock`, `trapFocus`,
   `uiSource` and `overlay`. Pass `overlay={false}` to render no backdrop, or a
-  node to replace the built-in one.
+  node to replace the built-in one. `Header` takes `showCloseButton` and
+  renders the close button after its children, so a composed dialog keeps the
+  stock button:
 
   ```tsx
   <ConsentDialog.Root>
     <ConsentDialog.Card>
-      <ConsentDialog.Header>
+      <ConsentDialog.Header showCloseButton>
         <ConsentDialog.HeaderTitle>Your privacy choices</ConsentDialog.HeaderTitle>
         <ConsentDialog.HeaderDescription legalLinks={['privacyPolicy']} />
       </ConsentDialog.Header>
@@ -165,7 +175,8 @@ group: reference
   The positioner carries `data-slot="dialog-positioner"`, and both it and the
   panel carry `data-blocking="true"` while blocking. Provider component slots
   for the stock structure are `dialog.root`, `dialog.container`,
-  `dialog.card`, `dialog.header`, `dialog.title`, `dialog.content`,
+  `dialog.card`, `dialog.header`, `dialog.title`, `dialog.closeButton`,
+  `dialog.content`,
   `dialog.overlay`, `description.dialog`, `manager.footer` and `tag.dialog`.
 
   `ConsentDialog` from the package root and from the

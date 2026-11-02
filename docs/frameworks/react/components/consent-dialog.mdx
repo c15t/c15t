@@ -22,6 +22,16 @@ To hide the "Secured by" tag in the dialog card, pass `hideBranding`:
 <ConsentDialog hideBranding />;
 ```
 
+On touch screens the dialog has no Escape key, and the backdrop does not
+close it. To give visitors a way out that records no choice, pass
+`showCloseButton`. An X button appears in the top corner of the header:
+
+{/* example: fragment */}
+
+```tsx
+<ConsentDialog showCloseButton />;
+```
+
 To open it from your own component, set the active surface:
 
 ```tsx
