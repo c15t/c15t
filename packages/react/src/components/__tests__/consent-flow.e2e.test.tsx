@@ -609,6 +609,35 @@ describe('Consent Flow E2E Tests', () => {
 			expect(query('consent-dialog-title')?.textContent).toBe('Your privacy');
 		});
 
+		test('ConsentDialog.Header with asChild keeps its element and adds the close button', async () => {
+			render(
+				<ConsentProvider options={defaultOptions}>
+					<ConsentDialog.Root open={true}>
+						<ConsentDialog.Card>
+							<ConsentDialog.Header
+								asChild
+								showCloseButton
+							>
+								<header data-own="header">
+									<ConsentDialog.HeaderTitle>
+										Your privacy
+									</ConsentDialog.HeaderTitle>
+								</header>
+							</ConsentDialog.Header>
+						</ConsentDialog.Card>
+					</ConsentDialog.Root>
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-close')).toBeInTheDocument();
+			});
+			const header = getDefined(query('consent-dialog-header'));
+			expect(header.tagName).toBe('HEADER');
+			expect(header.getAttribute('data-own')).toBe('header');
+			expect(header.lastElementChild).toBe(query('consent-dialog-close'));
+		});
+
 		test('leaves nothing open once the visitor has chosen', async () => {
 			render(
 				<ConsentProvider options={defaultOptions}>
