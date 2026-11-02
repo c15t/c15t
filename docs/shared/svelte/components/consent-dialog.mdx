@@ -29,7 +29,7 @@ before the dialog renders. With `styles={false}`, it comes from your imported
 | `showTrigger` | `boolean` or trigger props | `false` | Renders a floating `ConsentDialogTrigger` with the dialog. Pass an object for `defaultPosition`, `persistPosition`, `showWhen`, `size`, `ariaLabel`, `noStyle` and `class`. |
 | `legalLinks` | array of `LegalLinks` keys, or `null` | every configured link | Which of the provider's `legalLinks` to show after the description. |
 | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
-| `showCloseButton` | `boolean` | `false` | Renders a close button in the top corner of the header. Clicking it closes the dialog without saving, like Escape. |
+| `showCloseButton` | `boolean` | `false` | Renders a close button in the top corner of the header. Clicking it closes the dialog without saving, like Escape. With `open` set, the dialog stays visible until `open` is `false`. |
 | `models` | `Model[]` | `['opt-in', 'opt-out', 'iab', 'none']` | Policy models the dialog opens for. `none` is included so a policy with no prompt but a right to change preferences still opens it. |
 | `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes. |
 | `class` | `string` | none | Extra class on the dialog content. |

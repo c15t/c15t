@@ -31,6 +31,7 @@ import { useTheme } from '~/hooks/use-theme';
 import type { ClassNameStyle } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { defaultTranslationConfig } from '~/utils/default-translation-config';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 /**
@@ -75,7 +76,8 @@ type ConsentDialogHeaderProps = Omit<BoxProps, 'slotKey'> & {
 
 /**
  * The dialog's close button: an icon button labelled with the `common.close`
- * translation. It sets the active UI to `'none'` and records nothing.
+ * translation, or English when the bundle has none, so it always has an
+ * accessible name. It sets the active UI to `'none'` and records nothing.
  */
 const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 	const setActiveUI = useSetActiveUI();
@@ -91,9 +93,14 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 		<button
 			{...buttonProps}
 			type="button"
-			aria-label={common.close}
+			aria-label={
+				common.close || defaultTranslationConfig.translations.en.common.close
+			}
 			data-testid="consent-dialog-close"
-			onClick={() => setActiveUI('none')}
+			onClick={(event) => {
+				buttonProps.onClick?.(event);
+				setActiveUI('none');
+			}}
 		>
 			<svg
 				aria-hidden="true"

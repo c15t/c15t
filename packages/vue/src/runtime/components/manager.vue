@@ -61,7 +61,7 @@ const translations = useSurfaceTranslations();
 // "Close" in the visitor's language, falling back to English.
 const closeLabel = computed(
 	() =>
-		translations.value.bundle?.common?.close ??
+		translations.value.bundle?.common?.close ||
 		translations.value.english.common.close
 );
 // Closing records no consent, like Escape.

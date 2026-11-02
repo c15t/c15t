@@ -554,8 +554,14 @@ describe('Consent Flow E2E Tests', () => {
 		});
 
 		test('the close button closes the dialog without recording consent', async () => {
+			const slotClick = vi.fn();
 			render(
-				<ConsentProvider options={defaultOptions}>
+				<ConsentProvider
+					options={{
+						...defaultOptions,
+						components: { dialog: { closeButton: { onClick: slotClick } } },
+					}}
+				>
 					<ConsentBanner />
 					<ConsentDialog showCloseButton />
 				</ConsentProvider>
@@ -584,6 +590,8 @@ describe('Consent Flow E2E Tests', () => {
 			expect(readStoredRecords(undefined, Date.now()).records.choice).toBe(
 				null
 			);
+			// A `dialog.closeButton` slot handler still runs.
+			expect(slotClick).toHaveBeenCalledOnce();
 		});
 
 		test('ConsentDialog.Header renders the close button after custom children', async () => {
