@@ -644,6 +644,7 @@ describe('Consent Flow E2E Tests', () => {
 			expect(header.tagName).toBe('HEADER');
 			expect(header.getAttribute('data-own')).toBe('header');
 			expect(header.lastElementChild).toBe(query('consent-dialog-close'));
+			expect(query('consent-dialog-title')?.textContent).toBe('Your privacy');
 		});
 
 		test('leaves nothing open once the visitor has chosen', async () => {
