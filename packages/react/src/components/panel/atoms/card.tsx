@@ -7,7 +7,11 @@ import brandingStyles from '@c15t/ui/styles/components/branding';
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
 import styles from '@c15t/ui/styles/components/consent-dialog';
-import { forwardRef as createForwardRef, isValidElement } from 'react';
+import {
+	cloneElement,
+	forwardRef as createForwardRef,
+	isValidElement,
+} from 'react';
 import type { ReactNode, Ref } from 'react';
 
 import { useTranslations } from '~/component-hooks/use-translations';
@@ -137,18 +141,36 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 const ConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
 	ConsentDialogHeaderProps
->(({ children, showCloseButton = false, ...props }, ref) => (
-	<Box
-		ref={ref as Ref<HTMLDivElement>}
-		baseClassName={styles.header}
-		{...props}
-		slotKey="dialog.header"
-		data-testid="consent-dialog-header"
-	>
-		{children}
-		{showCloseButton && <ConsentDialogCloseButton noStyle={props.noStyle} />}
-	</Box>
-));
+>(({ children, showCloseButton = false, ...props }, ref) => {
+	let content: ReactNode = children;
+	if (showCloseButton) {
+		const closeButton = <ConsentDialogCloseButton noStyle={props.noStyle} />;
+		// With `asChild` the header is its one child element, so the button
+		// goes inside that element; two children would make `Slot` render
+		// nothing.
+		content =
+			props.asChild && isValidElement<{ children?: ReactNode }>(children) ? (
+				// oxlint-disable-next-line react/no-clone-element -- Keeps the child's ref and key for `Slot` to merge; rebuilding it with createElement would drop the ref.
+				cloneElement(children, undefined, children.props.children, closeButton)
+			) : (
+				<>
+					{children}
+					{closeButton}
+				</>
+			);
+	}
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.header}
+			{...props}
+			slotKey="dialog.header"
+			data-testid="consent-dialog-header"
+		>
+			{content}
+		</Box>
+	);
+});
 ConsentDialogHeader.displayName = 'ConsentDialogHeader';
 
 /**
