@@ -85,9 +85,19 @@ Vendor pages under `docs/integrations/` are the developer reference for the
 c15t helper. The cookie banner setup guide for that vendor lives at
 `https://inth.com/integrations/<slug>`. When that guide exists, use
 `seoTitle: PostHog integration reference for c15t`, end `seoDescription` with
-"Setting up a cookie banner? See inth.com.", and add one line after the intro:
-"Setting up a PostHog cookie banner on Inth? Follow the [PostHog setup
-guide](https://inth.com/integrations/posthog)."
+"Setting up a cookie banner? See inth.com.", and put a `<Signpost>` after the
+intro, before the first heading:
+
+```mdx
+<Signpost href="https://inth.com/integrations/posthog" label="Setup guide">
+  This page is the code reference for `posthog`. To set up the cookie banner for PostHog, use the Inth guide.
+</Signpost>
+```
+
+`<Signpost href label>` says what the page covers and offers one way out for
+readers who came for something else. Use one per page, at most. The Markdown
+copies of the docs render it as a blockquote with the link last, through the
+flattener in `docs/docs.config.ts`.
 
 Use task headings readers would search for. Question headings help when the
 section answers a question; do not force every heading into a question. Include

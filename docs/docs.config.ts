@@ -1,6 +1,70 @@
 import { defineDocsConfig } from 'leadtype';
 
+interface MdastNode {
+	type: string;
+	name?: string | null;
+	attributes?: { type: string; name?: string; value?: unknown }[];
+	children?: MdastNode[];
+	[key: string]: unknown;
+}
+
+const attributeOf = function attributeOf(
+	node: MdastNode,
+	name: string
+): string | undefined {
+	const attribute = node.attributes?.find(
+		(entry) => entry.type === 'mdxJsxAttribute' && entry.name === name
+	);
+	return typeof attribute?.value === 'string' ? attribute.value : undefined;
+};
+
+/** `<Signpost href label>` as a blockquote: the body, then the link */
+const flattenSignpost = function flattenSignpost(node: MdastNode): MdastNode {
+	const children = node.children ?? [];
+	const blocks: MdastNode[] = children.some(
+		(child) => child.type === 'paragraph'
+	)
+		? [...children]
+		: [{ children, type: 'paragraph' }];
+	const href = attributeOf(node, 'href');
+	const label = attributeOf(node, 'label');
+	if (href && label) {
+		blocks.push({
+			children: [
+				{ children: [{ type: 'text', value: label }], type: 'link', url: href },
+			],
+			type: 'paragraph',
+		});
+	}
+	return { children: blocks, type: 'blockquote' };
+};
+
+/**
+ * Flattens `<Signpost>` for the Markdown copies of these docs: package docs,
+ * llms.txt and the .md routes on c15t.com. It imports nothing from leadtype,
+ * because c15t.com loads this config with a newer leadtype than this repo.
+ */
+const remarkSignpost = function remarkSignpost() {
+	const walk = (node: MdastNode) => {
+		if (!node.children) {
+			return;
+		}
+		node.children = node.children.map((child) => {
+			const next =
+				child.type === 'mdxJsxFlowElement' && child.name === 'Signpost'
+					? flattenSignpost(child)
+					: child;
+			walk(next);
+			return next;
+		});
+	};
+	return (tree: MdastNode) => {
+		walk(tree);
+	};
+};
+
 export default defineDocsConfig({
+	flatteners: [remarkSignpost],
 	groups: [
 		{
 			slug: 'frameworks',

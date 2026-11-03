@@ -24,6 +24,20 @@ test('filtered bundles retain the actual theme source', async () => {
 	expect(markdown).not.toContain('[Error:');
 });
 
+test('restored pages keep the docs config flatteners', async () => {
+	const source = fileURLToPath(
+		new URL('../docs/integrations/liveintent.mdx', import.meta.url)
+	);
+	const markdown = await restorePackageDocIncludes(
+		'[Error: Could not include file ../shared/integrations/register-scripts.mdx]',
+		source
+	);
+	expect(markdown).not.toContain('<Signpost');
+	expect(markdown).toContain(
+		'> [Setup guide](https://inth.com/integrations/liveintent)'
+	);
+});
+
 test('unresolved conversion errors stop publication', async () => {
 	await expect(
 		restorePackageDocIncludes(
