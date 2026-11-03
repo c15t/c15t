@@ -84,9 +84,10 @@ does not parse.
 Vendor pages under `docs/integrations/` are the developer reference for the
 c15t helper. The cookie banner setup guide for that vendor lives at
 `https://inth.com/integrations/<slug>`. When that guide exists, use
-`seoTitle: PostHog integration reference for c15t`, end `seoDescription` with
-"Setting up a cookie banner? See inth.com.", and put a `<Signpost>` after the
-intro, before the first heading:
+`seoTitle: <Vendor> integration reference for c15t`, with the vendor's display
+name, end `seoDescription` with "Setting up a cookie banner? See inth.com.",
+and put a `<Signpost>` after the intro, before the first heading. Name the
+helper the page documents. For the PostHog page:
 
 ```mdx
 <Signpost href="https://inth.com/integrations/posthog" label="Setup guide">
