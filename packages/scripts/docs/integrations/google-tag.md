@@ -4,9 +4,8 @@ description: Load gtag.js for Google Analytics or Google Ads before or after
   consent with c15t Consent Mode v2 signals, and verify the consent commands in
   DevTools.
 seoTitle: Google Tag Consent Mode v2 with c15t
-seoDescription: Load gtag.js for Google Analytics or Google Ads before or after
-  consent with the c15t gtag helper, send Consent Mode v2 signals and check them
-  in DevTools.
+seoDescription: Load Google Tag (gtag.js) only after consent. Set up the c15t
+  helper with your measurement ID, configure Consent Mode and verify loading.
 icon: google-analytics
 group: integrations
 ---
