@@ -3,10 +3,10 @@ title: OpenAI Pixel
 description: Load the ChatGPT Ads Measurement Pixel only after marketing consent
   with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in
   DevTools.
-seoTitle: OpenAI Pixel cookie consent with c15t
-seoDescription: Load the OpenAI ChatGPT Ads Measurement Pixel only after
-  marketing consent. The c15t openaiPixel helper sends oaiq consent signals for
-  you.
+seoTitle: OpenAI Pixel integration reference for c15t
+seoDescription: "c15t openaiPixel helper reference: options, oaiq consent
+  signals, guarded oaiq calls and DevTools checks. Setting up a cookie banner?
+  See inth.com."
 icon: chatgpt
 group: integrations
 ---
@@ -18,6 +18,10 @@ the page until `marketing` has consent. Until then, c15t does not define the
 loads. If the visitor withdraws consent, the helper calls
 `oaiq('consent', false)`. The SDK stays on the page. By default, c15t also
 reloads the page.
+
+> This page is the code reference for `openaiPixel`. To set up the cookie banner for OpenAI Pixel, use the Inth guide.
+>
+> [Setup guide](https://inth.com/integrations/openai-pixel)
 
 ## Configure the OpenAI Pixel
 

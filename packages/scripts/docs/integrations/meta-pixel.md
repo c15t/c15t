@@ -2,9 +2,10 @@
 title: Meta Pixel
 description: Load the Meta Pixel only after marketing consent with the c15t
   metaPixel helper, guard fbq event calls, and check it in DevTools.
-seoTitle: Meta Pixel cookie consent with c15t
-seoDescription: Load the Meta Pixel only with marketing consent. The c15t
-  metaPixel helper sends fbq consent grant and revoke signals for you.
+seoTitle: Meta Pixel integration reference for c15t
+seoDescription: "c15t metaPixel helper reference: options, fbq consent grant and
+  revoke, guarded fbq calls and DevTools checks. Setting up a cookie banner? See
+  inth.com."
 icon: meta
 group: integrations
 ---
@@ -15,6 +16,10 @@ consent, the helper queues `fbq('consent', 'grant')` before `init` and the page
 view. If the visitor withdraws consent, the helper calls
 `fbq('consent', 'revoke')`. The script stays on the page. By default, c15t also
 reloads the page.
+
+> This page is the code reference for `metaPixel`. To set up the cookie banner for Meta Pixel, use the Inth guide.
+>
+> [Setup guide](https://inth.com/integrations/meta-pixel)
 
 ## Configure the Meta Pixel
 
