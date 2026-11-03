@@ -34,7 +34,7 @@ test('restored pages keep the docs config flatteners', async () => {
 	);
 	expect(markdown).not.toContain('<Signpost');
 	expect(markdown).toContain(
-		'> This page is the code reference for `liveIntentTag`.'
+		'> This page is the code reference for `liveIntentTag`. To set up the cookie banner for LiveIntent, use the Inth guide.'
 	);
 	expect(markdown).toContain(
 		'> [Setup guide](https://inth.com/integrations/liveintent)'
