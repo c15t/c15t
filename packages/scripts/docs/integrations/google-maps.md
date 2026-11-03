@@ -3,10 +3,10 @@ title: Google Maps
 description: Gate a Google Maps iframe embed with c15t v3 so the map loads only
   after the visitor allows its consent category, in Next.js, TanStack Start,
   React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
-seoTitle: Google Maps integration reference for c15t
-seoDescription: "Google Maps embed reference for c15t: ConsentGate and
-  data-category setup, and checks before and after consent. Setting up a cookie
-  banner? See inth.com."
+seoTitle: Google Maps embed consent for c15t
+seoDescription: Gate Google Maps iframe embeds with ConsentGate or
+  data-category. Load maps only after visitor consent and check before and after
+  permission.
 icon: google-maps
 group: integrations
 ---

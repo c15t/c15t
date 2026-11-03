@@ -2,10 +2,9 @@
 title: Meta Pixel
 description: Load the Meta Pixel only after marketing consent with the c15t
   metaPixel helper, guard fbq event calls, and check it in DevTools.
-seoTitle: Meta Pixel integration reference for c15t
-seoDescription: "c15t metaPixel helper reference: options, fbq consent grant and
-  revoke, guarded fbq calls and DevTools checks. Setting up a cookie banner? See
-  inth.com."
+seoTitle: Meta Pixel consent integration for c15t
+seoDescription: Load Meta Pixel only after marketing consent. Set up the c15t
+  helper with your pixel ID and verify pageview and events in DevTools.
 icon: meta
 group: integrations
 ---
