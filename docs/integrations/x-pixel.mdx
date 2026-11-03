@@ -1,7 +1,7 @@
 ---
 title: X Pixel
 description: Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
-seoTitle: X Pixel cookie consent with c15t
+seoTitle: X Pixel consent integration for c15t
 seoDescription: Load X Pixel (Twitter Pixel) only after marketing consent. Set up the c15t helper with your pixel ID and verify conversion tracking in DevTools.
 icon: x
 group: integrations
@@ -11,6 +11,8 @@ The c15t `xPixel` helper keeps the X Pixel off the page until `marketing` has
 consent. Until then, c15t does not define `twq`. X has no API to update consent,
 so the helper sends no consent signal to X. If the visitor withdraws consent,
 c15t removes the script element. By default, c15t also reloads the page.
+
+Setting up an X Pixel cookie banner on Inth? Follow the [X Pixel setup guide](https://inth.com/integrations/x-pixel).
 
 ## Configure the X Pixel
 
