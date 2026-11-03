@@ -84,9 +84,12 @@ does not parse.
 Vendor pages under `docs/integrations/` are the developer reference for the
 c15t helper. The cookie banner setup guide for that vendor lives at
 `https://inth.com/integrations/<slug>`. When that guide exists, use
-`seoTitle: <Vendor> integration reference for c15t`, with the vendor's display
-name, end `seoDescription` with "Setting up a cookie banner? See inth.com.",
-and put a `<Signpost>` after the intro, before the first heading. Name the
+`seoTitle: <Vendor> consent integration for c15t`, with the vendor's display
+name (exceptions: "Google Tag Manager Consent Mode v2 for c15t", "Google Maps
+embed consent for c15t", "YouTube embed consent for c15t"), and write
+`seoDescription` as 120 to 155 characters describing what the page covers
+without mentioning Inth. Use sentence case, no Oxford comma, no dashes (em or
+en). Put a `<Signpost>` after the intro, before the first heading. Name the
 helper the page documents. For the PostHog page:
 
 ```mdx
