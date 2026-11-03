@@ -1,8 +1,8 @@
 ---
 title: Segment
 description: Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
-seoTitle: Segment cookie consent with c15t
-seoDescription: Load Segment Analytics.js only with measurement consent. The c15t segment helper sends the first page call after consent.
+seoTitle: Segment consent integration for c15t
+seoDescription: Load Segment Analytics.js only after measurement consent. Guard your own track and identify calls and check loader requests in DevTools.
 icon: segment
 group: integrations
 ---
@@ -13,6 +13,10 @@ When `measurement` has consent, the helper queues a `page()` call and loads
 Analytics.js. The helper sends no consent signal to Segment. If the visitor
 withdraws consent, c15t removes the script element. By default, c15t also
 reloads the page.
+
+<Signpost href="https://inth.com/integrations/segment" label="Setup guide">
+  This page is the code reference for `segment`. To set up the cookie banner for Segment, use the Inth guide.
+</Signpost>
 
 ## Configure Segment
 

@@ -1,8 +1,8 @@
 ---
 title: Ada
 description: Load Ada Messaging after functionality consent with the c15t ada helper, configure regional Agents, and stop the widget when consent is revoked.
-seoTitle: Ada Messaging cookie consent with c15t
-seoDescription: Gate Ada Messaging on functionality consent with c15t. Keep the SDK interface private, stop the widget on revocation, and verify its requests and storage.
+seoTitle: Ada Messaging consent integration for c15t
+seoDescription: Load Ada messenger only after functionality consent. Set up the c15t helper, configure app ID and regional API and check it in DevTools.
 icon: bot
 group: integrations
 ---
@@ -14,6 +14,10 @@ SDK, and it keeps the Messaging interface private.
 When the visitor withdraws, the helper calls Ada's `stop()` to remove the
 widget, and c15t reloads the page by default. `stop()` doesn't delete stored
 conversations or cookies.
+
+<Signpost href="https://inth.com/integrations/ada" label="Setup guide">
+  This page is the code reference for `ada`. To set up the cookie banner for Ada, use the Inth guide.
+</Signpost>
 
 ## Configure Ada Messaging
 

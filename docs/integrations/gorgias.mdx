@@ -1,8 +1,8 @@
 ---
 title: Gorgias Chat
 description: Load Gorgias Chat after functionality consent, disable its Segment analytics when measurement is denied, and verify loading and revocation with c15t.
-seoTitle: Gorgias Chat cookie consent with c15t
-seoDescription: Load Gorgias Chat with functionality consent. Disable Segment tracking when measurement is denied and use a page reload to stop the running widget.
+seoTitle: Gorgias Chat consent integration for c15t
+seoDescription: Load Gorgias chat only after functionality consent. Set up the c15t helper with your app ID, configure widget options and verify in DevTools.
 icon: messages-square
 group: integrations
 ---
@@ -14,6 +14,10 @@ analytics unless `measurement` is also allowed.
 
 Gorgias has no shutdown API, so the helper can't stop a running widget. By
 default c15t reloads the page on withdrawal, and the reload stops it.
+
+<Signpost href="https://inth.com/integrations/gorgias" label="Setup guide">
+  This page is the code reference for `gorgiasChat`. To set up the cookie banner for Gorgias Chat, use the Inth guide.
+</Signpost>
 
 ## Configure Gorgias Chat
 

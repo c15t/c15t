@@ -1,8 +1,8 @@
 ---
 title: Databuddy
 description: Load Databuddy only after measurement consent with the c15t databuddy helper, turn off tracking features you do not use, record sessions with the replay option, and check revocation in DevTools.
-seoTitle: Databuddy cookie consent with c15t
-seoDescription: Load Databuddy and its session replay only with measurement consent, and stop both when consent is withdrawn. Set it up with the c15t databuddy helper.
+seoTitle: Databuddy consent integration for c15t
+seoDescription: Load Databuddy analytics only after measurement consent. Set up the c15t helper with your project ID and verify event tracking in DevTools.
 icon: databuddy
 group: integrations
 ---
@@ -12,6 +12,10 @@ The c15t `databuddy` helper waits for `measurement` consent before it loads
 request to Databuddy and Databuddy stores nothing. If the visitor withdraws
 consent, the helper disables the Databuddy tracker and stops session replay,
 and c15t reloads the page.
+
+<Signpost href="https://inth.com/integrations/databuddy" label="Setup guide">
+  This page is the code reference for `databuddy`. To set up the cookie banner for Databuddy, use the Inth guide.
+</Signpost>
 
 ## Configure Databuddy
 

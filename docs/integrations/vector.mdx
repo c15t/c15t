@@ -1,8 +1,8 @@
 ---
 title: Vector
 description: Load the Vector pixel only after marketing consent with the c15t vector helper, and check its queue, storage and revocation.
-seoTitle: Vector consent with c15t
-seoDescription: Load Vector's pixel only after marketing consent with c15t, and check its loader, storage and page reload on withdrawal.
+seoTitle: Vector consent integration for c15t
+seoDescription: Load Vector identification only after marketing consent. Set up the c15t helper, configure people identification and verify in DevTools.
 icon: radar
 group: integrations
 ---
@@ -11,6 +11,10 @@ Vector identifies the people and companies visiting your site and builds
 advertising audiences from their activity. The c15t `vector` helper keeps
 Vector off the page until the `marketing` category is allowed. Vector has no
 documented stop API, so on withdrawal c15t reloads the page to stop it.
+
+<Signpost href="https://inth.com/integrations/vector" label="Setup guide">
+  This page is the code reference for `vector`. To set up the cookie banner for Vector, use the Inth guide.
+</Signpost>
 
 ## Configure Vector
 

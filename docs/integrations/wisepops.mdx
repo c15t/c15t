@@ -1,8 +1,8 @@
 ---
 title: Wisepops
 description: Load Wisepops popups, bars, embeds and notification feeds after marketing consent with c15t. Configure its site ID, cookie options and reload behavior.
-seoTitle: Wisepops cookie consent with c15t
-seoDescription: Load Wisepops after marketing consent, configure its site ID and cookie options, and use c15t's reload on consent revocation to stop the running SDK.
+seoTitle: Wisepops consent integration for c15t
+seoDescription: Load Wisepops popups and forms only after functionality consent. Set up the c15t helper with your website ID and verify widget loading.
 icon: 'megaphone'
 group: integrations
 ---
@@ -13,6 +13,10 @@ storage. It queues `defaultConsent: 'denied'` before the SDK runs and calls
 `wisepops('consent', 'granted')` after the loader finishes with consent still
 allowed. Keep c15t's default reload on revocation enabled because Wisepops
 cannot revoke consent programmatically.
+
+<Signpost href="https://inth.com/integrations/wisepops" label="Setup guide">
+  This page is the code reference for `wisepops`. To set up the cookie banner for Wisepops, use the Inth guide.
+</Signpost>
 
 ## Configure Wisepops
 

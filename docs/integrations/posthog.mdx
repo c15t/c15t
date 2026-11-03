@@ -1,8 +1,8 @@
 ---
 title: PostHog
 description: Load PostHog before or after measurement consent with the c15t posthog helper, choose its cookieless behavior, turn off PostHog modules you do not use, and sync consent with an SDK you already initialize.
-seoTitle: PostHog cookie consent with c15t
-seoDescription: Opt PostHog out without measurement consent, with cookieless capture or a full wait for consent. Set it up with the c15t posthog helper.
+seoTitle: PostHog consent integration for c15t
+seoDescription: Load PostHog analytics only after measurement consent. Set up the c15t helper with your project API key, configure autocapture and verify recording.
 icon: posthog
 group: integrations
 ---
@@ -13,6 +13,10 @@ before the visitor chooses. While `measurement` has no consent, the helper calls
 `measurement` has consent, the helper calls `opt_in_capturing()`. The default
 `cookieless_mode: 'on_reject'` changes PostHog to cookieless capture after an
 opt-out. To wait for consent before the load, set `loadMode: 'after-consent'`.
+
+<Signpost href="https://inth.com/integrations/posthog" label="Setup guide">
+  This page is the code reference for `posthog`. To set up the cookie banner for PostHog, use the Inth guide.
+</Signpost>
 
 ## Configure PostHog
 

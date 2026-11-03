@@ -1,8 +1,8 @@
 ---
 title: OneDollarStats
 description: Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
-seoTitle: OneDollarStats cookie consent with c15t
-seoDescription: Load the OneDollarStats tracker only with measurement consent. Set it up with the c15t oneDollarStats helper and check it in DevTools.
+seoTitle: OneDollarStats consent integration for c15t
+seoDescription: Load One Dollar Stats only after measurement consent. Set up the c15t helper with your site ID and verify pageviews in DevTools.
 icon: circle-dollar
 group: integrations
 ---
@@ -11,6 +11,10 @@ The c15t `oneDollarStats` helper keeps the OneDollarStats tracker, `stonks.js`,
 off the page until `measurement` has consent. The helper sends no consent signal
 to OneDollarStats. If the visitor withdraws consent, c15t removes the script
 element. By default, c15t also reloads the page.
+
+<Signpost href="https://inth.com/integrations/one-dollar-stats" label="Setup guide">
+  This page is the code reference for `oneDollarStats`. To set up the cookie banner for OneDollarStats, use the Inth guide.
+</Signpost>
 
 ## Configure OneDollarStats
 

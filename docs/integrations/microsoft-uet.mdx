@@ -1,8 +1,8 @@
 ---
 title: Microsoft UET
 description: Load Microsoft Advertising UET on every page with the c15t microsoftUet helper, send ad_storage consent defaults and updates, and verify both in DevTools.
-seoTitle: Microsoft UET consent mode with c15t
-seoDescription: Send Microsoft UET consent mode signals from your cookie banner. The c15t microsoftUet helper sets ad_storage from marketing consent before bat.js runs.
+seoTitle: Microsoft UET consent integration for c15t
+seoDescription: Load Microsoft UET tag only after marketing consent. Set up the c15t helper with your tag ID and verify conversion tracking in DevTools.
 icon: microsoft
 group: integrations
 ---
@@ -13,6 +13,10 @@ calls `uetq.push('consent', 'default', { ad_storage })`. The `ad_storage` value
 is `granted` or `denied`, from the consent for `marketing`. When that consent
 changes, the helper sends an `update`. After the visitor withdraws consent, UET
 stays on the page and gets `denied`. By default, c15t also reloads the page.
+
+<Signpost href="https://inth.com/integrations/microsoft-uet" label="Setup guide">
+  This page is the code reference for `microsoftUet`. To set up the cookie banner for Microsoft UET, use the Inth guide.
+</Signpost>
 
 ## Configure Microsoft UET
 

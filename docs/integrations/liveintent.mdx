@@ -1,8 +1,8 @@
 ---
 title: LiveIntent
 description: Load LiveIntent with c15t after marketing consent and verify its loader, storage and revocation behavior.
-seoTitle: LiveIntent consent with c15t
-seoDescription: Load LiveIntent's LiveConnect tag only after marketing consent. Learn what liveIntentTag queues, which storage it sets and how to verify it.
+seoTitle: LiveIntent consent integration for c15t
+seoDescription: Load LiveIntent only after marketing consent. Set up the c15t helper with your publisher ID and verify identifier resolution in DevTools.
 icon: radar
 group: integrations
 ---
@@ -14,6 +14,10 @@ tag.
 
 LiveConnect has no API to stop it. When the visitor withdraws, the helper
 leaves the tag on the page, and c15t's default page reload removes it.
+
+<Signpost href="https://inth.com/integrations/liveintent" label="Setup guide">
+  This page is the code reference for `liveIntentTag`. To set up the cookie banner for LiveIntent, use the Inth guide.
+</Signpost>
 
 ## Configure LiveIntent
 

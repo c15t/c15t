@@ -1,8 +1,8 @@
 ---
 title: Gainsight PX
 description: Gate Gainsight PX product analytics and in-app engagements on consent, configure the aptrinsic snippet and disable tracking when consent is withdrawn.
-seoTitle: Gainsight PX cookie consent with c15t
-seoDescription: Load Gainsight PX after analytics consent. Configure user and account identity, choose a consent category and disable the tag when consent is withdrawn.
+seoTitle: Gainsight PX consent integration for c15t
+seoDescription: Load Gainsight PX only after measurement consent. Set up the c15t helper with your product key and verify engagement tracking.
 icon: chart-no-axes-combined
 group: integrations
 ---
@@ -11,6 +11,10 @@ The `gainsightPx` helper waits for `measurement` consent before it creates
 `window.aptrinsic` or requests the PX SDK. This gate covers both product
 analytics and in-app engagements. On revocation, the helper disables the tag
 through PX's config API and requests a session reset.
+
+<Signpost href="https://inth.com/integrations/gainsight-px" label="Setup guide">
+  This page is the code reference for `gainsightPx`. To set up the cookie banner for Gainsight PX, use the Inth guide.
+</Signpost>
 
 ## Configure Gainsight PX
 

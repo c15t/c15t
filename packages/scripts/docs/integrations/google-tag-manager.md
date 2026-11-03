@@ -3,10 +3,9 @@ title: Google Tag Manager
 description: Load a Google Tag Manager container before or after consent with
   c15t Consent Mode v2 signals, configure consent checks inside the container,
   and verify both in DevTools.
-seoTitle: Google Tag Manager Consent Mode v2 with c15t
-seoDescription: Set Google Consent Mode v2 defaults before your GTM container
-  starts. Load it on every page or only after consent with the c15t
-  googleTagManager helper.
+seoTitle: Google Tag Manager Consent Mode v2 for c15t
+seoDescription: Set up Consent Mode v2 defaults, load GTM before or after consent,
+  configure tags for consent checks and verify in DevTools.
 icon: google-tag-manager
 group: integrations
 ---
@@ -24,6 +23,10 @@ container runs, each later consent change sends an `update`, and then a
 `ad_storage`, `ad_user_data`, and `ad_personalization`. Tags in the container
 that are not from Google ignore these signals, unless you add consent checks in
 GTM.
+
+> This page is the code reference for `googleTagManager`. To set up the cookie banner for Google Tag Manager, use the Inth guide.
+>
+> [Setup guide](https://inth.com/integrations/google-tag-manager)
 
 ## Configure Google Tag Manager
 

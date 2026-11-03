@@ -1,8 +1,8 @@
 ---
 title: Marketo Munchkin
 description: Load Adobe Marketo Munchkin after marketing consent, configure its account and cookie options, and verify tracking and revocation with c15t.
-seoTitle: Marketo Munchkin cookie consent with c15t
-seoDescription: Wait for marketing consent before loading Marketo Munchkin. Set your account ID, configure cookies and check revocation with c15t.
+seoTitle: Marketo Munchkin consent integration for c15t
+seoDescription: Load Marketo Munchkin tracking only after marketing consent. Set up the c15t helper with your Munchkin ID and verify tracking in DevTools.
 icon: chart-line
 group: integrations
 ---
@@ -14,6 +14,10 @@ Munchkin global, cookie or browser storage.
 
 Munchkin has no API to stop tracking. When the visitor withdraws, c15t removes
 the loader and reloads the page, and the reload ends tracking.
+
+<Signpost href="https://inth.com/integrations/marketo" label="Setup guide">
+  This page is the code reference for `marketoMunchkin`. To set up the cookie banner for Marketo Munchkin, use the Inth guide.
+</Signpost>
 
 ## Configure Marketo Munchkin
 

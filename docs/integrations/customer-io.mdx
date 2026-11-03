@@ -1,8 +1,8 @@
 ---
 title: Customer.io
 description: Load Customer.io Data Pipelines only after marketing consent with the c15t customerIo helper, set up a proxy, and check withdrawal.
-seoTitle: Customer.io cookie consent with c15t
-seoDescription: Load Customer.io only with marketing consent. Set your write key, region and proxy, and reset identity on withdrawal with c15t.
+seoTitle: Customer.io consent integration for c15t
+seoDescription: Load Customer.io tracking only after measurement consent. Set up the c15t helper with your site ID and verify tracking in DevTools.
 icon: chart-line
 group: integrations
 ---
@@ -15,6 +15,10 @@ Data Pipelines JavaScript source, for use in its messaging. The c15t
 When the visitor withdraws, the helper calls `cioanalytics.reset()` to clear
 the stored identity, and c15t reloads the page. `reset()` is not an opt-out.
 The reload is what stops the SDK.
+
+<Signpost href="https://inth.com/integrations/customer-io" label="Setup guide">
+  This page is the code reference for `customerIo`. To set up the cookie banner for Customer.io, use the Inth guide.
+</Signpost>
 
 ## Configure Customer.io
 

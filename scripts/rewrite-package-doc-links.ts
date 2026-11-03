@@ -3,6 +3,8 @@ import { posix } from 'node:path';
 import { convertMdxToMarkdown } from 'leadtype/convert';
 import { defaultRemarkPlugins, remarkInclude } from 'leadtype/remark';
 
+import docsConfig from '../docs/docs.config';
+
 /** Restore includes omitted by leadtype 0.2.1's filtered source mirror. */
 export const restorePackageDocIncludes = async (
 	markdown: string,
@@ -13,6 +15,9 @@ export const restorePackageDocIncludes = async (
 				await convertMdxToMarkdown(sourcePath, [
 					remarkInclude,
 					...defaultRemarkPlugins,
+					// The docs config's own flatteners, such as <Signpost>, which
+					// `leadtype generate` applies but this second pass would drop.
+					...(docsConfig.flatteners ?? []),
 				])
 			).markdown
 		: markdown;

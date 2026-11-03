@@ -1,8 +1,8 @@
 ---
 title: Lucky Orange
 description: Load Lucky Orange after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
-seoTitle: Lucky Orange cookie consent with c15t
-seoDescription: Load Lucky Orange only after measurement consent. The c15t luckyOrange helper sets its privacy consent status and turns it off on withdrawal.
+seoTitle: Lucky Orange consent integration for c15t
+seoDescription: Load Lucky Orange heatmaps and recording only after measurement consent. Set up the c15t helper with your site ID and verify in DevTools.
 icon: chart-line
 group: integrations
 ---
@@ -15,6 +15,10 @@ ready, the helper grants consent through `LO.privacy.setConsentStatus(true)`.
 When the visitor withdraws, the helper calls `setConsentStatus(false)`.
 Recording code already on the page can't be unloaded, so keep c15t's default
 page reload.
+
+<Signpost href="https://inth.com/integrations/lucky-orange" label="Setup guide">
+  This page is the code reference for `luckyOrange`. To set up the cookie banner for Lucky Orange, use the Inth guide.
+</Signpost>
 
 ## Configure Lucky Orange
 

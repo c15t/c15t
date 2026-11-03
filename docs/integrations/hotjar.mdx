@@ -1,8 +1,8 @@
 ---
 title: Hotjar
 description: Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
-seoTitle: Hotjar cookie consent with c15t
-seoDescription: Load Hotjar only with measurement consent. The c15t hotjar helper keeps the Hotjar loader off the page and stops recordings on withdrawal.
+seoTitle: Hotjar consent integration for c15t
+seoDescription: Load Hotjar only after measurement consent. Set up the c15t helper with your site ID, configure options and check recordings in DevTools.
 icon: hotjar
 group: integrations
 ---
@@ -17,6 +17,10 @@ analytics.
 Withdrawal needs more care. c15t sends Hotjar no consent signal, so it can't
 tell a running recording to stop. By default it reloads the page instead, and
 the reload ends the recording.
+
+<Signpost href="https://inth.com/integrations/hotjar" label="Setup guide">
+  This page is the code reference for `hotjar`. To set up the cookie banner for Hotjar, use the Inth guide.
+</Signpost>
 
 ## Configure Hotjar
 

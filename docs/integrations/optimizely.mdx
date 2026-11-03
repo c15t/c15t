@@ -1,8 +1,8 @@
 ---
 title: Optimizely
 description: Load Optimizely Web Experimentation and Personalization after experience consent with c15t, choose a consent category and understand revocation limits.
-seoTitle: Optimizely cookie consent with c15t
-seoDescription: Gate Optimizely Web Experimentation on experience consent with c15t. Configure the project snippet, handle page flicker and understand reload limits.
+seoTitle: Optimizely consent integration for c15t
+seoDescription: Load Optimizely experimentation only after measurement consent. Set up the c15t helper with your snippet and verify tests in DevTools.
 icon: flask-conical
 group: integrations
 ---
@@ -15,6 +15,10 @@ then, the helper creates no Optimizely global and makes no Optimizely request.
 On withdrawal, c15t removes the snippet and reloads the page. The running SDK
 can't be unloaded, so without the reload it keeps changing the page and
 sending events.
+
+<Signpost href="https://inth.com/integrations/optimizely" label="Setup guide">
+  This page is the code reference for `optimizelyWeb`. To set up the cookie banner for Optimizely, use the Inth guide.
+</Signpost>
 
 ## Configure Optimizely
 

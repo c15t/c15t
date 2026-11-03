@@ -1,8 +1,8 @@
 ---
 title: Pendo
 description: Load Pendo after measurement consent, configure its tracking settings, and verify loading and withdrawal with c15t.
-seoTitle: Pendo cookie consent with c15t
-seoDescription: Load and initialize Pendo only after measurement consent. The c15t pendo helper stops and resumes event sending and keeps the visitor's identity.
+seoTitle: Pendo consent integration for c15t
+seoDescription: Load Pendo analytics only after measurement consent. Set up the c15t helper with your API key, configure visitor data and verify in DevTools.
 icon: chart-line
 group: integrations
 ---
@@ -15,6 +15,10 @@ and consent is still granted. Until then, c15t defines no `pendo` global.
 When the visitor withdraws, the helper calls `pendo.stopSendingEvents()`. If
 consent comes back on the same page, it calls `startSendingEvents()` and keeps
 the same visitor identity. c15t still reloads the page by default.
+
+<Signpost href="https://inth.com/integrations/pendo" label="Setup guide">
+  This page is the code reference for `pendo`. To set up the cookie banner for Pendo, use the Inth guide.
+</Signpost>
 
 ## Configure Pendo
 

@@ -1,8 +1,8 @@
 ---
 title: Clearbit
 description: Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
-seoTitle: Clearbit cookie consent with c15t
-seoDescription: Load Clearbit only with marketing consent, because Clearbit identifies visitors and their companies. Set it up with the c15t clearbit helper.
+seoTitle: Clearbit consent integration for c15t
+seoDescription: Load Clearbit enrichment tag only after marketing consent. Identifies visitors and companies for enrichment and verifies in DevTools.
 icon: clearbit
 group: integrations
 ---
@@ -12,6 +12,10 @@ The c15t `clearbit` helper keeps the Clearbit tag, `tags.js`, off the page until
 Clearbit identifies visitors and their companies. The helper sends no consent
 signal to Clearbit. If the visitor withdraws consent, c15t removes the script
 element. By default, c15t also reloads the page.
+
+<Signpost href="https://inth.com/integrations/clearbit" label="Setup guide">
+  This page is the code reference for `clearbit`. To set up the cookie banner for Clearbit, use the Inth guide.
+</Signpost>
 
 ## Configure Clearbit
 
