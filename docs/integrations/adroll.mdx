@@ -1,8 +1,8 @@
 ---
 title: AdRoll
 description: Load AdRoll with c15t after marketing consent and verify its loader, storage and revocation behavior.
-seoTitle: AdRoll consent with c15t
-seoDescription: Load the AdRoll pixel only after marketing consent. Learn what adrollPixel queues, which storage AdRoll sets and how to verify it.
+seoTitle: AdRoll integration reference for c15t
+seoDescription: "c15t adrollPixel helper reference: options, the queued pageView, revocation limits, storage and DevTools checks. Setting up a cookie banner? See inth.com."
 icon: radar
 group: integrations
 ---
@@ -13,6 +13,8 @@ sets the AdRoll globals, queues the first `pageView` and adds the loader.
 
 AdRoll has no API to stop its pixel. When the visitor withdraws, the helper
 leaves AdRoll on the page, and c15t's default page reload removes it.
+
+Setting up an AdRoll cookie banner on Inth? Follow the [AdRoll setup guide](https://inth.com/integrations/adroll).
 
 ## Configure AdRoll
 

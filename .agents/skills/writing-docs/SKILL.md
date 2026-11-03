@@ -74,12 +74,20 @@ Do not copy the description into that paragraph.
 
 Add the optional `seoTitle` and `seoDescription` when searchers use different
 words from the navigation label. Search results and social cards show them in
-place of `title` and `description`. Vendor guides use them, for example
-`seoTitle: PostHog cookie consent with c15t`. Write `seoTitle` as the complete
-title, with c15t in it, in 60 characters or fewer; the site adds no suffix. Keep
+place of `title` and `description`. Write `seoTitle` as the complete title,
+with c15t in it, in 60 characters or fewer; the site adds no suffix. Keep
 `seoDescription` to 160 characters or fewer, lead with what the reader gets,
 and make it unique to the page. Both must match what the page and the source
-show.
+show. Quote a `seoDescription` that contains a colon, or the YAML frontmatter
+does not parse.
+
+Vendor pages under `docs/integrations/` are the developer reference for the
+c15t helper. The cookie banner setup guide for that vendor lives at
+`https://inth.com/integrations/<slug>`. When that guide exists, use
+`seoTitle: PostHog integration reference for c15t`, end `seoDescription` with
+"Setting up a cookie banner? See inth.com.", and add one line after the intro:
+"Setting up a PostHog cookie banner on Inth? Follow the [PostHog setup
+guide](https://inth.com/integrations/posthog)."
 
 Use task headings readers would search for. Question headings help when the
 section answers a question; do not force every heading into a question. Include

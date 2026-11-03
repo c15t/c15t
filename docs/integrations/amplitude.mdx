@@ -1,8 +1,8 @@
 ---
 title: Amplitude
 description: Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
-seoTitle: Amplitude cookie consent with c15t
-seoDescription: Load Amplitude only with measurement consent. The c15t amplitude helper opts the SDK out when a visitor withdraws consent.
+seoTitle: Amplitude integration reference for c15t
+seoDescription: "c15t amplitude helper reference: options, queued init, setOptOut on revocation and DevTools checks. Setting up a cookie banner? See inth.com."
 icon: amplitude
 group: integrations
 ---
@@ -13,6 +13,8 @@ When `measurement` has consent, the helper queues `init` and `setOptOut(false)`
 before the SDK loads. If the visitor withdraws consent, the helper calls
 `amplitude.setOptOut(true)`. The SDK stays on the page. By default, c15t also
 reloads the page.
+
+Setting up an Amplitude cookie banner on Inth? Follow the [Amplitude setup guide](https://inth.com/integrations/amplitude).
 
 ## Configure Amplitude
 

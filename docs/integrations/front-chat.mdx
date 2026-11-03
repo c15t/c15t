@@ -1,8 +1,8 @@
 ---
 title: Front Chat
 description: Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
-seoTitle: Front Chat cookie consent with c15t
-seoDescription: Show Front Chat only with functionality consent. You can also clear the Front session when a visitor withdraws consent, with the c15t frontChat helper.
+seoTitle: Front Chat integration reference for c15t
+seoDescription: "c15t frontChat helper reference: chat ID option, functionality gating, clearing the Front session and DevTools checks. Setting up a cookie banner? See inth.com."
 icon: front-chat
 group: integrations
 ---
@@ -12,6 +12,8 @@ The c15t `frontChat` helper keeps the Front Chat bundle off the page until
 `FrontChat('init')` with your chat ID. If the visitor withdraws consent, c15t
 reloads the page by default. To ask Front to clear the chat session, call
 `shutdownFrontChat()` from `onBeforeConsentRevocationReload`.
+
+Setting up a Front Chat cookie banner on Inth? Follow the [Front Chat setup guide](https://inth.com/integrations/front-chat).
 
 ## Configure Front Chat
 

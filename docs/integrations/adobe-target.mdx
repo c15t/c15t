@@ -1,8 +1,8 @@
 ---
 title: Adobe Target
 description: Gate a self-hosted Adobe Target at.js download or Adobe Experience Platform Web SDK on experience consent, send consent updates and check revocation limits.
-seoTitle: Adobe Target cookie consent with c15t
-seoDescription: Load Adobe Target after experience consent with c15t. Configure at.js opt-in or Web SDK setConsent, and understand what revocation can stop.
+seoTitle: Adobe Target integration reference for c15t
+seoDescription: "c15t adobeTarget helper reference: at.js and Web SDK modes, opt-out on revocation, storage and DevTools checks. Setting up a cookie banner? See inth.com."
 icon: 'bullseye'
 group: integrations
 ---
@@ -15,6 +15,8 @@ file or Adobe Experience Platform Web SDK.
 On withdrawal, the helper denies Target through Adobe's Opt-in service for
 at.js, or sends `setConsent` with `'out'` for Web SDK. Neither undoes content
 Target already changed, so keep `reloadOnConsentRevoked` enabled.
+
+Setting up an Adobe Target cookie banner on Inth? Follow the [Adobe Target setup guide](https://inth.com/integrations/adobe-target).
 
 ## Configure Adobe Target
 

@@ -1,8 +1,8 @@
 ---
 title: Insider One
 description: Load Insider One after consent with current user attributes, currency and page context through the c15t insiderTag helper.
-seoTitle: Insider One cookie consent with c15t
-seoDescription: Load Insider One after marketing consent. Send gdpr_optin on grant and revocation, set page context, and check requests and storage with c15t.
+seoTitle: Insider One integration reference for c15t
+seoDescription: "c15t insiderTag helper reference: user, currency and page context, gdpr_optin on grant and revocation, storage checks. Setting up a cookie banner? See inth.com."
 icon: insider
 group: integrations
 ---
@@ -16,6 +16,8 @@ definition and `init`, then adds the loader.
 On withdrawal, it queues `gdpr_optin: false`, a neutral `{ type: 'other' }`
 page and `init`, then removes the loader. Insider has no unload method, so keep
 c15t's default reload on revocation to stop code the SDK already ran.
+
+Setting up an Insider cookie banner on Inth? Follow the [Insider setup guide](https://inth.com/integrations/insider).
 
 ## Configure Insider One
 

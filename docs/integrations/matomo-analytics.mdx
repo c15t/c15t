@@ -1,8 +1,8 @@
 ---
 title: Matomo Analytics
 description: Load Matomo after measurement consent with the c15t matomoAnalytics helper, or use Matomo's own consent mode, and check each mode in DevTools.
-seoTitle: Matomo cookie consent with c15t
-seoDescription: Load Matomo only after measurement consent, or load it on every page and use the Matomo consent API. Set it up with the c15t matomoAnalytics helper.
+seoTitle: Matomo Analytics integration reference for c15t
+seoDescription: "c15t matomoAnalytics helper reference: consent gating or the Matomo consent API, revocation and DevTools checks. Setting up a cookie banner? See inth.com."
 icon: matomo
 group: integrations
 ---
@@ -14,6 +14,8 @@ before the visitor chooses. The helper then uses the Matomo consent API. It
 calls `requireConsent` while `measurement` has no consent, `setConsentGiven`
 while it has consent, and `forgetConsentGiven` after the visitor withdraws
 consent.
+
+Setting up a Matomo Analytics cookie banner on Inth? Follow the [Matomo Analytics setup guide](https://inth.com/integrations/matomo-analytics).
 
 ## Configure Matomo Analytics
 

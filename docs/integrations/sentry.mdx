@@ -1,8 +1,8 @@
 ---
 title: Sentry
 description: Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
-seoTitle: Sentry and Session Replay consent with c15t
-seoDescription: Keep Sentry error reports free of user data, and load Session Replay only with measurement consent. Set it up with the c15t sentry helper.
+seoTitle: Sentry integration reference for c15t
+seoDescription: "c15t sentry helper reference: load modes, Session Replay consent, your own SDK, CSP and DevTools checks. Setting up a cookie banner? See inth.com."
 icon: sentry
 group: integrations
 ---
@@ -14,6 +14,8 @@ events contain no user data, cookies, request headers, or inferred IP address.
 Session Replay also waits until `measurement` has consent. It stops after the
 visitor withdraws consent. With `loadMode: 'after-consent'`, Sentry runs only
 while `measurement` has consent.
+
+Setting up a Sentry cookie banner on Inth? Follow the [Sentry setup guide](https://inth.com/integrations/sentry).
 
 ## Configure Sentry
 
