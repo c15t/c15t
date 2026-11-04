@@ -3,9 +3,10 @@ title: Cloudflare Zaraz
 description: Sync c15t permissions to Cloudflare Zaraz purposes with the c15t
   cloudflareZaraz bridge, which runs on every page without loading a script, and
   check the tools it controls.
-seoTitle: Cloudflare Zaraz consent with c15t
-seoDescription: Load Cloudflare Zaraz only after consent. Set up the c15t
-  helper, configure consent signals and verify tool loading in DevTools.
+seoTitle: Cloudflare Zaraz consent integration for c15t
+seoDescription: Connect your cookie banner to Cloudflare Zaraz. The c15t
+  cloudflareZaraz helper turns on each Zaraz purpose only while its c15t
+  category has consent.
 icon: cloudflare-web-analytics
 group: integrations
 ---

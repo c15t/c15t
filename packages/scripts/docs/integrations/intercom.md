@@ -2,7 +2,7 @@
 title: Intercom
 description: Load the Intercom messenger only after functionality consent with
   the c15t intercom helper, set its region and check it in DevTools.
-seoTitle: Intercom consent integration for c15t
+seoTitle: Intercom Messenger consent integration for c15t
 seoDescription: Load Intercom messenger only after functionality consent. Set up
   the c15t helper with your app ID, set regional API and check in DevTools.
 icon: intercom
