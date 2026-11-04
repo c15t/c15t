@@ -75,7 +75,9 @@ Do not copy the description into that paragraph.
 Add the optional `seoTitle` and `seoDescription` when searchers use different
 words from the navigation label. Search results and social cards show them in
 place of `title` and `description`. Write `seoTitle` as the complete title,
-with c15t in it, in 40 to 60 characters; the site adds no suffix. Add one
+with c15t in it, in 40 to 60 characters; the site adds no suffix. Name c15t
+inside the title, such as "IAB GPP and US state opt-outs in Next.js with
+c15t", and do not end it with " | c15t". Add one
 when the page's `description` is under 120 characters. Keep
 `seoDescription` to 120 to 155 characters, lead with what the reader can do,
 and make it unique to the page. Both must match what the page and the source
