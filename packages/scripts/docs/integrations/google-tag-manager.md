@@ -4,8 +4,8 @@ description: Load a Google Tag Manager container before or after consent with
   c15t Consent Mode v2 signals, configure consent checks inside the container,
   and verify both in DevTools.
 seoTitle: Google Tag Manager Consent Mode v2 for c15t
-seoDescription: Set up Consent Mode v2 defaults, load GTM before or after consent,
-  configure tags for consent checks and verify in DevTools.
+seoDescription: Set up Consent Mode v2 defaults, load GTM before or after
+  consent, configure tags for consent checks and verify in DevTools.
 icon: google-tag-manager
 group: integrations
 ---
