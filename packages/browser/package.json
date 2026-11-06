@@ -112,6 +112,11 @@
 			"types": "./dist-types/postcss-tailwind3.d.ts",
 			"import": "./dist/postcss-tailwind3.js",
 			"default": "./dist/postcss-tailwind3.js"
+		},
+		"./prefetch": {
+			"types": "./dist-types/prefetch.d.ts",
+			"import": "./dist/prefetch.js",
+			"default": "./dist/prefetch.js"
 		}
 	},
 	"publishConfig": {

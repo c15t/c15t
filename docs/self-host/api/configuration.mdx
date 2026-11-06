@@ -71,8 +71,8 @@ pass logging callbacks when constructing the instance instead.
 
 ## Browser script routes
 
-The backend serves `/c15t.js`, `/c15t.headless.js` and `/c15t.iab.js` by
-default, so a self-hosted instance can serve a configured
+The backend serves `/c15t.js`, `/c15t.headless.js`, `/c15t.iab.js` and
+`/c15t.init.js` by default, so a self-hosted instance can serve a configured
 [script tag](/docs/frameworks/html/quickstart) without a separate bundle
 deployment. Turn them off when you do not use the script tag:
 
@@ -98,10 +98,12 @@ Pass these options under `script` in the `c15tInstance()` or `defineConfig()` op
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `enabled` | `true` | Register all three script routes. Set to `false` to remove them. |
+| `enabled` | `true` | Register every script route. Set to `false` to remove them. |
 | `path` | `/c15t.js` | Path for the ordinary banner and preference UI. |
 | `headlessPath` | `/c15t.headless.js` | Path for the runtime without UI. |
 | `iabPath` | `/c15t.iab.js` | Path for the optional IAB CMP and preference UI. |
+| `initPath` | `/c15t.init.js` | Path for the script that sends the hosted bundle's first `/init` while the bundle downloads. |
+| `prefetch` | `true` | Send `/init` from the hosted bundle's second line, before the bundle runs, and serve `initPath`. Set to `false` to leave `/init` to the client. A custom `bundles.full` turns it off, because the request must come from the bundle's own `@c15t/core` version. |
 | `backendURL` | Derived from the request origin and configured `basePath`, or the request path when `basePath` is omitted | Backend base URL embedded in the bundle. Set it explicitly when a proxy rewrites the public path or origin. |
 | `config` | `{}` | Browser defaults embedded in the response. Page-queued configuration overrides these defaults. |
 | `bundles` | Files resolved from `@c15t/browser` | Override filesystem paths by `full`, `headless`, or `iab` key. Requires a runtime with Node filesystem APIs. |

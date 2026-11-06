@@ -1,6 +1,8 @@
 /**
  * The script-tag routes, exercised through real requests.
  */
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { runInNewContext } from 'node:vm';
 
 import { policyRulePresets } from '@c15t/schema/types';
@@ -328,6 +330,136 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		expect(response.status).toBe(503);
 		expect(await response.json()).toMatchObject({
 			cause: { code: 'SCRIPT_UNAVAILABLE' },
+		});
+	});
+
+	describe('early /init', () => {
+		// Runs the lines before the bundle in a page with no stored consent
+		// and returns the URLs they fetched.
+		const runInPage = function runInPage(
+			code: string,
+			page: { attributes?: string[]; queue?: unknown[] } = {}
+		): string[] {
+			const fetched: string[] = [];
+			const context: Record<string, unknown> = {
+				crypto: globalThis.crypto,
+				document: {
+					cookie: '',
+					currentScript: {
+						hasAttribute: (name: string) =>
+							page.attributes?.includes(name) ?? false,
+					},
+				},
+				fetch: (url: string) => {
+					fetched.push(url);
+					// Never settles: only the request matters here.
+					return Promise.withResolvers().promise;
+				},
+				localStorage: { getItem: () => null },
+				location: { origin: 'https://site.example' },
+				navigator: {},
+				sessionStorage: { getItem: () => null },
+			};
+			context.window = context;
+			context.c15t = page.queue;
+			runInNewContext(code, context);
+			return fetched;
+		};
+		// The config line and the early init line, without the bundle.
+		const runPrelude = (body: string, page?: Parameters<typeof runInPage>[1]) =>
+			runInPage(body.split('\n', 2).join('\n'), page);
+
+		it('starts /init before the bundle runs', async () => {
+			const body = await (
+				await makeApp().request('http://x.c15t.dev/c15t.js?language=de')
+			).text();
+
+			const [url] = runPrelude(body);
+			expect(new URL(url as string).pathname).toBe('/init');
+			expect(url).toMatch(/^http:\/\/x\.c15t\.dev\/init\?v=/u);
+			// The baked-in config still comes first and is unchanged.
+			expect(readQueuedConfig(body)).toMatchObject({
+				overrides: { language: 'de' },
+			});
+		});
+
+		it('leaves /init to the runtime when the page could change it', async () => {
+			const body = await (
+				await makeApp().request('http://x.c15t.dev/c15t.js')
+			).text();
+
+			expect(runPrelude(body, { attributes: ['data-language'] })).toEqual([]);
+			expect(
+				runPrelude(body, {
+					queue: [['config', { overrides: { country: 'FR' } }]],
+				})
+			).toEqual([]);
+			// Options that don't touch the request keep the early start.
+			expect(
+				runPrelude(body, {
+					queue: [['config', { consentCategories: ['marketing'] }]],
+				})
+			).toHaveLength(1);
+		});
+
+		it('serves the same request on /c15t.init.js for an async tag', async () => {
+			const app = makeApp();
+			const full = await (
+				await app.request('http://x.c15t.dev/c15t.js?language=de')
+			).text();
+			const response = await app.request(
+				'http://x.c15t.dev/c15t.init.js?language=de'
+			);
+
+			expect(response.status).toBe(200);
+			expect(response.headers.get('cache-control')).toContain('s-maxage=');
+			const init = await response.text();
+			// It runs before the c15t tag, so no queue or tag exists yet. Each
+			// run draws a new journey id, so compare the rest of the request.
+			const withoutJourney = (urls: string[]) =>
+				urls.map((url) => {
+					const parsed = new URL(url);
+					parsed.searchParams.delete('journey');
+					return parsed.href;
+				});
+			expect(withoutJourney(runInPage(init, { queue: undefined }))).toEqual(
+				withoutJourney(runPrelude(full))
+			);
+			expect(full.split('\n', 2)[1]).toContain(init.trim());
+		});
+
+		it('explains a turned-off /c15t.init.js', async () => {
+			const response = await makeApp({ script: { prefetch: false } }).request(
+				'http://x.c15t.dev/c15t.init.js'
+			);
+
+			expect(response.status).toBe(503);
+		});
+
+		const bundlePath = createRequire(import.meta.url).resolve(
+			'@c15t/browser/c15t.js'
+		);
+
+		it.each<[string, string, ScriptOptions]>([
+			['when turned off', '/c15t.js', { prefetch: false }],
+			['for a custom bundle', '/c15t.js', { bundles: { full: bundlePath } }],
+			['to the headless build', '/c15t.headless.js', {}],
+			[
+				'for an experiment the builder rejects',
+				'/c15t.js',
+				{ config: { experiment: 'ab' } },
+			],
+		])('is not added %s', async (_name, path, script) => {
+			const body = await (
+				await makeApp({ script }).request(`http://x.c15t.dev${path}`)
+			).text();
+			const bundle = await readFile(
+				createRequire(import.meta.url).resolve(`@c15t/browser${path}`),
+				'utf8'
+			);
+
+			// Only the config line comes before the bundle.
+			expect(body.slice(body.indexOf('\n') + 1)).toBe(bundle);
 		});
 	});
 });

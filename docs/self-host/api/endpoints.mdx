@@ -156,7 +156,22 @@ count is approximate.
 `GET /c15t.js` serves the hosted [script-tag build](/docs/frameworks/html/quickstart)
 of the consent banner. A queued `config` call sets the backend URL, hosted
 mode and the defaults from `script.config`. The client resolves the
-visitor's policy through `/init`; this route does not inline a manifest.
+visitor's policy through `/init`; this route does not inline a manifest. The
+script sends that `/init` before its bundle runs, and the client uses the
+response. On some pages the client would send a different request, so the
+script leaves `/init` to the client. That happens when the tag sets a backend,
+mode, location, language, manifest URL or policy rules attribute or
+`data-manual`, or when a `config` call queued before the tag sets `backendURL`,
+`mode`, `overrides`, `experiment`, `manifest`, `manifestURL`, `policyRules`,
+`storageConfig` or `prefetch`. The script never sends it early when
+`script.prefetch` is `false` or `script.bundles.full` points at your own
+bundle.
+
+`GET /c15t.init.js` serves only that `/init` request, for an `async` tag placed
+before the `/c15t.js` tag. The request then starts while `c15t.js` downloads,
+and `c15t.js` does not send it again. It takes the same `language` query.
+The route returns `503` when `script.prefetch` is `false` or
+`script.bundles.full` is set.
 
 `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves
 the optional IAB CMP and preference UI. Both routes keep their queued
@@ -165,9 +180,9 @@ and `script.config.iab` to set CMP options.
 
 | Query | What it does |
 | --- | --- |
-| `language` | Override the language used by the hosted `/c15t.js` client. On headless and IAB routes, slice the inlined manifest's translations to one language. |
+| `language` | Override the language used by the hosted `/c15t.js` client and the `/c15t.init.js` request. On headless and IAB routes, slice the inlined manifest's translations to one language. |
 
-Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. `@c15t/backend` installs `@c15t/browser`, which provides the bundles; `script.bundles` overrides their file paths. Set `script.enabled: false` to remove all three routes.
+Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. `@c15t/backend` installs `@c15t/browser`, which provides the bundles; `script.bundles` overrides their file paths. Set `script.enabled: false` to remove every script route.
 
 ## Save and read choices
 
