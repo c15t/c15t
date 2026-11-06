@@ -5,11 +5,9 @@ packages:
   '@c15t/scripts': patch
 ---
 
-### Add Capless analytics
+### Add Capless analytics integration
 
-Load Capless web analytics and session replay only after measurement consent
-with the `caplessAnalytics` helper. Once consent is given, calls to
-`window.capless` made before the tracker loads are replayed. Withdrawing
-consent calls `capless('optout')`, and every granted load calls
-`capless('optin')` first, so an earlier withdrawal does not leave a returning
-visitor opted out. The CLI can generate the integration.
+`caplessAnalytics` from `@c15t/integrations/capless-analytics` loads Capless
+analytics and session replay after `measurement` consent. Capless cannot stop a
+running replay, so keep the default page reload when consent is withdrawn. The
+CLI can add it during setup.
