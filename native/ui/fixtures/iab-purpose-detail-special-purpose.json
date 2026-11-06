@@ -1,0 +1,63 @@
+{
+	"builder": "buildIabPurposeDetail",
+	"description": "A special purpose opened: what it covers and who uses it, with no switch.",
+	"expected": {
+		"actions": [],
+		"id": "specialPurpose.1",
+		"intro": "Your data can be used to monitor for and prevent unusual and possibly fraudulent activity.",
+		"sections": [
+			{
+				"header": "Partners Using This Purpose",
+				"id": "partners",
+				"rows": [
+					{
+						"id": "partner.1",
+						"navigatesTo": "vendor.1",
+						"title": "Adnami Ltd"
+					},
+					{
+						"id": "partner.755",
+						"navigatesTo": "vendor.755",
+						"title": "Google Advertising Products"
+					}
+				]
+			}
+		],
+		"title": "Ensure security, prevent and detect fraud, and fix errors"
+	},
+	"id": "iab-purpose-detail-special-purpose",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		},
+		"routeId": "specialPurpose.1",
+		"selection": {
+			"purposeConsents": {
+				"1": true,
+				"2": false,
+				"3": true,
+				"4": false,
+				"7": false,
+				"8": true
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": true,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": false
+			}
+		}
+	},
+	"version": 1
+}

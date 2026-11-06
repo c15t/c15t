@@ -1,0 +1,30 @@
+{
+	"builder": "buildFirstLayer",
+	"description": "Notice first layer. There is nothing to decide, so it offers one acknowledgement and the way into preferences.",
+	"expected": {
+		"actions": [
+			{
+				"emphasis": "primary",
+				"id": "acknowledge",
+				"label": "Acknowledge"
+			},
+			{
+				"emphasis": "text",
+				"id": "manage",
+				"label": "Manage preferences"
+			}
+		],
+		"id": "firstLayer",
+		"intro": "We process your data to deliver this app. Learn more in the settings.",
+		"sections": [],
+		"title": "How we use your data"
+	},
+	"id": "standard-first-layer-notice",
+	"input": {
+		"copy": {
+			"$ref": "standard-copy"
+		},
+		"notice": true
+	},
+	"version": 1
+}

@@ -139,7 +139,11 @@ export const roleNodes = function roleNodes(
 	root: HTMLElement,
 	role: string
 ): HTMLElement[] {
-	return [...root.querySelectorAll<HTMLElement>(`[data-rn-role="${role}"]`)];
+	return [
+		...root.querySelectorAll<HTMLElement>(
+			`[role="${role}"]:not([aria-hidden="true"])`
+		),
+	];
 };
 
 /** The one element carrying a role, or a thrown assertion. */
@@ -280,11 +284,13 @@ export const touchHeight = function touchHeight(node: HTMLElement): number {
 		number
 	>;
 
-	return (
+	return Math.max(
+		number(box, 'minHeight'),
+		number(box, 'height'),
 		vertical +
-		number(label, 'lineHeight') +
-		number(box, 'borderWidth') * 2 +
-		number(slop, 'top') +
-		number(slop, 'bottom')
+			number(label, 'lineHeight') +
+			number(box, 'borderWidth') * 2 +
+			number(slop, 'top') +
+			number(slop, 'bottom')
 	);
 };

@@ -1,0 +1,94 @@
+{
+	"builder": "buildPreferences",
+	"description": "Preferences before any choice: necessary is locked on, everything else is off.",
+	"expected": {
+		"actions": [
+			{
+				"emphasis": "primary",
+				"id": "save",
+				"label": "Save Settings"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "rejectAll",
+				"label": "Reject All"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "acceptAll",
+				"label": "Accept All"
+			}
+		],
+		"id": "preferences",
+		"intro": "Pick the categories you allow below.",
+		"sections": [
+			{
+				"id": "categories",
+				"rows": [
+					{
+						"control": {
+							"disabled": true,
+							"kind": "switch",
+							"value": true
+						},
+						"detail": "Required for the app to work. It cannot be turned off.",
+						"id": "category.necessary",
+						"title": "Strictly Necessary"
+					},
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "Measures how the app is used and how it performs.",
+						"id": "category.measurement",
+						"title": "Analytics"
+					},
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "Shows you advertising that is relevant to you.",
+						"id": "category.marketing",
+						"title": "Marketing"
+					}
+				]
+			}
+		],
+		"title": "Privacy Settings",
+		"branding": "Secured by"
+	},
+	"id": "standard-preferences-opt-in",
+	"input": {
+		"copy": {
+			"$ref": "standard-copy"
+		},
+		"rows": [
+			{
+				"description": "Required for the app to work. It cannot be turned off.",
+				"disabled": true,
+				"key": "necessary",
+				"label": "Strictly Necessary",
+				"value": true
+			},
+			{
+				"description": "Measures how the app is used and how it performs.",
+				"disabled": false,
+				"key": "measurement",
+				"label": "Analytics",
+				"value": false
+			},
+			{
+				"description": "Shows you advertising that is relevant to you.",
+				"disabled": false,
+				"key": "marketing",
+				"label": "Marketing",
+				"value": false
+			}
+		]
+	},
+	"version": 1
+}

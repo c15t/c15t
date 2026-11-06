@@ -1,0 +1,153 @@
+{
+	"builder": "buildIabVendorDetail",
+	"description": "A partner with a retention period, a storage disclosure, a special feature, and a feature.",
+	"expected": {
+		"actions": [],
+		"id": "vendor.1",
+		"sections": [
+			{
+				"footer": "Store and/or access information on a device, Use limited data to select advertising, Create profiles for personalised advertising",
+				"id": "consent",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": true
+						},
+						"id": "vendor.1.consent",
+						"title": "Consent"
+					}
+				]
+			},
+			{
+				"footer": "Measure advertising performance",
+				"id": "legitimateInterest",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": true
+						},
+						"id": "vendor.1.legitimateInterest",
+						"info": "You have the right to object to processing based on legitimate interest.",
+						"title": "Legitimate Interest"
+					}
+				]
+			},
+			{
+				"header": "Special Purposes",
+				"id": "specialPurposes",
+				"rows": [
+					{
+						"id": "specialPurpose.1",
+						"navigatesTo": "specialPurpose.1",
+						"title": "Ensure security, prevent and detect fraud, and fix errors"
+					}
+				]
+			},
+			{
+				"header": "Special Features",
+				"id": "specialFeatures",
+				"rows": [
+					{
+						"id": "specialFeature.1",
+						"navigatesTo": "specialFeature.1",
+						"title": "Use precise geolocation data"
+					}
+				]
+			},
+			{
+				"header": "Features",
+				"id": "features",
+				"rows": [
+					{
+						"id": "feature.1",
+						"navigatesTo": "feature.1",
+						"title": "Match and combine data from other data sources"
+					}
+				]
+			},
+			{
+				"header": "Storage",
+				"id": "storage",
+				"rows": [
+					{
+						"control": {
+							"kind": "value",
+							"text": "365 days"
+						},
+						"id": "retention",
+						"title": "Data retention"
+					},
+					{
+						"control": {
+							"kind": "value",
+							"text": "90 days"
+						},
+						"id": "cookieLifetime",
+						"title": "Cookie lifetime"
+					},
+					{
+						"control": {
+							"kind": "link",
+							"url": "https://adnami.example/device-storage.json"
+						},
+						"id": "storageDisclosure",
+						"title": "Storage Disclosure"
+					}
+				]
+			},
+			{
+				"id": "links",
+				"rows": [
+					{
+						"control": {
+							"kind": "link",
+							"url": "https://adnami.example/privacy"
+						},
+						"id": "privacyPolicy",
+						"title": "Privacy Policy"
+					}
+				]
+			}
+		],
+		"title": "Adnami Ltd"
+	},
+	"id": "iab-vendor-detail-storage",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		},
+		"selection": {
+			"purposeConsents": {
+				"1": true,
+				"2": false,
+				"3": true,
+				"4": false,
+				"7": false,
+				"8": true
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": true,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": false
+			}
+		},
+		"vendorId": 1
+	},
+	"version": 1
+}

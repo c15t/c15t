@@ -278,6 +278,7 @@ describe('CI selection', () => {
 		'native/core-swift/Sources/C15tCore/ConsentCore.swift',
 		'native/core-android/c15t-core/src/main/kotlin/com/c15t/core/C15tKernel.kt',
 		'native/protocol/evaluation-eu-opt-in.json',
+		'native/ui/fixtures/iab-first-layer.json',
 	])('selects the whole graph for the native path %s', (file) => {
 		const result = plan([file]);
 		expect(result.full).toBe(true);
@@ -320,6 +321,7 @@ describe('CI selection', () => {
 		const result = plan([
 			'docs/mobile/react-native.mdx',
 			'native/CONTRACT.md',
+			'native/UI.md',
 			'packages/react-native/README.md',
 			'benchmarks/mobile/README.md',
 		]);

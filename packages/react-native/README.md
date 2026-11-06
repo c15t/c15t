@@ -27,11 +27,16 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - Native consent kernel on iOS (Swift) and Android (Kotlin), with no second kernel in JavaScript
 - Same policy resolution, save payloads, and storage envelope as the c15t web SDK, pinned by shared protocol fixtures
 - New Architecture TurboModule with Codegen types, no legacy bridge
+- Native bottom sheets, platform switches, preferences pages, and an inline widget, with IAB purpose and partner navigation
 - Synchronous consent reads for ad SDK gates, with no network or disk access on the main thread
 - Offline consent queue: every action is persisted before the request and replayed on launch, foreground, or reconnect
 - Global Privacy Control honored as a denial, never invented as a grant
 - Geographic, region, and language overrides for policy preview and QA
 - A wipe that returns the device to the state a first launch boots with, with the subject id kept so the audit history stays intact
+
+## Private alpha
+
+This package is private and is not published to npm or exported by `c15t`. Use the workspace package in the [bare React Native fixture](../../internals/fixtures/react-native-bare/README.md) or [Expo development fixture](../../internals/fixtures/expo-dev/README.md).
 
 ## Prerequisites
 
@@ -41,15 +46,9 @@ c15t is used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-co
 - A custom native build: Expo Go cannot load this package's native module, so use a development build
 - A c15t project endpoint, or a self-hosted `@c15t/backend` URL
 
-## Installation
-
-```bash
-pnpm add @c15t/react-native
-```
-
 ## Documentation
 
-See the [documentation](https://c15t.com/docs/frameworks/react-native/quickstart) for guides, API reference, and examples.
+See the [documentation](../../native/react-native-ui.md) for guides, API reference, and examples.
 
 ## How it works
 
@@ -89,16 +88,23 @@ CI runs `test` with no filter. That collects coverage and fails below the floors
 
 Type checks and lint stay separate: `bun turbo run test check-types lint --filter=@c15t/react-native`.
 
+## Native screens
+
+Mount `ConsentBanner` inside `C15tProvider` for the first prompt. It opens a content-sized bottom sheet; Manage preferences expands that sheet and opens the category list. `ConsentPreferences` opens independently from app settings and defaults to an iOS page sheet or an Android full-screen page. Use `presentation="sheet"` for a full-height bottom sheet, or `ConsentWidget` for an inline list inside your app's own screen.
+
+`ConsentIabBanner` and `ConsentIabPreferences` add searchable partner lists and purpose and partner detail pages. The host supplies the IAB display model and persists the selection returned by `onSave`.
+
+This private-alpha redesign removes `ConsentDialog`, replaces `ConsentIabDrawer` with `ConsentIabPreferences`, and renames the preferences callback to `onClose`. See the [UI API and migration guide](../../native/react-native-ui.md) for examples and theme options.
+
 ## Guides
 
-Every guide lives in the [React Native docs](https://c15t.com/docs/frameworks/react-native/quickstart):
+React Native guidance lives in this repository while the package is private:
 
-- [Quickstart](https://c15t.com/docs/frameworks/react-native/quickstart): install, configure the native bootstrap keys, and render the first banner on bare React Native or Expo
-- [Usage](https://c15t.com/docs/frameworks/react-native/usage): the provider, the hooks, the built-in banner, dialog and preference center, the headless path, and wiping consent back to a first launch
-- [Configuration](https://c15t.com/docs/frameworks/react-native/configuration): iOS and Android bootstrap keys, transport modes, overrides, and the privacy signal shape
-- [Native behaviour](https://c15t.com/docs/frameworks/react-native/native-behaviour): startup order, hydration, fail-closed storage, and gating a native analytics SDK
-- [Platform support](https://c15t.com/docs/frameworks/react-native/platform-support): version floors, the protocol handshake, and what is not supported
-- [Troubleshooting](https://c15t.com/docs/frameworks/react-native/troubleshooting): not-bootstrapped reads, protocol mismatches, retired keys, and native build problems
+- [UI API and migration](../../native/react-native-ui.md): banners, preferences, inline widgets, IAB screens, and themes
+- [Native UI specification](../../native/UI.md): screen models, shared fixtures, platform conventions, gestures, and accessibility for React Native and future SwiftUI and Compose ports
+- [Native contract](../../native/CONTRACT.md): consent ownership, protocol, persistence, and runtime budgets
+- [Bare React Native fixture](../../internals/fixtures/react-native-bare/README.md): native configuration, deep links, and device review
+- [Expo development fixture](../../internals/fixtures/expo-dev/README.md): development builds, native configuration, and device review
 
 ## Expo
 

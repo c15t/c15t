@@ -60,6 +60,10 @@ const config = mergeConfig(
 	defineConfig({
 		resolve: {
 			alias: [
+				{
+					find: /^@c15t\/react-native$/u,
+					replacement: resolve(__dirname, './src/index.ts'),
+				},
 				// A faithful stand-in for the two `react-native` surfaces the
 				// bridge touches. The real entry point needs a React Native
 				// runtime, so resolution — not module mocking — is what swaps

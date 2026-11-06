@@ -1,0 +1,42 @@
+{
+	"acceptAll": "Accept All",
+	"acknowledge": "Acknowledge",
+	"back": "Back",
+	"close": "Close",
+	"customize": "Customize",
+	"dismiss": "Dismiss",
+	"moreInfo": "More info",
+	"ok": "OK",
+	"rejectAll": "Reject All",
+	"save": "Save Settings",
+	"securedBy": "Secured by",
+	"bannerDescription": "Choose how your data may be used. You can change this at any time.",
+	"bannerTitle": "We value your privacy",
+	"noticeDescription": "We process your data to deliver this app. Learn more in the settings.",
+	"noticeTitle": "How we use your data",
+	"dialogDescription": "Pick the categories you allow below.",
+	"dialogTitle": "Privacy Settings",
+	"preferences": "Manage preferences",
+	"categories": {
+		"experience": {
+			"description": "Improves how the app responds to you.",
+			"title": "Experience"
+		},
+		"functionality": {
+			"description": "Enables features you ask for, such as saved settings.",
+			"title": "Functionality"
+		},
+		"marketing": {
+			"description": "Shows you advertising that is relevant to you.",
+			"title": "Marketing"
+		},
+		"measurement": {
+			"description": "Measures how the app is used and how it performs.",
+			"title": "Analytics"
+		},
+		"necessary": {
+			"description": "Required for the app to work. It cannot be turned off.",
+			"title": "Strictly Necessary"
+		}
+	}
+}

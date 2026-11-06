@@ -1,0 +1,135 @@
+{
+	"builder": "buildIabVendorDetail",
+	"description": "A partner with an objection lodged against its legitimate interest, cookie storage, and non-cookie access.",
+	"expected": {
+		"actions": [],
+		"id": "vendor.755",
+		"sections": [
+			{
+				"footer": "Store and/or access information on a device, Create profiles for personalised advertising, Use profiles to select personalised advertising",
+				"id": "consent",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"id": "vendor.755.consent",
+						"title": "Consent"
+					}
+				]
+			},
+			{
+				"footer": "Use limited data to select advertising, Measure advertising performance",
+				"id": "legitimateInterest",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"id": "vendor.755.legitimateInterest",
+						"info": "You have the right to object to processing based on legitimate interest.",
+						"title": "Legitimate Interest"
+					}
+				]
+			},
+			{
+				"header": "Special Purposes",
+				"id": "specialPurposes",
+				"rows": [
+					{
+						"id": "specialPurpose.1",
+						"navigatesTo": "specialPurpose.1",
+						"title": "Ensure security, prevent and detect fraud, and fix errors"
+					},
+					{
+						"id": "specialPurpose.2",
+						"navigatesTo": "specialPurpose.2",
+						"title": "Deliver and present advertising and content"
+					}
+				]
+			},
+			{
+				"header": "Features",
+				"id": "features",
+				"rows": [
+					{
+						"id": "feature.2",
+						"navigatesTo": "feature.2",
+						"title": "Link different devices"
+					}
+				]
+			},
+			{
+				"header": "Storage",
+				"id": "storage",
+				"rows": [
+					{
+						"control": {
+							"kind": "value",
+							"text": "396 days"
+						},
+						"id": "cookieLifetime",
+						"title": "Cookie lifetime"
+					},
+					{
+						"id": "nonCookieAccess",
+						"title": "Non-cookie storage"
+					}
+				]
+			},
+			{
+				"id": "links",
+				"rows": [
+					{
+						"control": {
+							"kind": "link",
+							"url": "https://business.safety.google/privacy/"
+						},
+						"id": "privacyPolicy",
+						"title": "Privacy Policy"
+					}
+				]
+			}
+		],
+		"title": "Google Advertising Products"
+	},
+	"id": "iab-vendor-detail-legitimate-interest",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		},
+		"selection": {
+			"purposeConsents": {
+				"1": true,
+				"2": false,
+				"3": true,
+				"4": false,
+				"7": false,
+				"8": true
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": true,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": false
+			}
+		},
+		"vendorId": 755
+	},
+	"version": 1
+}

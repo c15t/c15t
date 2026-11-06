@@ -15,6 +15,7 @@ import type {
 	ConsentActions,
 	OptionalConsentCategory,
 	ConsentIabTab,
+	ConsentPreferencesPresentation,
 	TrackingRequestPayload,
 } from '@c15t/react-native';
 
@@ -39,7 +40,9 @@ export interface DemoVerbContext {
 	 */
 	readonly openIabDrawer: (tab?: ConsentIabTab) => void;
 	/** Open the built-in preference centre. */
-	readonly openPreferences: () => void;
+	readonly openPreferences: (
+		presentation?: ConsentPreferencesPresentation
+	) => void;
 	/** Whether a prompt is still owed, so a verb can name what it left standing. */
 	readonly promptOwed: boolean;
 	/**
@@ -185,7 +188,7 @@ export const DEMO_VERBS: readonly DemoVerb[] = [
 		run: (context) => {
 			context.openDialog();
 
-			return 'opened ConsentDialog';
+			return 'opened ConsentPreferences as a sheet';
 		},
 		summary:
 			'Open the consent manager, the way the banner Customize button does.',
@@ -193,13 +196,15 @@ export const DEMO_VERBS: readonly DemoVerb[] = [
 		verb: 'customize',
 	},
 	{
-		run: (context) => {
-			context.openPreferences();
+		run: (context, link) => {
+			context.openPreferences(
+				link.params.presentation === 'sheet' ? 'sheet' : 'page'
+			);
 
 			return 'opened ConsentPreferences';
 		},
 		summary: 'Open the preference centre with no prompt outstanding.',
-		usage: 'preferences',
+		usage: 'preferences | preferences?presentation=sheet',
 		verb: 'preferences',
 	},
 	// The partner list is what the web's `{count} partners` link opens, so a bare
@@ -214,7 +219,7 @@ export const DEMO_VERBS: readonly DemoVerb[] = [
 
 			context.openIabDrawer(tab);
 
-			return `opened ConsentIabDrawer on ${tab}`;
+			return `opened ConsentIabPreferences on ${tab}`;
 		},
 		summary:
 			'Open the IAB disclosure drawer, on the partner list unless a tab is named.',

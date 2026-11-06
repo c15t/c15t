@@ -76,6 +76,7 @@
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"generate:fixtures": "tsx scripts/generate-protocol-fixtures.ts",
+		"generate:ui-fixtures": "tsx scripts/generate-ui-fixtures.ts",
 		"lint": "bun oxlint ./src",
 		"prepack": "bun ../../scripts/sync-vendored-core.ts && bun ../../scripts/verify-package-artifacts.ts",
 		"test": "vitest run --passWithNoTests",

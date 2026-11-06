@@ -28,6 +28,8 @@ export interface ConsentCopy {
 	readonly acceptAll: string;
 	/** Label for the acknowledgement action on a notice. */
 	readonly acknowledge: string;
+	/** Label of the control that pops one screen. */
+	readonly back: string;
 	/** Body of the opt-in banner. */
 	readonly bannerDescription: string;
 	/** Heading of the opt-in banner. */
@@ -36,6 +38,8 @@ export interface ConsentCopy {
 	readonly customize: string;
 	/** Per-category copy, keyed by category. */
 	readonly categories: Readonly<Record<AllConsentNames, ConsentCategoryCopy>>;
+	/** Label of the control that closes a standalone page. */
+	readonly close: string;
 	/** Label that closes a surface without a decision. */
 	readonly dismiss: string;
 	/** Body of the consent manager. */
@@ -46,6 +50,10 @@ export interface ConsentCopy {
 	readonly noticeDescription: string;
 	/** Heading of the notice banner. */
 	readonly noticeTitle: string;
+	/** Spoken after a row's title on the button that explains the row. */
+	readonly moreInfo: string;
+	/** Dismisses an explanation alert. */
+	readonly ok: string;
 	/** Standing entry point to the preference centre. */
 	readonly preferences: string;
 	/** Label for the deny-everything action. */
@@ -74,16 +82,20 @@ export interface ConsentCopy {
 const ENGLISH: Omit<ConsentCopy, 'categories'> = {
 	acceptAll: 'Accept All',
 	acknowledge: 'Acknowledge',
+	back: 'Back',
 	bannerDescription:
 		'Choose how your data may be used. You can change this at any time.',
 	bannerTitle: 'We value your privacy',
+	close: 'Close',
 	customize: 'Customize',
 	dialogDescription: 'Pick the categories you allow below.',
 	dialogTitle: 'Privacy Settings',
 	dismiss: 'Dismiss',
+	moreInfo: 'More info',
 	noticeDescription:
 		'We process your data to deliver this app. Learn more in the settings.',
 	noticeTitle: 'How we use your data',
+	ok: 'OK',
 	preferences: 'Manage preferences',
 	rejectAll: 'Reject All',
 	save: 'Save Settings',
@@ -134,8 +146,12 @@ interface CopySource {
 	readonly common?: {
 		readonly acceptAll?: string | null;
 		readonly acknowledge?: string | null;
+		readonly back?: string | null;
+		readonly close?: string | null;
 		readonly customize?: string | null;
 		readonly dismiss?: string | null;
+		readonly moreInfo?: string | null;
+		readonly ok?: string | null;
 		readonly rejectAll?: string | null;
 		readonly save?: string | null;
 		readonly securedBy?: string | null;
@@ -224,13 +240,26 @@ const actionCopy = function actionCopy(
 	common: NonNullable<CopySource['common']>
 ): Pick<
 	ConsentCopy,
-	'acceptAll' | 'acknowledge' | 'customize' | 'dismiss' | 'rejectAll' | 'save'
+	| 'acceptAll'
+	| 'acknowledge'
+	| 'back'
+	| 'close'
+	| 'customize'
+	| 'dismiss'
+	| 'moreInfo'
+	| 'ok'
+	| 'rejectAll'
+	| 'save'
 > {
 	return {
 		acceptAll: text(common.acceptAll, ENGLISH.acceptAll),
 		acknowledge: text(common.acknowledge, ENGLISH.acknowledge),
+		back: text(common.back, ENGLISH.back),
+		close: text(common.close, ENGLISH.close),
 		customize: text(common.customize, ENGLISH.customize),
 		dismiss: text(common.dismiss, ENGLISH.dismiss),
+		moreInfo: text(common.moreInfo, ENGLISH.moreInfo),
+		ok: text(common.ok, ENGLISH.ok),
 		rejectAll: text(common.rejectAll, ENGLISH.rejectAll),
 		save: text(common.save, ENGLISH.save),
 	};
@@ -278,14 +307,18 @@ export const isConsentCopyEqual = function isConsentCopyEqual(
 	for (const key of [
 		'acceptAll',
 		'acknowledge',
+		'back',
 		'bannerDescription',
 		'bannerTitle',
+		'close',
 		'customize',
 		'dialogDescription',
 		'dialogTitle',
 		'dismiss',
+		'moreInfo',
 		'noticeDescription',
 		'noticeTitle',
+		'ok',
 		'preferences',
 		'rejectAll',
 		'save',

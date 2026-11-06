@@ -14,7 +14,13 @@
  */
 
 import type { ComponentType, ReactElement, ReactNode, Ref } from 'react';
-import { createElement, forwardRef, useSyncExternalStore } from 'react';
+import {
+	createElement,
+	forwardRef,
+	isValidElement,
+	useEffect,
+	useSyncExternalStore,
+} from 'react';
 
 /** One hardware-back or native-event listener. */
 type Listener = () => void;
@@ -43,6 +49,8 @@ export const uiState: {
 	accessibilityListeners: Map<string, Set<Listener>>;
 	/** Value reported by `StatusBar.currentHeight`, in density-independent pixels. */
 	statusBarHeight: number | null;
+	/** Native switch renders, counted by accessible label. */
+	switchRenders: Map<string, number>;
 } = {
 	accessibilityListeners: new Map(),
 	announcements: [],
@@ -51,6 +59,7 @@ export const uiState: {
 	reduceMotion: false,
 	screenReader: false,
 	statusBarHeight: null,
+	switchRenders: new Map(),
 	window: { fontScale: 1, height: 844, scale: 3, width: 390 },
 };
 
@@ -74,6 +83,78 @@ export const backState: {
 
 /** Recorded accessibility-focus calls, oldest first. */
 export const focusState: { tags: number[] } = { tags: [] };
+
+/** One `Alert.alert` call. */
+export interface AlertRecord {
+	readonly buttons: readonly { readonly text?: string }[];
+	readonly message: string | undefined;
+	readonly title: string;
+}
+
+/** Recorded alerts, oldest first. */
+export const alertState: { alerts: AlertRecord[] } = { alerts: [] };
+
+/** What a pan handler receives as its second argument. */
+export interface GestureStub {
+	readonly dx: number;
+	readonly dy: number;
+	readonly vx: number;
+	readonly vy: number;
+}
+
+/** The handlers handed to `PanResponder.create`. */
+export interface PanResponderConfigStub {
+	readonly onPanResponderGrant?: (event: unknown, gesture: GestureStub) => void;
+	readonly onMoveShouldSetPanResponder?: (
+		event: unknown,
+		gesture: GestureStub
+	) => boolean;
+	readonly onPanResponderMove?: (event: unknown, gesture: GestureStub) => void;
+	readonly onPanResponderRelease?: (
+		event: unknown,
+		gesture: GestureStub
+	) => void;
+	readonly onPanResponderTerminate?: (
+		event: unknown,
+		gesture: GestureStub
+	) => void;
+}
+
+/** Recorded pan responders and layout animations. */
+export const gestureState: {
+	/** Times `LayoutAnimation.configureNext` was called. */
+	layoutAnimations: number;
+	/** Every responder created, oldest first. */
+	responders: PanResponderConfigStub[];
+} = { layoutAnimations: 0, responders: [] };
+
+/**
+ * Drive one pan from start to release, the way a finger would.
+ *
+ * The responder only claims the gesture when its own
+ * `onMoveShouldSetPanResponder` says so, so a drag the component would ignore
+ * is ignored here too.
+ *
+ * @param responder - Responder to drag.
+ * @param gesture - Where the finger ends and how fast it is moving.
+ * @returns Whether the responder claimed the gesture.
+ */
+export const dragResponder = function dragResponder(
+	responder: PanResponderConfigStub,
+	gesture: Partial<GestureStub>
+): boolean {
+	const full: GestureStub = { dx: 0, dy: 0, vx: 0, vy: 0, ...gesture };
+
+	if (responder.onMoveShouldSetPanResponder?.(null, full) !== true) {
+		return false;
+	}
+
+	responder.onPanResponderGrant?.(null, full);
+	responder.onPanResponderMove?.(null, full);
+	responder.onPanResponderRelease?.(null, full);
+
+	return true;
+};
 
 const nodeHandles = new WeakMap<object, number>();
 let nextNodeHandle = 1;
@@ -121,7 +202,10 @@ export const appState: {
 } = { listeners: [], state: 'active' };
 
 /** Recorded navigation state. */
-export const linking: { opened: string[] } = { opened: [] };
+export const linking: {
+	opened: string[];
+	listeners: Set<(event: { url: string }) => void>;
+} = { listeners: new Set(), opened: [] };
 
 /** Platform override, so an Android-only path can be exercised. */
 export const platform: { os: 'android' | 'ios' | 'web' } = { os: 'ios' };
@@ -146,6 +230,7 @@ export const resetUiStub = function resetUiStub(): void {
 	uiState.screenReader = false;
 	uiState.window = { fontScale: 1, height: 844, scale: 3, width: 390 };
 	uiState.statusBarHeight = null;
+	uiState.switchRenders = new Map();
 	animationState.durations = [];
 	animationState.starts = 0;
 	animationState.jsDriverStarts = 0;
@@ -154,7 +239,11 @@ export const resetUiStub = function resetUiStub(): void {
 	appState.state = 'active';
 	backState.listeners = [];
 	focusState.tags = [];
+	alertState.alerts = [];
+	gestureState.layoutAnimations = 0;
+	gestureState.responders = [];
 	linking.opened = [];
+	linking.listeners.clear();
 	platform.os = 'ios';
 	// `Platform.OS` is a mutable property the components read directly, so it has
 	// to come back with everything else or the next case inherits the platform.
@@ -344,6 +433,8 @@ const styleAttribute = function styleAttribute(
 /* ------------------------------------------------------- accessibility map */
 
 interface AccessibilityProps {
+	readonly accessibilityElementsHidden?: boolean;
+	readonly importantForAccessibility?: string;
 	readonly accessibilityLabel?: string;
 	readonly accessibilityLiveRegion?: 'assertive' | 'none' | 'polite';
 	readonly accessibilityRole?: string;
@@ -383,6 +474,11 @@ const ariaAttributes = function ariaAttributes(
 		'aria-checked': triState(state.checked),
 		'aria-disabled': triState(state.disabled),
 		'aria-expanded': triState(state.expanded),
+		'aria-hidden':
+			props.accessibilityElementsHidden ||
+			props.importantForAccessibility === 'no-hide-descendants'
+				? 'true'
+				: undefined,
 		'aria-label': props.accessibilityLabel,
 		'aria-live': props.accessibilityLiveRegion ?? undefined,
 		'aria-modal': triState(props.accessibilityViewIsModal),
@@ -488,6 +584,7 @@ export const StyleSheet = {
 
 /** Props the text stub accepts. */
 interface TextPropsStub extends AccessibilityProps {
+	readonly ref?: Ref<HTMLSpanElement>;
 	readonly children?: ReactNode;
 	readonly numberOfLines?: number;
 	readonly onPress?: (event: PressStubEvent) => void;
@@ -498,6 +595,7 @@ export const Text = (props: TextPropsStub): ReactElement =>
 	createElement(
 		'span',
 		{
+			ref: props.ref,
 			...ariaAttributes(props),
 			'data-rn-style': styleAttribute(props.style),
 			onClick: props.onPress,
@@ -632,6 +730,8 @@ interface SwitchPropsStub extends AccessibilityProps {
 
 export const Switch = (props: SwitchPropsStub): ReactElement => {
 	const disabled = props.disabled === true;
+	const label = props.accessibilityLabel ?? '';
+	uiState.switchRenders.set(label, (uiState.switchRenders.get(label) ?? 0) + 1);
 
 	return createElement(
 		'button',
@@ -647,8 +747,11 @@ export const Switch = (props: SwitchPropsStub): ReactElement => {
 			}),
 			'data-rn-style': styleAttribute(props.style),
 			disabled,
-			onClick: () => {
-				props.onValueChange?.(!props.value);
+			onClick: (event: { stopPropagation: () => void }) => {
+				event.stopPropagation();
+				if (!disabled) {
+					props.onValueChange?.(!props.value);
+				}
 			},
 			type: 'button',
 		},
@@ -660,8 +763,13 @@ export const Switch = (props: SwitchPropsStub): ReactElement => {
 
 /** Props the modal stub accepts. */
 interface ModalPropsStub {
+	readonly allowSwipeDismissal?: boolean;
+	readonly animationType?: 'fade' | 'none' | 'slide';
 	readonly children?: ReactNode;
+	readonly navigationBarTranslucent?: boolean;
 	readonly onRequestClose?: () => void;
+	readonly presentationStyle?: string;
+	readonly statusBarTranslucent?: boolean;
 	readonly style?: StyleValue;
 	readonly testID?: string;
 	readonly transparent?: boolean;
@@ -669,9 +777,32 @@ interface ModalPropsStub {
 }
 
 export const Modal = (props: ModalPropsStub): ReactElement | null => {
+	const { onRequestClose, visible } = props;
+
+	// Android's back button reaches the top modal through `onRequestClose`, not
+	// through `BackHandler`, so a shown modal stands in line with the listeners.
+	useEffect(() => {
+		if (!visible || onRequestClose === undefined) {
+			return undefined;
+		}
+
+		const listener = () => {
+			onRequestClose();
+			return true;
+		};
+
+		backState.listeners.push(listener);
+
+		return () => {
+			backState.listeners = backState.listeners.filter(
+				(entry) => entry !== listener
+			);
+		};
+	}, [onRequestClose, visible]);
+
 	// A closed modal holds nothing, which is what makes "no layout shift while
 	// hidden" observable.
-	if (!props.visible) {
+	if (!visible) {
 		return null;
 	}
 
@@ -679,7 +810,11 @@ export const Modal = (props: ModalPropsStub): ReactElement | null => {
 		'div',
 		{
 			'aria-modal': 'true',
+			'data-animation-type': props.animationType,
+			'data-presentation-style': props.presentationStyle,
 			'data-rn-style': styleAttribute(props.style),
+			'data-swipe-dismissal':
+				props.allowSwipeDismissal === true ? 'true' : undefined,
 			'data-transparent': props.transparent ? 'true' : undefined,
 			role: 'dialog',
 		},
@@ -910,6 +1045,169 @@ export const Animated = {
 		value.timing(config),
 };
 
+/* -------------------------------------------------------------- lists */
+
+/** A slot a list accepts: an element, or a component to render. */
+type ListSlot = ComponentType<unknown> | ReactElement | null | undefined;
+
+const renderSlot = function renderSlot(slot: ListSlot): ReactNode {
+	if (slot === null || slot === undefined) {
+		return null;
+	}
+
+	if (isValidElement(slot)) {
+		return slot;
+	}
+
+	return createElement(slot as ComponentType<unknown>);
+};
+
+/** One section, in the shape `SectionList` reads. */
+interface SectionStub<ItemType> {
+	readonly data: readonly ItemType[];
+	readonly key?: string;
+}
+
+/** Props the section list stub accepts. */
+interface SectionListPropsStub<ItemType> extends AccessibilityProps {
+	readonly keyExtractor?: (item: ItemType, index: number) => string;
+	readonly ListEmptyComponent?: ListSlot;
+	readonly ListFooterComponent?: ListSlot;
+	readonly ListHeaderComponent?: ListSlot;
+	readonly renderItem: (info: {
+		index: number;
+		item: ItemType;
+		section: SectionStub<ItemType>;
+	}) => ReactNode;
+	readonly renderSectionFooter?: (info: {
+		section: SectionStub<ItemType>;
+	}) => ReactNode;
+	readonly renderSectionHeader?: (info: {
+		section: SectionStub<ItemType>;
+	}) => ReactNode;
+	readonly sections: readonly SectionStub<ItemType>[];
+	readonly style?: StyleValue;
+}
+
+/**
+ * `SectionList` renders every row at once.
+ *
+ * The real list virtualizes, which only changes how many rows exist at a time.
+ * A test reads the rows a subject could scroll to, so all of them are here.
+ */
+export const SectionList = <ItemType,>(
+	props: SectionListPropsStub<ItemType>
+): ReactElement => {
+	const empty = props.sections.every((section) => section.data.length === 0);
+
+	return createElement(
+		'div',
+		{
+			...ariaAttributes(props),
+			'data-rn-style': styleAttribute(props.style),
+		},
+		renderSlot(props.ListHeaderComponent),
+		empty ? renderSlot(props.ListEmptyComponent) : null,
+		props.sections.map((section, sectionIndex) =>
+			createElement(
+				'section',
+				{ key: section.key ?? sectionIndex },
+				props.renderSectionHeader?.({ section }) ?? null,
+				section.data.map((item, index) =>
+					createElement(
+						'div',
+						{ key: props.keyExtractor?.(item, index) ?? index },
+						props.renderItem({ index, item, section })
+					)
+				),
+				props.renderSectionFooter?.({ section }) ?? null
+			)
+		),
+		renderSlot(props.ListFooterComponent)
+	);
+};
+
+/** Props the text input stub accepts. */
+interface TextInputPropsStub extends AccessibilityProps {
+	readonly onChangeText?: (text: string) => void;
+	readonly placeholder?: string;
+	readonly style?: StyleValue;
+	readonly value?: string;
+}
+
+export const TextInput = (props: TextInputPropsStub): ReactElement =>
+	createElement('input', {
+		...ariaAttributes(props),
+		'data-rn-style': styleAttribute(props.style),
+		onChange: (event: { target: { value: string } }) => {
+			props.onChangeText?.(event.target.value);
+		},
+		placeholder: props.placeholder,
+		type: 'search',
+		value: props.value ?? '',
+	});
+
+/* --------------------------------------------------- gestures and motion */
+
+export const PanResponder = {
+	create(config: PanResponderConfigStub): { panHandlers: object } {
+		gestureState.responders.push(config);
+
+		return { panHandlers: {} };
+	},
+};
+
+/** An easing curve. The stub never samples one, so any function will do. */
+const linearCurve = (value: number): number => value;
+
+export const Easing = {
+	bezier: (): ((value: number) => number) => linearCurve,
+	ease: linearCurve,
+	in: (): ((value: number) => number) => linearCurve,
+	inOut: (): ((value: number) => number) => linearCurve,
+	linear: linearCurve,
+	out: (): ((value: number) => number) => linearCurve,
+};
+
+export const LayoutAnimation = {
+	Presets: { easeInEaseOut: {}, linear: {}, spring: {} },
+	Properties: {
+		opacity: 'opacity',
+		scaleX: 'scaleX',
+		scaleXY: 'scaleXY',
+		scaleY: 'scaleY',
+	},
+	Types: {
+		easeIn: 'easeIn',
+		easeInEaseOut: 'easeInEaseOut',
+		easeOut: 'easeOut',
+		linear: 'linear',
+		spring: 'spring',
+	},
+	configureNext(): void {
+		gestureState.layoutAnimations += 1;
+	},
+	create: (
+		duration: number,
+		type?: string,
+		property?: string
+	): { duration: number; property?: string; type?: string } => ({
+		duration,
+		property,
+		type,
+	}),
+};
+
+export const Alert = {
+	alert(
+		title: string,
+		message?: string,
+		buttons: readonly { readonly text?: string }[] = []
+	): void {
+		alertState.alerts.push({ buttons, message, title });
+	},
+};
+
 /* ----------------------------------------------------------- platform API */
 
 /** Recorded result of `AccessibilityInfo.isReduceMotionEnabled`, per query. */
@@ -1001,7 +1299,19 @@ export const setAppState = function setAppState(state: AppStateStatus): void {
 };
 
 export const Linking = {
+	addEventListener(
+		_type: 'url',
+		listener: (event: { url: string }) => void
+	): { remove: () => void } {
+		linking.listeners.add(listener);
+		return {
+			remove: () => {
+				linking.listeners.delete(listener);
+			},
+		};
+	},
 	canOpenURL: (): Promise<boolean> => Promise.resolve(true),
+	getInitialURL: (): Promise<string | null> => Promise.resolve(null),
 	openURL(url: string): Promise<void> {
 		linking.opened.push(url);
 		uiState.opened.push(url);

@@ -94,10 +94,10 @@ const overrideLabel = (snapshot: Snapshot): string => {
 
 /** Actions card: one button per action, each reporting what came back. */
 const ActionsCard = ({
-	onOpenDialog,
+	onOpenSheet,
 	onOpenPreferences,
 }: {
-	readonly onOpenDialog: () => void;
+	readonly onOpenSheet: () => void;
 	readonly onOpenPreferences: () => void;
 }) => {
 	const actions = useConsentActions();
@@ -201,8 +201,8 @@ const ActionsCard = ({
 					}}
 				/>
 				<Button
-					label="Open built-in dialog"
-					onPress={onOpenDialog}
+					label="Open preferences sheet"
+					onPress={onOpenSheet}
 				/>
 				<Button
 					label="Open built-in preferences"
@@ -317,11 +317,11 @@ const FakeCoreCard = () => {
 
 /** The screen a runner lands on. */
 export const HomeScreen = ({
-	onOpenDialog,
+	onOpenSheet,
 	onOpenPreferences,
 	tracking,
 }: {
-	readonly onOpenDialog: () => void;
+	readonly onOpenSheet: () => void;
 	readonly onOpenPreferences: () => void;
 	readonly tracking: TrackingRequest;
 }) => {
@@ -446,7 +446,7 @@ export const HomeScreen = ({
 			<LifecycleCard />
 
 			<ActionsCard
-				onOpenDialog={onOpenDialog}
+				onOpenSheet={onOpenSheet}
 				onOpenPreferences={onOpenPreferences}
 			/>
 

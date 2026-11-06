@@ -1,0 +1,62 @@
+{
+	"builder": "buildIabVendors",
+	"description": "A partner search with no hits: no sections, and the empty-state text naming the search.",
+	"expected": {
+		"actions": [
+			{
+				"emphasis": "primary",
+				"id": "save",
+				"label": "Save Settings"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "rejectAll",
+				"label": "Reject All"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "acceptAll",
+				"label": "Accept All"
+			}
+		],
+		"id": "iab.vendors",
+		"sections": [],
+		"title": "Vendors",
+		"empty": "No vendors found matching \"zzz\""
+	},
+	"id": "iab-vendors-search-miss",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		},
+		"query": "zzz",
+		"selection": {
+			"purposeConsents": {
+				"1": false,
+				"2": false,
+				"3": false,
+				"4": false,
+				"7": false,
+				"8": false
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": false,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": true
+			}
+		}
+	},
+	"version": 1
+}

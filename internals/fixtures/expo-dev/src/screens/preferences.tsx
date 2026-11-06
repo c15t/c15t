@@ -8,7 +8,7 @@
  * writes nothing.
  */
 
-import { useConsent } from '@c15t/react-native';
+import { ConsentWidget, useConsent } from '@c15t/react-native';
 
 import { OPTIONAL_CATEGORIES } from '../c15t/fake-native';
 import type { OptionalCategory } from '../c15t/fake-native';
@@ -76,6 +76,10 @@ export const PreferencesScreen = ({
 						onPress={onOpenCentre}
 					/>
 				</ButtonGrid>
+			</Card>
+
+			<Card title="Inline preferences">
+				<ConsentWidget />
 			</Card>
 
 			<Card title="Receipts">

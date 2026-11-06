@@ -149,7 +149,7 @@ export const ActionsCard = ({
 					variant="secondary"
 				/>
 				<Button
-					label="open ConsentDialog"
+					label="open preferences sheet"
 					onPress={onOpenDialog}
 					variant="secondary"
 				/>
