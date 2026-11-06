@@ -114,6 +114,7 @@ group: reference
   | --- | --- | --- | --- |
   | `legalLinks` | list of `privacyPolicy`, `cookiePolicy`, `termsOfService`, or `null` | none | Which configured legal links to show after the description. |
   | `hideBranding` | `boolean` | `false` | Hide the "Secured by" tag at the bottom of the dialog. |
+  | `showCloseButton` | `boolean` | `false` | Add a close button to the header. It closes the dialog without saving, like Escape. Theme slot: `consentDialogCloseButton`. |
 
   The dialog's title, description, category names and button labels come
   from translations. Change them through `i18n`.

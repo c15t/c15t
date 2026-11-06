@@ -19,6 +19,7 @@ import {
 import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import { useSurfaceTranslations } from '../composables/use-surface-translations';
 import {
 	DialogContent,
 	DialogOverlay,
@@ -55,6 +56,18 @@ const { presentation: surface } = useConsentPolicyActions('preferences');
 let actionSequence = 0;
 const draftState = useConsentDraft();
 const { isDirty, isStale, reset: resetDraft, save: saveDraft } = draftState;
+
+const translations = useSurfaceTranslations();
+// "Close" in the visitor's language, falling back to English.
+const closeLabel = computed(
+	() =>
+		translations.value.bundle?.common?.close ||
+		translations.value.english.common.close
+);
+// Closing records no consent, like Escape.
+const closeDialog = function closeDialog() {
+	activeUI.value = null;
+};
 
 const disableAnimation = computed(() =>
 	Boolean(props.disableAnimation ?? config.value.disableAnimation)
@@ -246,6 +259,41 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 								}}
 							</h2>
 							<ConsentDescription context="dialog" />
+							<button
+								v-if="config.dialogShowCloseButton"
+								v-bind="
+									slotAttrs(
+										config.components?.dialog?.closeButton,
+										dialogStyles.closeButton
+									)
+								"
+								type="button"
+								:aria-label="closeLabel"
+								data-testid="consent-dialog-close"
+								@click="closeDialog"
+							>
+								<svg
+									aria-hidden="true"
+									style="width: 1rem; height: 1rem"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<line
+										x1="18"
+										y1="6"
+										x2="6"
+										y2="18"
+									/>
+									<line
+										x1="6"
+										y1="6"
+										x2="18"
+										y2="18"
+									/>
+								</svg>
+							</button>
 						</div>
 						<div
 							v-bind="

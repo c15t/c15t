@@ -540,6 +540,113 @@ describe('Consent Flow E2E Tests', () => {
 			);
 		});
 
+		test('renders no close button unless showCloseButton is set', async () => {
+			render(
+				<ConsentProvider options={defaultOptions}>
+					<ConsentDialog open={true} />
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-header')).toBeInTheDocument();
+			});
+			expect(query('consent-dialog-close')).not.toBeInTheDocument();
+		});
+
+		test('the close button closes the dialog without recording consent', async () => {
+			const slotClick = vi.fn();
+			render(
+				<ConsentProvider
+					options={{
+						...defaultOptions,
+						components: { dialog: { closeButton: { onClick: slotClick } } },
+					}}
+				>
+					<ConsentBanner />
+					<ConsentDialog showCloseButton />
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-banner-customize-button')).toBeInTheDocument();
+			});
+			await userEvent.click(
+				getDefined(query('consent-banner-customize-button'))
+			);
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-close')).toBeInTheDocument();
+			});
+
+			const closeButton = getDefined(query('consent-dialog-close'));
+			expect(closeButton.getAttribute('aria-label')).toBe('Close');
+			expect(query('consent-dialog-header')?.contains(closeButton)).toBe(true);
+
+			await userEvent.click(closeButton);
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-root')).not.toBeInTheDocument();
+				expect(query('consent-banner-root')).toBeInTheDocument();
+			});
+			expect(readStoredRecords(undefined, Date.now()).records.choice).toBe(
+				null
+			);
+			// A `dialog.closeButton` slot handler still runs.
+			expect(slotClick).toHaveBeenCalledOnce();
+		});
+
+		test('ConsentDialog.Header renders the close button after custom children', async () => {
+			render(
+				<ConsentProvider options={defaultOptions}>
+					<ConsentDialog.Root open={true}>
+						<ConsentDialog.Card>
+							<ConsentDialog.Header showCloseButton>
+								<ConsentDialog.HeaderTitle>
+									Your privacy
+								</ConsentDialog.HeaderTitle>
+							</ConsentDialog.Header>
+						</ConsentDialog.Card>
+					</ConsentDialog.Root>
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-close')).toBeInTheDocument();
+			});
+			const header = getDefined(query('consent-dialog-header'));
+			expect(header.lastElementChild).toBe(query('consent-dialog-close'));
+			expect(query('consent-dialog-title')?.textContent).toBe('Your privacy');
+		});
+
+		test('ConsentDialog.Header with asChild keeps its element and adds the close button', async () => {
+			render(
+				<ConsentProvider options={defaultOptions}>
+					<ConsentDialog.Root open={true}>
+						<ConsentDialog.Card>
+							<ConsentDialog.Header
+								asChild
+								showCloseButton
+							>
+								<header data-own="header">
+									<ConsentDialog.HeaderTitle>
+										Your privacy
+									</ConsentDialog.HeaderTitle>
+								</header>
+							</ConsentDialog.Header>
+						</ConsentDialog.Card>
+					</ConsentDialog.Root>
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-close')).toBeInTheDocument();
+			});
+			const header = getDefined(query('consent-dialog-header'));
+			expect(header.tagName).toBe('HEADER');
+			expect(header.getAttribute('data-own')).toBe('header');
+			expect(header.lastElementChild).toBe(query('consent-dialog-close'));
+			expect(query('consent-dialog-title')?.textContent).toBe('Your privacy');
+		});
+
 		test('leaves nothing open once the visitor has chosen', async () => {
 			render(
 				<ConsentProvider options={defaultOptions}>

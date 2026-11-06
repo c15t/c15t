@@ -22,6 +22,12 @@ export interface ConsentDialogProps {
 	disableAnimation?: boolean;
 	hideBranding?: boolean;
 	legalLinks?: (keyof LegalLinks)[] | null;
+	/**
+	 * Show a close button in the dialog header. Clicking it closes the
+	 * dialog without recording consent, like Escape.
+	 * @default false
+	 */
+	showCloseButton?: boolean;
 	showTrigger?: boolean | ConsentDialogTriggerProps;
 	models?: Model[];
 	class?: string;

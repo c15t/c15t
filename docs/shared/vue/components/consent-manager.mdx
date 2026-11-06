@@ -27,7 +27,8 @@ group: reference
   - After a successful action the dialog closes. The banner comes back only if
     the policy still requires a choice.
   - Escape closes the dialog without saving. The banner comes back if the
-    policy still requires a choice.
+    policy still requires a choice. Set `dialogShowCloseButton: true` in the
+    plugin options to add a close button to the header that does the same.
   - If the policy changes while the dialog is open, the dialog shows "Privacy
     choices have changed." with a button that reloads the switches from the
     new policy. Save stays blocked until the visitor reviews them.
@@ -48,6 +49,9 @@ group: reference
   `presentation.preferences.blocking` to `false` for a non-modal dialog with
   no backdrop.
 
+  The close button from `dialogShowCloseButton` is a `<button>` named by the
+  `common.close` translation, with `data-testid="consent-dialog-close"`.
+
   Each category switch is a `button` with `role="switch"`, `aria-checked` and
   the category title as its label. Each category row expands with a button
   that sets `aria-expanded` and `aria-controls`.
@@ -57,7 +61,7 @@ group: reference
   ## Style the dialog
 
   The `components.dialog` option adds attributes to `root`, `overlay`,
-  `container`, `card`, `header`, `title` and `content`. The category list
+  `container`, `card`, `header`, `title`, `closeButton` and `content`. The category list
   inside uses `components.manager`, `components.accordion`,
   `components['accordion-item']`, `components.switch` and
   `components['vendor-list']`. [Component slots](/docs/customization/slots)

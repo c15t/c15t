@@ -29,6 +29,7 @@ export const THEME_SLOT_COMPONENT_KEYS = {
 	consentBannerTitle: 'banner.title',
 	consentDialog: 'dialog.container',
 	consentDialogCard: 'dialog.card',
+	consentDialogCloseButton: 'dialog.closeButton',
 	consentDialogContent: 'dialog.content',
 	consentDialogDescription: 'description.dialog',
 	consentDialogHeader: 'dialog.header',

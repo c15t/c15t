@@ -90,6 +90,14 @@ export interface ConsentDialogProps {
 	hideBranding?: boolean;
 
 	/**
+	 * Show a close button in the dialog header. Clicking it closes the
+	 * dialog without recording consent, like Escape.
+	 *
+	 * @defaultValue false
+	 */
+	showCloseButton?: boolean;
+
+	/**
 	 * Show a floating trigger button to resurface the consent dialog.
 	 * Useful for allowing users to re-open the dialog after dismissing.
 	 *
@@ -122,6 +130,7 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	trapFocus: localTrapFocus,
 	hideBranding,
 	legalLinks,
+	showCloseButton = false,
 	showTrigger = false,
 	models,
 	uiSource,
@@ -163,6 +172,7 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 					noStyle={rootProps.noStyle}
 					legalLinks={legalLinks}
 					hideBranding={hideBranding}
+					showCloseButton={showCloseButton}
 				/>
 			</ConsentDialogRoot>
 		</>
