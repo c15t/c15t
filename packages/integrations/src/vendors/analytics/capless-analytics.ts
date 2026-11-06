@@ -103,9 +103,11 @@ export interface CaplessAnalyticsOptions {
  * The helper defines a `window.capless` queue stub only after consent, so
  * `capless('track', ...)` and `capless('identify', ...)` calls made before
  * `c.js` finishes loading are replayed. Revoking consent calls
- * `capless('optout')`, which stops collection and any running session replay
- * on the current page. Every granted load, including a regrant on the same
- * page, calls `capless('optin')` before anything else.
+ * `capless('optout')`, which stops sending events and replay data on the
+ * current page. Every granted load, including a regrant on the same page,
+ * calls `capless('optin')` before anything else. Capless cannot stop a
+ * running replay recorder, which keeps buffering pointer movement after
+ * `optout`, so keep c15t's default reload on revocation.
  *
  * @see https://analytics.capless.sh/docs/web-sdk
  *

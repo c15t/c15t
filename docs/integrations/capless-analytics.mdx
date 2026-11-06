@@ -10,7 +10,7 @@ The c15t `caplessAnalytics` helper waits for `measurement` consent before it
 loads Capless's `c.js`. Capless sets no cookies, but it keeps an anonymous
 visitor ID in localStorage, so c15t blocks the tracker and its requests until
 measurement is allowed. When a visitor withdraws consent, the helper calls
-`capless('optout')`, which stops collection and any running session replay.
+`capless('optout')`, which stops Capless from sending events and replay data.
 
 ## Configure Capless
 
@@ -56,7 +56,11 @@ granted load.
 
 On withdrawal the helper calls `capless('optout')` and removes the script
 element. Collection stops on the current page, even if `c.js` was still
-downloading. c15t also reloads the page by default. The anonymous ID in
+downloading. c15t also reloads the page by default; keep that on if you use
+session replay. Capless has no API to stop a replay recorder that is already
+running. After `optout` it keeps buffering pointer movement in memory, and if
+the visitor allows measurement again on the same page, that buffer can be sent.
+A reload discards it. The anonymous ID in
 localStorage stays until it is cleared; see the clear-on-revocation guide
 linked below to delete it.
 
