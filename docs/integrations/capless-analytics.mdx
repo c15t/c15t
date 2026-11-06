@@ -72,8 +72,8 @@ Allowing only marketing must leave Capless blocked too.
 After granting measurement, expect one `c.js` script element with your
 `data-key` and a `POST` to `https://c.capless.sh/e?k=<your key>` carrying a
 `pageview`. In DevTools Application, Local Storage holds `_cpa` (the anonymous
-ID) and `_cpo` set to `0`. After you withdraw consent, `_cpo` is `1` and no
-further `/e` requests are sent.
+ID) and `_cpo` set to `0`. After you withdraw consent on a page where `c.js`
+has run, `_cpo` is `1` and no further `/e` requests are sent.
 
 <include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
 
