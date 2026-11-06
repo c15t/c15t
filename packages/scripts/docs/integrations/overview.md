@@ -51,6 +51,7 @@ before a choice.
 | [OneDollarStats](./one-dollar-stats.md)                   | `oneDollarStats`         | `measurement`                | Waits for effective permission                                                                       |
 | [Promptwatch](./promptwatch.md)                           | `promptwatch`            | `measurement`                | Waits for effective permission                                                                       |
 | [Statable](./statable-analytics.md)                       | `statableAnalytics`      | `measurement`                | Waits for effective permission                                                                       |
+| [Capless](./capless-analytics.md)                         | `caplessAnalytics`       | `measurement`                | Waits for effective permission; opts the tracker out on revocation                                   |
 
 ## Product analytics
 

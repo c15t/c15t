@@ -343,6 +343,8 @@ export const resetVendorGlobals = function resetVendorGlobals() {
 		'adobe',
 		'amplitude',
 		'analytics',
+		'capless',
+		'__cpl',
 		'aptrinsic',
 		'clarity',
 		'dataLayer',

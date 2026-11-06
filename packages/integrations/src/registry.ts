@@ -680,6 +680,17 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
+		docsSlug: 'capless-analytics',
+		hint: 'Cookieless web analytics and session replay',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
+		key: 'caplessAnalytics',
+		label: 'Capless',
+		packageSubpath: 'capless-analytics',
+		vendor: 'capless-analytics',
+	},
+	{
+		consentCategory: 'measurement',
 		docsSlug: 'statable-analytics',
 		hint: 'Cookieless web analytics',
 		integrationCategory: 'analytics',

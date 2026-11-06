@@ -927,6 +927,7 @@ export default defineDocsConfig({
 						'one-dollar-stats',
 						'promptwatch',
 						'statable-analytics',
+						'capless-analytics',
 					],
 					slug: 'web-analytics',
 					title: 'Web analytics',

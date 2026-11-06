@@ -21,6 +21,7 @@ import { xPixel } from '../vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from '../vendors/analytics/ahrefs-analytics';
 import { amplitude } from '../vendors/analytics/amplitude';
+import { caplessAnalytics } from '../vendors/analytics/capless-analytics';
 import { clay } from '../vendors/analytics/clay';
 import { clearbit } from '../vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../vendors/analytics/cloudflare-web-analytics';
@@ -160,6 +161,14 @@ export const helperParityCases = {
 			src: 'https://cdn.attn.tv/c15tfake/dtag.js',
 		},
 		script: attentiveTag({ siteSlug: 'c15tfake' }),
+	},
+	caplessAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://c.capless.sh/c.js',
+		},
+		script: caplessAnalytics({ projectKey: 'cs_test_key' }),
 	},
 	clay: {
 		expected: {
