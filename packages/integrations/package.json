@@ -10,6 +10,7 @@
 		"analytics-consent",
 		"block-scripts-until-consent",
 		"c15t",
+		"capless",
 		"ccpa",
 		"clay",
 		"clearbit",
@@ -202,6 +203,11 @@
 			"types": "./dist-types/vendors/analytics/rybbit-analytics.d.ts",
 			"import": "./dist/vendors/analytics/rybbit-analytics.js",
 			"default": "./dist/vendors/analytics/rybbit-analytics.js"
+		},
+		"./capless-analytics": {
+			"types": "./dist-types/vendors/analytics/capless-analytics.d.ts",
+			"import": "./dist/vendors/analytics/capless-analytics.js",
+			"default": "./dist/vendors/analytics/capless-analytics.js"
 		},
 		"./statable-analytics": {
 			"types": "./dist-types/vendors/analytics/statable-analytics.d.ts",

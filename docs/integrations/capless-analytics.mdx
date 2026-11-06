@@ -1,0 +1,82 @@
+---
+title: Capless
+description: Load Capless web analytics and session replay after measurement consent with the c15t caplessAnalytics helper, queue early calls, and opt the tracker out on withdrawal.
+seoTitle: Capless analytics and session replay consent with c15t
+seoDescription: Keep the Capless tracker and session replay off your page until measurement consent, replay early track calls and stop collection on withdrawal.
+group: integrations
+---
+
+The c15t `caplessAnalytics` helper waits for `measurement` consent before it
+loads Capless's `c.js`. Capless sets no cookies, but it keeps an anonymous
+visitor ID in localStorage, so c15t blocks the tracker and its requests until
+measurement is allowed. When a visitor withdraws consent, the helper calls
+`capless('optout')`, which stops collection and any running session replay.
+
+## Configure Capless
+
+Copy the public project key, which starts with `cs_`, from your Capless
+project. Replace `cs_your_project_key` in the example with that key. The key is
+write-only and safe to ship in the browser.
+
+Remove any existing Capless script tag or tag-manager installation so it
+cannot load outside c15t.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/capless-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `projectKey` | Required | Set as `data-key` on the script element. Whitespace is trimmed. Empty or whitespace-only values log an error and the script does not load. |
+| `scriptUrl` | `https://c.capless.sh/c.js` | Loader URL override. Blank values use the default. |
+
+`c.js` sends events to `/e` and loads session replay from `/r.js` on the
+origin it was served from. If you serve `c.js` from your own host, that host
+must also proxy those two paths to `https://c.capless.sh`.
+
+## Loading and revocation
+
+After measurement is allowed, `caplessAnalytics` defines a `window.capless`
+queue stub and appends an async script with your key in `data-key`. Calls such
+as `capless('track', 'signup')` or `capless('identify', userId)` made before
+`c.js` runs wait in the stub's queue, and `c.js` replays them when it starts.
+Before measurement is allowed, `window.capless` does not exist, so check that it
+is defined, or check measurement permission, before you call it.
+
+Capless saves `optout` as a localStorage flag that it reads on later page
+loads. So the helper calls `capless('optin')` on every granted load, before
+your queued calls run. Without this, a visitor who withdrew consent once and
+allowed it again on a later visit would stay opted out. Because c15t is the
+source of truth, an `optout` your own code sends is also undone on the next
+granted load.
+
+On withdrawal the helper calls `capless('optout')` and removes the script
+element. Collection stops on the current page, even if `c.js` was still
+downloading. c15t also reloads the page by default. The anonymous ID in
+localStorage stays until it is cleared; see the clear-on-revocation guide
+linked below to delete it.
+
+Allow `https://c.capless.sh` in your Content Security Policy's `script-src`
+and `connect-src`, or your own host if you set `scriptUrl`.
+
+## Verify Capless
+
+With measurement denied, filter DevTools Network by `capless.sh` and check that
+no `c.js` or `/e` request appears and that `window.capless` is undefined.
+Allowing only marketing must leave Capless blocked too.
+
+After granting measurement, expect one `c.js` script element with your
+`data-key` and a `POST` to `https://c.capless.sh/e?k=<your key>` carrying a
+`pageview`. In DevTools Application, Local Storage holds `_cpa` (the anonymous
+ID) and `_cpo` set to `0`. After you withdraw consent, `_cpo` is `1` and no
+further `/e` requests are sent.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+The loader and commands follow Capless's
+[web SDK reference](https://analytics.capless.sh/docs/web-sdk). See its
+[privacy policy](https://analytics.capless.sh/privacy) for data handling.

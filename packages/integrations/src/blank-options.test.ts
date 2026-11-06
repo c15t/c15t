@@ -19,6 +19,7 @@ import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from './vendors/analytics/ahrefs-analytics';
 import { amplitude } from './vendors/analytics/amplitude';
+import { caplessAnalytics } from './vendors/analytics/capless-analytics';
 import { clay } from './vendors/analytics/clay';
 import { clearbit } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analytics';
@@ -559,6 +560,12 @@ const requiredIdCases: {
 		},
 	},
 	{
+		create: (projectKey) => caplessAnalytics({ projectKey: asId(projectKey) }),
+		helper: 'caplessAnalytics',
+		option: 'projectKey',
+		script: { category: 'measurement', id: 'capless-analytics' },
+	},
+	{
 		create: (siteId) => statableAnalytics({ siteId: asId(siteId) }),
 		helper: 'statableAnalytics',
 		option: 'siteId',
@@ -666,6 +673,12 @@ const blankScriptUrlCases: {
 		expectedSrc:
 			'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
 		helper: 'gainsightPx',
+	},
+	{
+		create: (scriptUrl) =>
+			caplessAnalytics({ projectKey: 'cs_test_key', scriptUrl }),
+		expectedSrc: 'https://c.capless.sh/c.js',
+		helper: 'caplessAnalytics',
 	},
 	{
 		create: (scriptUrl) => statableAnalytics({ scriptUrl, siteId: 12345 }),
