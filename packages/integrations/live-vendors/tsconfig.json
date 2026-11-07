@@ -4,6 +4,7 @@
 		"noEmit": true,
 		"types": ["bun"],
 		"paths": {
+			"#inline-start": ["../src/engine/inline-start.ts"],
 			"~/*": ["../../core/src/*"]
 		}
 	},
