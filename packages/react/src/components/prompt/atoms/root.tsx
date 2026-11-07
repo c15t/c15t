@@ -321,9 +321,14 @@ const ConsentBannerRootChildren = createForwardRef<
 					data-model={policy.model}
 					data-entry={lateEntry ? 'late' : undefined}
 					data-testid="consent-banner-root"
+					data-c15t-streamed=""
 					dir={textDirection}
 				>
 					{children}
+					<span
+						data-c15t-stream-end=""
+						hidden
+					/>
 				</div>
 			</>
 		) : null;

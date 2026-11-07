@@ -129,6 +129,8 @@ const streamThenHydrate = async function streamThenHydrate(
 	server.resolve(config);
 	await page.finish();
 	const streamed = page.hasBanner();
+	expect(page.doc.querySelector('[data-c15t-streamed]')).toBeNull();
+	expect(page.doc.querySelector('[data-c15t-stream-end]')).toBeNull();
 	page.mark('streamed');
 	const hydrated = await page.hydrate(
 		<Page
@@ -137,6 +139,8 @@ const streamThenHydrate = async function streamThenHydrate(
 		/>
 	);
 	await tick(100);
+	expect(page.doc.querySelector('[data-c15t-streamed]')).toBeNull();
+	expect(page.doc.querySelector('[data-c15t-stream-end]')).toBeNull();
 	return { hydrated, page, shell, streamed };
 };
 
