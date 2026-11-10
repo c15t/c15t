@@ -1,3 +1,12 @@
+## @c15t/scripts@3.1.3-canary.0 (canary)
+
+### Add Capless analytics integration
+
+`caplessAnalytics` from `@c15t/integrations/capless-analytics` loads Capless
+analytics and session replay after `measurement` consent. Capless cannot stop a
+running replay, so keep the default page reload when consent is withdrawn. The
+CLI can add it during setup.
+
 ## @c15t/scripts@3.1.0
 
 ### Add Gainsight PX consent integration
