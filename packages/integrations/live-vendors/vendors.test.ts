@@ -199,6 +199,7 @@ describe('live vendor probe configs', () => {
 			'intercom',
 			'linkedin-insights',
 			'matomo-analytics',
+			'notra-analytics',
 			'optimizely',
 			'rb2b',
 			'segment',

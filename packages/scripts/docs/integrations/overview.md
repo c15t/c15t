@@ -52,6 +52,7 @@ before a choice.
 | [Promptwatch](./promptwatch.md)                           | `promptwatch`            | `measurement`                | Waits for effective permission                                                                       |
 | [Statable](./statable-analytics.md)                       | `statableAnalytics`      | `measurement`                | Waits for effective permission                                                                       |
 | [Capless](./capless-analytics.md)                         | `caplessAnalytics`       | `measurement`                | Waits for effective permission; opts the tracker out on revocation                                   |
+| [Notra](./notra-analytics.md)                             | `notraAnalytics`         | `measurement`                | Waits for effective permission; pins `notra.js` with subresource integrity                           |
 
 ## Product analytics
 
