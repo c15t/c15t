@@ -125,6 +125,8 @@ describe('notra analytics contract', () => {
 		]);
 
 		expect(loaded).toHaveLength(2);
+		expect(loaded[0]?.isConnected).toBe(false);
+		expect(loaded[0]?.dataset.key).toBe('nwk.contract');
 		expect(loaded[1]?.isConnected).toBe(true);
 		expect(loaded[1]?.dataset.key).toBe('nwk.contract');
 	});

@@ -7,13 +7,15 @@ icon: notra
 group: integrations
 ---
 
-The c15t `notraAnalytics` helper waits for `measurement` consent before it
-loads `notra.js`, the web analytics script that `@usenotra/sdk` installs.
-`notra.js` sets no cookies and writes nothing to browser storage, but it sends
-each page address and referrer to Notra, so c15t keeps the script and its
-requests off the page until the visitor allows measurement. When the visitor
-withdraws consent, c15t removes the script and reloads the page, because a
-reload is the only way to stop a copy of `notra.js` that has already run.
+The c15t `notraAnalytics` helper loads `notra.js`, the web analytics script
+that `@usenotra/sdk` installs, only while the `measurement` category is
+allowed. `notra.js` sets no cookies and writes nothing to browser storage, but
+it sends each page address and referrer to Notra, so c15t keeps the script and
+its requests off the page until measurement is allowed. Your policy decides
+when that is, and an opt-out policy can allow measurement before the visitor
+has made a choice. When measurement is withdrawn, c15t removes the script and
+reloads the page, because a reload is the only way to stop a copy of
+`notra.js` that has already run.
 
 ## Configure Notra
 
@@ -26,7 +28,7 @@ your workspace.
 
 Remove the `<NotraAnalytics />` component from `@usenotra/sdk/react`, any tag
 written by `notraScriptTag` and any `notra.js` script tag in your HTML, because
-a copy that loads outside c15t runs before the visitor has chosen. The AI
+a copy that loads outside c15t runs whether or not measurement is allowed. The AI
 traffic middleware in `@usenotra/sdk` runs on your server, and this helper
 does not load or gate it.
 
@@ -48,8 +50,9 @@ does not load or gate it.
 | `scriptUrl` | `https://static.usenotra.com/notra.ce3c872ef9c9.js` | Full script URL. Wins over `endpoint` and `errors`. A blank value falls back to the default. A custom URL loads without subresource integrity. |
 
 The options match the props of `<NotraAnalytics />`, except that the SDK's
-`api` is `apiUrl` here and its `src` is `scriptUrl`. The helper has no `pinned`
-or `integrity` option.
+`api` is `apiUrl` here and its `src` is `scriptUrl`. The helper has no `pinned`,
+`integrity` or `disabled` option. To turn Notra off outside production, leave
+the helper out of your `scripts` array there.
 
 ## Report errors and count hash routes
 
@@ -101,8 +104,8 @@ check and does not run.
 
 ## Loading and revocation
 
-After the visitor allows measurement, the helper appends one async script with
-your key in `data-key`. `notra.js` defines no global and has no event API, so
+Once measurement is allowed, the helper appends one async script with your key
+in `data-key`. `notra.js` defines no global and has no event API, so
 your code has nothing to queue or call before the script loads. The script
 sends a page view when it starts and another on each client-side navigation
 that changes the address. When the visitor hides or leaves the page, it sends
@@ -123,9 +126,12 @@ when it finds no key.
 
 ## Cookies and storage
 
-`notra.js` reads and writes no cookies, localStorage or sessionStorage, and it
-sends its requests without credentials. It gives each page view a random ID
-that it keeps in memory until the next navigation. Each request carries the
+`notra.js` reads and writes no cookies, localStorage or sessionStorage. It
+sends its requests with `fetch` and leaves credentials out of them, and it
+falls back to `navigator.sendBeacon` only if the `fetch` call throws. A beacon
+can carry cookies that the collection host has set, which matters if you
+collect through your own domain. It gives each page view a random ID that it
+keeps in memory until the next navigation. Each request carries the
 page address with its query string, and the first request for a view carries
 the referrer, so keep personal data out of your URLs.
 

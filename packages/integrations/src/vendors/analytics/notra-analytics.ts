@@ -151,6 +151,10 @@ const dropKeyOnRefusal = function dropKeyOnRefusal(
 	scriptElements.delete(info.elementId);
 };
 
+const forgetElement = function forgetElement(info: ScriptCallbackInfo): void {
+	scriptElements.delete(info.elementId);
+};
+
 /**
  * Loads Notra web analytics, `notra.js`, once measurement consent is granted.
  *
@@ -198,5 +202,8 @@ export const notraAnalytics = function notraAnalytics(
 		}),
 		onBeforeLoad: rememberElement,
 		onConsentChange: dropKeyOnRefusal,
+		onDispose: forgetElement,
+		onError: forgetElement,
+		onLoad: forgetElement,
 	};
 };
