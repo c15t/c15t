@@ -38,6 +38,7 @@
 		"logrocket",
 		"meta-pixel",
 		"microsoft-uet",
+		"notra",
 		"pinterest-tag",
 		"pirsch",
 		"posthog",
@@ -208,6 +209,11 @@
 			"types": "./dist-types/vendors/analytics/capless-analytics.d.ts",
 			"import": "./dist/vendors/analytics/capless-analytics.js",
 			"default": "./dist/vendors/analytics/capless-analytics.js"
+		},
+		"./notra-analytics": {
+			"types": "./dist-types/vendors/analytics/notra-analytics.d.ts",
+			"import": "./dist/vendors/analytics/notra-analytics.js",
+			"default": "./dist/vendors/analytics/notra-analytics.js"
 		},
 		"./statable-analytics": {
 			"types": "./dist-types/vendors/analytics/statable-analytics.d.ts",

@@ -1,0 +1,164 @@
+---
+title: Notra
+description: Load Notra web analytics after measurement consent with the c15t notraAnalytics helper, which pins notra.js with subresource integrity and can report JavaScript errors, count hash routes and load through your own domain.
+seoTitle: Notra web analytics consent integration for c15t
+seoDescription: Load Notra's notra.js only after measurement consent. Set up the c15t helper with your web key and check the pinned script and page views in DevTools.
+icon: notra
+group: integrations
+---
+
+The c15t `notraAnalytics` helper loads `notra.js`, the web analytics script
+that `@usenotra/sdk` installs, only while the `measurement` category is
+allowed. `notra.js` sets no cookies and writes nothing to browser storage, but
+it sends each page address and referrer to Notra, so c15t keeps the script and
+its requests off the page until measurement is allowed. Your policy decides
+when that is, and an opt-out policy can allow measurement before the visitor
+has made a choice. When measurement is withdrawn, c15t removes the script and
+reloads the page, because a reload is the only way to stop a copy of
+`notra.js` that has already run.
+
+## Configure Notra
+
+Copy your project's public web key, which starts with `nwk.`, from the script
+tag under **Settings > Tracking** in Notra, and replace `nwk.your_web_key` in
+the example with it. The key is public, so it can ship in your browser bundle.
+Notra's tracking guide says that web analytics is in private beta and that
+Notra counts page views only after the `web-analytics` beta is turned on for
+your workspace.
+
+Remove the `<NotraAnalytics />` component from `@usenotra/sdk/react`, any tag
+written by `notraScriptTag` and any `notra.js` script tag in your HTML, because
+a copy that loads outside c15t runs whether or not measurement is allowed. The AI
+traffic middleware in `@usenotra/sdk` runs on your server, and this helper
+does not load or gate it.
+
+<CommandTabs command="@c15t/integrations" mode="install" />
+
+<include src="../shared/examples/javascript/notra-scripts.mdx" />
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `webKey` | Required | Set as `data-key`. The helper trims it. If the value is missing, blank or does not start with `nwk.`, the helper logs an error and the script does not load. |
+| `errors` | `false` | Loads `notra.plus.js` in place of `notra.js`. See [report errors and count hash routes](#report-errors-and-count-hash-routes). |
+| `hash` | `false` | Sets `data-hash`, so `notra.js` counts `#hash` route changes as page views. |
+| `apiUrl` | `https://ingest.usenotra.com/api/collect` | URL that receives page views, set as `data-api`. With `endpoint` or `scriptUrl`, the helper leaves the attribute off unless you set `apiUrl`, and `notra.js` posts to `/api/collect` on the origin it loaded from. |
+| `endpoint` | None | Origin of a proxy or a self-hosted ingest. See [load through your own domain](#load-through-your-own-domain). |
+| `scriptUrl` | `https://static.usenotra.com/notra.ce3c872ef9c9.js` | Full script URL. Wins over `endpoint` and `errors`. A blank value falls back to the default. A custom URL loads without subresource integrity. |
+
+The options match the props of `<NotraAnalytics />`, except that the SDK's
+`api` is `apiUrl` here and its `src` is `scriptUrl`. The helper has no `pinned`,
+`integrity` or `disabled` option. To turn Notra off outside production, leave
+the helper out of your `scripts` array there.
+
+## Report errors and count hash routes
+
+{/* example: fragment */}
+
+```ts
+notraAnalytics({ webKey: 'nwk.your_web_key', errors: true, hash: true });
+```
+
+With `errors: true` the helper loads `notra.plus.js`, which also reports
+uncaught errors and unhandled promise rejections. For each one it sends the
+first 300 characters of the message with the URL and line of the script that
+threw it, up to five errors per page view. An error message contains whatever
+your code or a library puts in it, so check that thrown messages hold no
+personal data before you turn this on.
+
+Set `hash: true` for a single-page app that routes with `#` fragments. Without
+it, `notra.js` removes the fragment from the address it sends and treats a
+change of fragment as the same page.
+
+## Pinned script files
+
+By default the helper loads the builds that `@usenotra/sdk` 2.0.0 pins, which
+are `notra.ce3c872ef9c9.js` and `notra.plus.d703b9cc5508.js`, and it sets an
+`integrity` attribute on the script element. The browser hashes the file it
+downloads, compares the result with that attribute and refuses to run a file
+that has changed on the host. A c15t release moves the pin to newer Notra
+builds.
+
+A custom `scriptUrl` loads without an `integrity` attribute, because c15t has
+no hash for a file it did not pin. To follow Notra's newest build without
+waiting for a c15t release, set `scriptUrl` to
+`https://static.usenotra.com/notra.js` and `apiUrl` to
+`https://ingest.usenotra.com/api/collect`. You need both, because Notra's
+script host serves the file and its ingest takes the page views.
+
+## Load through your own domain
+
+If you proxy Notra through your own domain or run a self-hosted ingest, pass
+its origin as `endpoint`. Replace the example host with yours:
+
+<include src="../shared/examples/javascript/notra-proxy-scripts.mdx" />
+
+The helper then loads `/api/notra.ce3c872ef9c9.js` from that origin with the
+pinned `integrity` value, and `notra.js` posts page views to `/api/collect` on
+the same origin. Your proxy can compress the pinned file, but it has to leave
+the bytes unchanged, because a minified or rewritten copy fails the integrity
+check and does not run.
+
+## Loading and revocation
+
+Once measurement is allowed, the helper appends one async script with your key
+in `data-key`. `notra.js` defines no global and has no event API, so
+your code has nothing to queue or call before the script loads. The script
+sends a page view when it starts and another on each client-side navigation
+that changes the address. When the visitor hides or leaves the page, it sends
+the visible time, the scroll depth and the Core Web Vitals for that view. It
+also sends the host and path of each link to another site that the visitor
+clicks.
+
+`notra.js` has no stop or opt-out call. On withdrawal c15t removes the script
+element and reloads the page, and the reload ends the listeners of a copy that
+has already run. Keep `reloadOnConsentRevoked` on. With it off, the running
+copy keeps sending page views after the visitor has refused, and a later grant
+on the same page starts a second copy that counts each view twice.
+
+Removing a script element does not cancel a download that has started. If the
+visitor refuses while `notra.js` is still downloading, the helper removes
+`data-key` from the element, and the script exits without sending anything
+when it finds no key.
+
+## Cookies and storage
+
+`notra.js` reads and writes no cookies, localStorage or sessionStorage. It
+sends its requests with `fetch` and leaves credentials out of them, and it
+falls back to `navigator.sendBeacon` only if the `fetch` call throws. A beacon
+can carry cookies that the collection host has set, which matters if you
+collect through your own domain. It gives each page view a random ID that it
+keeps in memory until the next navigation. Each request carries the
+page address with its query string, and the first request for a view carries
+the referrer, so keep personal data out of your URLs.
+
+For a Content Security Policy, allow `https://static.usenotra.com` in
+`script-src` and `https://ingest.usenotra.com` in `connect-src`, or allow your
+own origin in both if you set `endpoint`.
+
+## Verify Notra
+
+`notra.js` sends nothing on `localhost` or `127.0.0.1`, inside an iframe or in
+an automated browser, so run these checks on a deployed hostname in a normal
+browser window.
+
+With measurement denied, filter DevTools Network by `usenotra.com` and check
+that neither the script nor a `POST` to `/api/collect` appears. Allowing only
+marketing must leave Notra blocked too.
+
+After you allow measurement, expect one script element for
+`notra.ce3c872ef9c9.js` with your `data-key` and an `integrity` attribute. A
+`POST` to `https://ingest.usenotra.com/api/collect` follows, and its body has
+your key in `k` and the page address in `u`. The Application panel shows no
+Notra cookies or storage entries. A successful `POST` does not prove that the
+view reached your dashboard, which also depends on the beta being on for your
+workspace.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+The script options follow Notra's
+[tracking guide](https://github.com/usenotra/typescript-sdk/blob/main/docs/tracking/README.md#web-analytics-script).
+See its [privacy policy](https://www.usenotra.com/privacy) for data handling.

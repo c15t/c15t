@@ -50,6 +50,7 @@ import { marketoManifest } from './vendors/analytics/marketo';
 import { matomoAnalyticsManifest } from './vendors/analytics/matomo-analytics';
 import { clarityManifest } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalyticsManifest } from './vendors/analytics/mixpanel-analytics';
+import { notraAnalyticsManifest } from './vendors/analytics/notra-analytics';
 import { oneDollarStatsManifest } from './vendors/analytics/one-dollar-stats';
 import { eloquaTrackingManifest } from './vendors/analytics/oracle-eloqua';
 import { pendoManifest } from './vendors/analytics/pendo';
@@ -148,6 +149,7 @@ const vendorManifests = [
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	caplessAnalyticsManifest,
+	notraAnalyticsManifest,
 	statableAnalyticsManifest,
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
