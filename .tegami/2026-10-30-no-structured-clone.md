@@ -1,15 +1,35 @@
 ---
 packages:
-  "@c15t/browser": patch
-  "@c15t/core": patch
-  "@c15t/dev-tools": patch
-  "@c15t/iab": patch
-  "@c15t/integrations": patch
-  "@c15t/schema": patch
-  "@c15t/svelte": patch
-  "@c15t/translations": patch
-  "@c15t/ui": patch
-  "@c15t/vue": patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(npm:@c15t/dev-tools)
+  "@c15t/iab":
+    replay:
+      - exit-prerelease(npm:@c15t/iab)
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/translations":
+    replay:
+      - exit-prerelease(npm:@c15t/translations)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Consent provider works again in browsers before Safari 15.4
