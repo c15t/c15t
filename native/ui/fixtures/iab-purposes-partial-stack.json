@@ -1,0 +1,164 @@
+{
+	"builder": "buildIabPurposes",
+	"description": "Purposes with a stack that is only partly on. Purpose 7 has no consent basis, so its switch is locked off. Special purposes get no switch.",
+	"expected": {
+		"actions": [
+			{
+				"emphasis": "primary",
+				"id": "save",
+				"label": "Save Settings"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "rejectAll",
+				"label": "Reject All"
+			},
+			{
+				"emphasis": "tonal",
+				"id": "acceptAll",
+				"label": "Accept All"
+			}
+		],
+		"id": "iab.manage",
+		"intro": "Choose which purposes and partners may use your data. You can change this at any time.",
+		"sections": [
+			{
+				"header": "Purposes",
+				"id": "consent",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": true
+						},
+						"detail": "3 partners",
+						"id": "purpose.1",
+						"navigatesTo": "purpose.1",
+						"title": "Store and/or access information on a device"
+					},
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "2 partners",
+						"id": "purpose.2",
+						"navigatesTo": "purpose.2",
+						"title": "Use limited data to select advertising"
+					},
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "Partially enabled",
+						"id": "stack.42",
+						"navigatesTo": "stack.42",
+						"title": "Personalised advertising and measurement"
+					},
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": true
+						},
+						"detail": "2 partners",
+						"id": "purpose.8",
+						"navigatesTo": "purpose.8",
+						"title": "Measure content performance"
+					}
+				]
+			},
+			{
+				"header": "Special Features",
+				"id": "specialFeatures",
+				"rows": [
+					{
+						"control": {
+							"disabled": false,
+							"kind": "switch",
+							"value": false
+						},
+						"detail": "1 partner",
+						"id": "specialFeature.1",
+						"navigatesTo": "specialFeature.1",
+						"title": "Use precise geolocation data"
+					}
+				]
+			},
+			{
+				"header": "Essential Functions (Required)",
+				"id": "essential",
+				"rows": [
+					{
+						"detail": "2 partners",
+						"id": "specialPurpose.1",
+						"navigatesTo": "specialPurpose.1",
+						"title": "Ensure security, prevent and detect fraud, and fix errors"
+					},
+					{
+						"detail": "1 partner",
+						"id": "specialPurpose.2",
+						"navigatesTo": "specialPurpose.2",
+						"title": "Deliver and present advertising and content"
+					}
+				]
+			},
+			{
+				"footer": "These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.",
+				"header": "Features",
+				"id": "features",
+				"rows": [
+					{
+						"id": "feature.1",
+						"navigatesTo": "feature.1",
+						"title": "Match and combine data from other data sources"
+					},
+					{
+						"id": "feature.2",
+						"navigatesTo": "feature.2",
+						"title": "Link different devices"
+					}
+				]
+			}
+		],
+		"title": "Privacy Settings"
+	},
+	"id": "iab-purposes-partial-stack",
+	"input": {
+		"copy": {
+			"$ref": "iab-copy"
+		},
+		"model": {
+			"$ref": "iab-model"
+		},
+		"selection": {
+			"purposeConsents": {
+				"1": true,
+				"2": false,
+				"3": true,
+				"4": false,
+				"7": false,
+				"8": true
+			},
+			"specialFeatureOptIns": {
+				"1": false
+			},
+			"vendorConsents": {
+				"1": true,
+				"42": false,
+				"755": false,
+				"acme-analytics": false
+			},
+			"vendorLegitimateInterests": {
+				"1": true,
+				"42": true,
+				"755": false
+			}
+		}
+	},
+	"version": 1
+}

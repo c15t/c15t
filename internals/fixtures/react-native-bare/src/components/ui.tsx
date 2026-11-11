@@ -74,7 +74,7 @@ const badgeInk = (
 		return colors.primary;
 	}
 
-	return tone === 'danger' ? WARNING : colors.textMuted;
+	return tone === 'danger' ? WARNING : colors.secondaryLabel;
 };
 
 /** Scrollable page container, kept clear of the bottom band. */
@@ -85,9 +85,9 @@ export const Screen = ({ children }: { readonly children: ReactNode }) => {
 	return (
 		<ScrollView
 			contentContainerStyle={{
-				gap: spacing.m,
-				padding: spacing.m,
-				paddingBottom: spacing.xl + safeArea.bottom,
+				gap: spacing.m16,
+				padding: spacing.m16,
+				paddingBottom: spacing.xl32 + safeArea.bottom,
 			}}
 			keyboardShouldPersistTaps="handled"
 		>
@@ -110,17 +110,17 @@ export const Card = ({
 	return (
 		<View
 			style={{
-				borderColor: colors.border,
-				borderRadius: radius.surface,
+				borderColor: colors.separator,
+				borderRadius: radius.section,
 				borderWidth: 1,
-				gap: spacing.s,
-				padding: spacing.m,
+				gap: spacing.s8,
+				padding: spacing.m16,
 			}}
 		>
 			<NativeText
 				accessibilityRole="header"
 				style={{
-					color: colors.textMuted,
+					color: colors.secondaryLabel,
 					fontSize: typography.caption.fontSize,
 					fontWeight: typography.title.weight,
 					letterSpacing: 0,
@@ -151,7 +151,7 @@ export const Heading = ({ children }: { readonly children: ReactNode }) => {
 		<NativeText
 			accessibilityRole="header"
 			style={{
-				color: theme.colors.text,
+				color: theme.colors.label,
 				fontSize: body.fontSize,
 				fontWeight: title.weight,
 				lineHeight: body.lineHeight,
@@ -176,7 +176,7 @@ export const Text = ({
 	return (
 		<NativeText
 			style={{
-				color: muted ? theme.colors.textMuted : theme.colors.text,
+				color: muted ? theme.colors.secondaryLabel : theme.colors.label,
 				fontSize: body.fontSize,
 				fontWeight: body.weight,
 				lineHeight: body.lineHeight,
@@ -191,7 +191,7 @@ export const Text = ({
 export const Hint = ({ children }: { readonly children: ReactNode }) => {
 	const { parts } = useHostStyles();
 
-	return <NativeText style={parts.caption}>{children}</NativeText>;
+	return <NativeText style={parts.sectionFooter}>{children}</NativeText>;
 };
 
 /**
@@ -249,7 +249,7 @@ export const Mono = ({
 		<NativeText
 			selectable
 			style={{
-				color: muted ? colors.textMuted : colors.text,
+				color: muted ? colors.secondaryLabel : colors.label,
 				fontFamily: 'monospace',
 				fontSize: typography.caption.fontSize,
 				lineHeight: typography.caption.lineHeight,
@@ -273,11 +273,15 @@ export const Row = ({
 
 	return (
 		<View
-			style={{ alignItems: 'flex-start', flexDirection: 'row', gap: spacing.m }}
+			style={{
+				alignItems: 'flex-start',
+				flexDirection: 'row',
+				gap: spacing.m16,
+			}}
 		>
 			<NativeText
 				style={{
-					color: colors.textMuted,
+					color: colors.secondaryLabel,
 					flexBasis: 132,
 					flexShrink: 0,
 					fontSize: typography.caption.fontSize,
@@ -305,11 +309,15 @@ export const Button = ({
 	readonly onPress: () => void;
 	readonly variant?: 'primary' | 'secondary';
 }) => {
-	const { controlMinHeight, parts } = useHostStyles();
+	const { parts, theme } = useHostStyles();
 	const button =
-		variant === 'primary' ? parts.primaryButton : parts.secondaryButton;
+		variant === 'primary'
+			? { ...parts.button, backgroundColor: theme.colors.primary }
+			: { ...parts.button, backgroundColor: theme.colors.primaryContainer };
 	const labelStyle =
-		variant === 'primary' ? parts.primaryLabel : parts.secondaryLabel;
+		variant === 'primary'
+			? { ...parts.buttonLabel, color: theme.colors.onPrimary }
+			: { ...parts.buttonLabel, color: theme.colors.onPrimaryContainer };
 
 	return (
 		<Pressable
@@ -320,7 +328,7 @@ export const Button = ({
 			onPress={onPress}
 			style={({ pressed }) => [
 				button,
-				{ minHeight: controlMinHeight },
+				{ minHeight: theme.metrics.hitTarget },
 				pressed || busy ? { opacity: 0.5 } : null,
 			]}
 		>
@@ -339,7 +347,7 @@ export const ButtonGrid = ({ children }: { readonly children: ReactNode }) => {
 	const { theme } = useHostStyles();
 
 	return (
-		<View style={{ flexDirection: 'column', gap: theme.spacing.s }}>
+		<View style={{ flexDirection: 'column', gap: theme.spacing.s8 }}>
 			{children}
 		</View>
 	);
@@ -350,7 +358,7 @@ export const ButtonRow = ({ children }: { readonly children: ReactNode }) => {
 	const { theme } = useHostStyles();
 
 	return (
-		<View style={{ flexDirection: 'row', gap: theme.spacing.s }}>
+		<View style={{ flexDirection: 'row', gap: theme.spacing.s8 }}>
 			{children}
 		</View>
 	);
@@ -372,15 +380,15 @@ export const Segmented = <Value extends string>({
 	readonly options: readonly SegmentedOption<Value>[];
 	readonly value: Value;
 }) => {
-	const { controlMinHeight, theme } = useHostStyles();
+	const { theme } = useHostStyles();
 	const { colors, radius, spacing, typography } = theme;
 
 	return (
 		<View
 			style={{
 				flexDirection: 'row',
-				gap: spacing.xs,
-				padding: spacing.xs,
+				gap: spacing.xs4,
+				padding: spacing.xs4,
 			}}
 		>
 			{options.map((option) => {
@@ -397,20 +405,20 @@ export const Segmented = <Value extends string>({
 						}}
 						style={{
 							alignItems: 'center',
-							backgroundColor: selected ? colors.surfaceRaised : 'transparent',
-							borderColor: selected ? colors.primary : colors.border,
-							borderRadius: radius.control,
+							backgroundColor: selected ? colors.surface : 'transparent',
+							borderColor: selected ? colors.primary : colors.separator,
+							borderRadius: radius.field,
 							borderWidth: 1,
 							justifyContent: 'center',
-							minHeight: controlMinHeight,
-							paddingHorizontal: spacing.s,
+							minHeight: theme.metrics.hitTarget,
+							paddingHorizontal: spacing.s8,
 						}}
 					>
 						<NativeText
 							style={{
-								color: selected ? colors.primary : colors.textMuted,
+								color: selected ? colors.primary : colors.secondaryLabel,
 								fontSize: typography.caption.fontSize,
-								fontWeight: typography.label.weight,
+								fontWeight: typography.button.weight,
 								lineHeight: typography.caption.lineHeight,
 							}}
 						>
@@ -441,15 +449,15 @@ export const Toggle = ({
 			style={{
 				alignItems: 'center',
 				flexDirection: 'row',
-				gap: spacing.m,
+				gap: spacing.m16,
 				justifyContent: 'space-between',
 			}}
 		>
 			<Text>{label}</Text>
 			<Switch
 				accessibilityLabel={label}
-				trackColor={{ false: colors.switchTrack, true: colors.switchTrackOn }}
-				thumbColor={colors.switchThumb}
+				trackColor={{ false: colors.fill, true: colors.primary }}
+				thumbColor={colors.onPrimary}
 				onValueChange={onValueChange}
 				value={value}
 			/>
@@ -465,7 +473,7 @@ export const Flag = ({ value }: { readonly value: boolean }) => {
 	return (
 		<NativeText
 			style={{
-				color: value ? colors.primary : colors.textMuted,
+				color: value ? colors.primary : colors.secondaryLabel,
 				fontFamily: 'monospace',
 				fontSize: typography.caption.fontSize,
 				fontWeight: typography.title.weight,
@@ -493,18 +501,18 @@ export const Badge = ({
 		<View
 			style={{
 				alignSelf: 'flex-start',
-				borderColor: tone === 'neutral' ? colors.border : foreground,
-				borderRadius: radius.control,
+				borderColor: tone === 'neutral' ? colors.separator : foreground,
+				borderRadius: radius.field,
 				borderWidth: 1,
-				paddingHorizontal: spacing.s,
-				paddingVertical: spacing.xs,
+				paddingHorizontal: spacing.s8,
+				paddingVertical: spacing.xs4,
 			}}
 		>
 			<NativeText
 				style={{
 					color: foreground,
 					fontSize: typography.caption.fontSize,
-					fontWeight: typography.label.weight,
+					fontWeight: typography.button.weight,
 					lineHeight: typography.caption.lineHeight,
 				}}
 			>

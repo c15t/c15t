@@ -1,0 +1,35 @@
+{
+	"builder": "buildFirstLayer",
+	"description": "Opt-in first layer. Accept all and Reject all share parity, so neither can be drawn weaker than the other.",
+	"expected": {
+		"actions": [
+			{
+				"emphasis": "parity",
+				"id": "acceptAll",
+				"label": "Accept All"
+			},
+			{
+				"emphasis": "parity",
+				"id": "rejectAll",
+				"label": "Reject All"
+			},
+			{
+				"emphasis": "text",
+				"id": "manage",
+				"label": "Manage preferences"
+			}
+		],
+		"id": "firstLayer",
+		"intro": "Choose how your data may be used. You can change this at any time.",
+		"sections": [],
+		"title": "We value your privacy"
+	},
+	"id": "standard-first-layer-choice",
+	"input": {
+		"copy": {
+			"$ref": "standard-copy"
+		},
+		"notice": false
+	},
+	"version": 1
+}
