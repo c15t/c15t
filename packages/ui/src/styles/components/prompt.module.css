@@ -76,6 +76,14 @@
 		tab-size: var(--consent-banner-tab-size);
 	}
 
+	/* Each adapter marks the end of its serialized children. Keep a partial
+	   banner from painting and moving as the remaining contents arrive. */
+	.root[data-c15t-streamed]:not(:global(.headless)):not(
+			:has(> [data-c15t-stream-end])
+		) {
+		visibility: hidden;
+	}
+
 	/* The root's padding and the strip beside the branding tag are layout,
 	   not banner. Clicks there reach the page. The card, the tag, and any
 	   part composed straight into the root still take them, and a blocking
