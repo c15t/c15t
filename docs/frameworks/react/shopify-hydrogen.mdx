@@ -1,0 +1,86 @@
+
+---
+title: Shopify Hydrogen
+description: Connect c15t consent to Shopify Customer Privacy in a React Router and Hydrogen storefront.
+seoTitle: Shopify Hydrogen consent with c15t
+seoDescription: Integrate c15t consent with Shopify Hydrogen using the Customer Privacy API, React Router navigation and consent synchronization.
+group: frameworks
+---
+
+# Shopify Hydrogen
+
+Use `c15t/react` with the Shopify Customer Privacy integration to synchronize visitor choices with Shopify Hydrogen analytics. This guide covers the React Router framework setup; for the bridge API, category mappings and consent behavior, see the [Shopify integration reference](/docs/integrations/shopify).
+
+## Before you start
+
+This guide assumes you have:
+
+- A Shopify Hydrogen storefront using React Router framework mode.
+- A configured c15t project and backend.
+- The `@c15t/integrations` and `c15t` packages available to your app.
+
+Hydrogen's `ShopifyScripts` component supports custom consent integration. c15t supplies the consent interface; the Shopify bridge synchronizes the resulting choices with Shopify Customer Privacy.
+
+## Create the Shopify analytics integration
+
+The integration uses `createShopifyCustomerPrivacy()` from `@c15t/integrations/shopify`.
+
+<include src="../../shared/examples/shopify-hydrogen/shopify-analytics.mdx" />
+
+`ShopifyAnalytics` renders Hydrogen's `ShopifyScripts` with custom-banner consent mode. `ShopifyConsentSync` observes the c15t consent snapshot and sends updates to the Shopify bridge.
+
+## Add the components to your storefront
+
+Render the c15t provider around your application in the React Router root component. The provider should contain the banner, dialog and synchronization component so that all of them share the same consent state.
+
+Use the `Consent` component pattern from the [React quickstart](/docs/frameworks/react/quickstart). Add `ShopifyConsentSync` inside that provider.
+
+In your Hydrogen root layout, render `ShopifyAnalytics` with the `i18n` and `shop` values supplied by Hydrogen. Pass React Router's navigation function to its `navigate` prop:
+
+```tsx
+import { useNavigate } from 'react-router';
+import { ShopifyAnalytics, ShopifyConsentSync } from './shopify-analytics';
+
+function StorefrontAnalytics({ i18n, shop }) {
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <ShopifyAnalytics
+        i18n={i18n}
+        shop={shop}
+        navigate={navigate}
+      />
+      <ShopifyConsentSync />
+    </>
+  );
+}
+```
+
+Place this component within the c15t provider. Keep the `ShopifyAnalytics` component in the part of the storefront where Hydrogen expects its analytics scripts to be rendered.
+
+## Understand the rendering behavior
+
+React Router framework mode renders the application on the server and hydrates it in the browser. The c15t React provider resolves consent in the browser after hydration.
+
+Consequently:
+
+- The initial server HTML does not contain a visitor-specific consent state or banner.
+- The browser resolves consent after hydration.
+- Shopify analytics remain subject to the consent integration's setup behavior.
+- The Shopify bridge receives subsequent consent changes through `ShopifyConsentSync`.
+
+For server rendering, initialization and prefetch behavior, see [React rendering and deployment](/docs/frameworks/react/rendering).
+
+## Verify the integration
+
+Test the storefront in a private browser session.
+
+1. Open DevTools and inspect the Network panel.
+2. Confirm the c15t backend initialization request completes.
+3. Confirm the consent interface appears when required by the active policy.
+4. Before making a choice, verify that optional analytics are not released contrary to the configured consent policy.
+5. Accept the relevant categories and verify Shopify receives the updated consent.
+6. Revoke consent and verify that the updated choice is synchronized.
+
+For detailed Shopify-specific behavior, including retries, region defaults and verification caveats, see the [Shopify integration reference](/docs/integrations/shopify).
