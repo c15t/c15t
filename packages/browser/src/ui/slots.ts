@@ -22,6 +22,7 @@ export type BrowserSlotKey = Extract<
 	| 'consentDialogCard'
 	| 'consentDialogHeader'
 	| 'consentDialogTitle'
+	| 'consentDialogCloseButton'
 	| 'consentDialogDescription'
 	| 'consentDialogContent'
 	| 'consentDialogTag'

@@ -95,8 +95,10 @@ when your page renders its own dialog with [headless](/docs/frameworks/html/head
   non-blocking dialog while focus is on the page behind it. If the policy
   still owes a choice, the banner comes back. Clicking the
   backdrop does not close it.
-- The dialog has no close button by design. A visitor using a mouse closes it
-  by saving, accepting or rejecting.
+- The dialog has no close button unless you set `ui.dialog.showCloseButton`.
+  Without it, a visitor using a mouse or a touch screen closes it by saving,
+  accepting or rejecting. The close button closes it without saving, like
+  Escape. It is a `<button>` named by the `common.close` translation.
 - Each category row has a button that expands its description and a
   `role="switch"` button named after the category. The `necessary` switch is
   disabled.
@@ -113,6 +115,7 @@ Theme tokens apply to the dialog as to the banner; see
 | `consent-dialog-root` | The dialog element. |
 | `consent-dialog-card`, `consent-dialog-header`, `consent-dialog-content` | The card and its sections. |
 | `consent-dialog-title`, `consent-dialog-description` | The heading and body text. |
+| `consent-dialog-close` | The close button, shown with `ui.dialog.showCloseButton`. |
 | `consent-widget-accordion-item-measurement` and the other category names | One category row. |
 | `consent-widget-switch-measurement` and the other category names | One category's switch. |
 | `consent-widget-vendor-list-measurement` and the other category names | One category's vendor list. |

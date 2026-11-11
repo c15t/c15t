@@ -7,7 +7,11 @@ import brandingStyles from '@c15t/ui/styles/components/branding';
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
 import styles from '@c15t/ui/styles/components/consent-dialog';
-import { forwardRef as createForwardRef, isValidElement } from 'react';
+import {
+	cloneElement,
+	forwardRef as createForwardRef,
+	isValidElement,
+} from 'react';
 import type { ReactNode, Ref } from 'react';
 
 import { useTranslations } from '~/component-hooks/use-translations';
@@ -22,10 +26,12 @@ import type {
 	BrandingSlotContext,
 	BrandingVariant,
 } from '~/components/shared/ui/branding';
+import { useSetActiveUI } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { ClassNameStyle } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { defaultTranslationConfig } from '~/utils/default-translation-config';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 /**
@@ -55,6 +61,74 @@ const ConsentDialogCard = createForwardRef<
 ConsentDialogCard.displayName = 'ConsentDialogCard';
 
 /**
+ * Props for {@link ConsentDialogHeader}.
+ */
+type ConsentDialogHeaderProps = Omit<BoxProps, 'slotKey'> & {
+	/**
+	 * Render a close button after the header's children. Clicking it closes
+	 * the dialog without recording consent, like Escape. Style it through
+	 * the `dialog.closeButton` slot.
+	 *
+	 * @defaultValue false
+	 */
+	showCloseButton?: boolean;
+};
+
+/**
+ * The dialog's close button: an icon button labelled with the `common.close`
+ * translation, or English when the bundle has none, so it always has an
+ * accessible name. Like Escape, it closes the dialog and records nothing;
+ * the banner comes back if the policy still owes a choice.
+ */
+const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
+	const setActiveUI = useSetActiveUI();
+	const { common } = useTranslations();
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
+	const buttonProps = mergeSlotProps(components?.dialog?.closeButton, {
+		baseClassName: styles.closeButton,
+		noStyle: noStyle ?? contextNoStyle,
+	});
+
+	return (
+		<button
+			{...buttonProps}
+			type="button"
+			aria-label={
+				common.close || defaultTranslationConfig.translations.en.common.close
+			}
+			data-testid="consent-dialog-close"
+			onClick={(event) => {
+				buttonProps.onClick?.(event);
+				setActiveUI('none');
+			}}
+		>
+			<svg
+				aria-hidden="true"
+				style={{ height: '1rem', width: '1rem' }}
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+			>
+				<line
+					x1="18"
+					y1="6"
+					x2="6"
+					y2="18"
+				/>
+				<line
+					x1="6"
+					y1="6"
+					x2="18"
+					y2="18"
+				/>
+			</svg>
+		</button>
+	);
+};
+
+/**
  * The header section of the consent dialog.
  * Should contain the ConsentDialogHeaderTitle and optionally ConsentDialogHeaderDescription.
  *
@@ -62,21 +136,49 @@ ConsentDialogCard.displayName = 'ConsentDialogCard';
  * - Provides semantic structure for accessibility
  * - Should be the first child of ConsentDialogCard
  * - Styled according to the theme configuration
+ * - With `showCloseButton`, renders a close button after its children
+ *
+ * @example
+ * ```tsx
+ * <ConsentDialog.Header showCloseButton>
+ *   <ConsentDialog.HeaderTitle />
+ *   <ConsentDialog.HeaderDescription />
+ * </ConsentDialog.Header>
+ * ```
  */
 const ConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => (
-	<Box
-		ref={ref as Ref<HTMLDivElement>}
-		baseClassName={styles.header}
-		{...props}
-		slotKey="dialog.header"
-		data-testid="consent-dialog-header"
-	>
-		{children}
-	</Box>
-));
+	ConsentDialogHeaderProps
+>(({ children, showCloseButton = false, ...props }, ref) => {
+	let content: ReactNode = children;
+	if (showCloseButton) {
+		const closeButton = <ConsentDialogCloseButton noStyle={props.noStyle} />;
+		// With `asChild` the header is its one child element, so the button
+		// goes inside that element; two children would make `Slot` render
+		// nothing.
+		content =
+			props.asChild && isValidElement<{ children?: ReactNode }>(children) ? (
+				// oxlint-disable-next-line react/no-clone-element -- Keeps the child's ref and key for `Slot` to merge; rebuilding it with createElement would drop the ref.
+				cloneElement(children, undefined, children.props.children, closeButton)
+			) : (
+				<>
+					{children}
+					{closeButton}
+				</>
+			);
+	}
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.header}
+			{...props}
+			slotKey="dialog.header"
+			data-testid="consent-dialog-header"
+		>
+			{content}
+		</Box>
+	);
+});
 ConsentDialogHeader.displayName = 'ConsentDialogHeader';
 
 /**
@@ -253,6 +355,7 @@ interface BrandingProps {
  * @param {boolean} [props.noStyle] - When true, removes default styling
  * @param {LegalLink[]} [props.legalLinks] - Legal document links to display in footer
  * @param {boolean} [props.hideBranding] - Whether to hide the branding in the footer
+ * @param {boolean} [props.showCloseButton] - Whether to show a close button in the header
  *
  * @example
  * ```tsx
@@ -272,13 +375,15 @@ const ConsentCustomizationCard = ({
 	noStyle,
 	legalLinks,
 	hideBranding,
+	showCloseButton,
 }: {
 	noStyle?: boolean;
 	legalLinks?: InlineLegalLinksProps['links'];
 	hideBranding?: boolean;
+	showCloseButton?: boolean;
 }) => (
 	<ConsentDialogCard>
-		<ConsentDialogHeader>
+		<ConsentDialogHeader showCloseButton={showCloseButton}>
 			<ConsentDialogHeaderTitle />
 			<ConsentDialogHeaderDescription legalLinks={legalLinks} />
 		</ConsentDialogHeader>
