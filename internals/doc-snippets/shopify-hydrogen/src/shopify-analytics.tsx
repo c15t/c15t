@@ -1,0 +1,39 @@
+// #region docs:shopify-analytics
+import { createShopifyCustomerPrivacy } from '@c15t/integrations/shopify';
+import type { ShopifyScriptsI18n, ShopifyScriptsShop } from '@shopify/hydrogen';
+import { ShopifyScripts } from '@shopify/hydrogen/react';
+import { useSnapshot } from 'c15t/react';
+import { useEffect } from 'react';
+
+const shopifyPrivacy = createShopifyCustomerPrivacy();
+
+export function ShopifyAnalytics({
+  i18n,
+  shop,
+  navigate,
+}: {
+  i18n: ShopifyScriptsI18n;
+  shop: ShopifyScriptsShop;
+  navigate: (url: string) => void;
+}) {
+  return (
+    <ShopifyScripts
+      analytics={{ channel: 'headless' }}
+      consent={{ mode: 'custom-banner', setup: shopifyPrivacy.setup }}
+      i18n={i18n}
+      navigate={navigate}
+      shop={shop}
+    />
+  );
+}
+
+export function ShopifyConsentSync() {
+  const snapshot = useSnapshot();
+
+  useEffect(() => {
+    shopifyPrivacy.update(snapshot);
+  }, [snapshot]);
+
+  return null;
+}
+// #endregion docs:shopify-analytics

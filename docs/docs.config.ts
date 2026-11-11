@@ -420,7 +420,8 @@ export default defineDocsConfig({
 							title: 'Verify and troubleshoot',
 						},
 					],
-					pages: ['quickstart', 'rendering', 'upgrade-v3'],
+					pages: ['quickstart', 'rendering', 'shopify-hydrogen', 'upgrade-v3'],
+
 					slug: 'react',
 					title: 'React',
 				},
