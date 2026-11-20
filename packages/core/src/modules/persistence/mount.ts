@@ -4,12 +4,16 @@
  *
  * @internal
  */
-import { clearKernelRecords } from '../../kernel/clear-records';
+import {
+	clearKernelRecords,
+	subjectAfterClear,
+} from '../../kernel/clear-records';
 import type { InternalKernel } from '../../kernel/internals';
 import { generateSubjectId } from '../../libs/generate-subject-id';
 import type {
 	ConsentSnapshot,
 	ConsentSubject,
+	ExplicitChoice,
 	HydrationRecords,
 } from '../../types';
 import { clearStoredRecords, writeStoredSubjectId } from './clear';
@@ -93,6 +97,46 @@ const sameSubject = function sameSubject(
 		left?.externalId === right?.externalId &&
 		left?.identityProvider === right?.identityProvider
 	);
+};
+
+/**
+ * The choice a seeded kernel takes when it mounts, or `undefined` to keep
+ * the seed. A seed the clear epoch voided whole yields to storage. Seeded
+ * decisions that outlive the clear stay, and only a newer stored denial is
+ * laid over them.
+ */
+const seededChoicePatch = function seededChoicePatch(
+	seeded: ExplicitChoice | null,
+	surviving: ExplicitChoice | null,
+	stored: ExplicitChoice | null | undefined
+): ExplicitChoice | null | undefined {
+	if (seeded && !surviving) {
+		return stored ?? null;
+	}
+	const kept = surviving?.categories ?? {};
+	const denials = Object.entries(stored?.categories ?? {}).filter(
+		([category, decision]) =>
+			isNewerDenial(decision, kept[category as keyof typeof kept])
+	);
+	if (surviving === seeded && denials.length === 0) {
+		return undefined;
+	}
+	return {
+		categories: { ...kept, ...Object.fromEntries(denials) },
+		version: 3,
+	};
+};
+
+/**
+ * A seeded subject cut to its ID, as a clear leaves it, or `undefined`
+ * when it holds nothing more.
+ */
+const seededSubjectCut = function seededSubjectCut(
+	subject: ConsentSubject | null
+): ConsentSubject | null | undefined {
+	return subject && Object.keys(subject).some((key) => key !== 'subjectId')
+		? subjectAfterClear(subject)
+		: undefined;
 };
 
 /** The complete subject a storage read's records carry, `null` for none. */
@@ -448,7 +492,10 @@ export const mountPersistence = function mountPersistence(
 	 * clear epoch then voids the seeded records from before it, as it voids
 	 * stored ones, and a record it voids yields to what storage holds. A
 	 * seeded decision from the clearing millisecond is kept: the seed does
-	 * not say whether its writer had seen the clear.
+	 * not say whether its writer had seen the clear. Seeded decisions that
+	 * outlive the clear stay the seed, so a stored grant still cannot
+	 * replace them. The seeded subject keeps its ID alone, as after any
+	 * clear.
 	 *
 	 * The read also becomes what the writer starts from: the kernel's
 	 * records stay the seed's, and storage is what it was read as here.
@@ -456,6 +503,7 @@ export const mountPersistence = function mountPersistence(
 	 * grant left out here stays out until another runtime writes storage.
 	 * Returns the subject the stored records carry, `null` for none.
 	 */
+	let seedMissedClear = false;
 	const applyNewerStoredRecords =
 		function applyNewerStoredRecords(): ConsentSubject | null {
 			const at = now();
@@ -469,36 +517,38 @@ export const mountPersistence = function mountPersistence(
 				read.epoch,
 				true
 			);
-			const seeded = choice?.categories ?? {};
-			const denials = Object.entries(records.choice?.categories ?? {}).filter(
-				([category, decision]) =>
-					isNewerDenial(decision, seeded[category as keyof typeof seeded])
+			const choicePatch = seededChoicePatch(
+				snapshot.explicitChoice,
+				choice,
+				records.choice
 			);
-			if (choice !== snapshot.explicitChoice) {
-				patch.choice = records.choice === undefined ? choice : records.choice;
-			} else if (denials.length > 0) {
-				patch.choice = {
-					categories: { ...seeded, ...Object.fromEntries(denials) },
-					version: 3,
-				};
+			if (choicePatch !== undefined) {
+				patch.choice = choicePatch;
 			}
 			const notice = noticeSinceEpoch(snapshot.noticeDismissal, read.epoch);
 			if (notice !== snapshot.noticeDismissal) {
-				patch.noticeDismissal =
-					records.noticeDismissal === undefined
-						? notice
-						: records.noticeDismissal;
+				patch.noticeDismissal = records.noticeDismissal ?? null;
 			}
 			const vendors = vendorChoiceSinceEpoch(snapshot.vendorChoice, read.epoch);
 			const { vendorChoice } = records;
 			if (vendors !== snapshot.vendorChoice) {
-				patch.vendorChoice =
-					vendorChoice === undefined ? vendors : vendorChoice;
+				patch.vendorChoice = vendorChoice ?? null;
 			} else if (
 				vendorChoice &&
 				vendorChoice.confirmedAt > (vendors?.confirmedAt ?? -1)
 			) {
 				patch.vendorChoice = vendorChoice;
+			}
+			seedMissedClear = [
+				choice !== snapshot.explicitChoice,
+				notice !== snapshot.noticeDismissal,
+				vendors !== snapshot.vendorChoice,
+			].includes(true);
+			const subject = seedMissedClear
+				? seededSubjectCut(snapshot.subject)
+				: undefined;
+			if (subject !== undefined) {
+				patch.subject = subject;
 			}
 			if (Object.keys(patch).length > 0) {
 				kernel.hydrate({ ...patch, now: at });
@@ -950,7 +1000,10 @@ export const mountPersistence = function mountPersistence(
 			if (queued && queuedSubjectId) {
 				startQueuedSubject(queued, queuedSubjectId);
 			} else {
-				startSubject(before, recorded);
+				startSubject(
+					seedMissedClear ? subjectAfterClear(before) : before,
+					recorded
+				);
 			}
 			unsubscribers.push(kernel.subscribe(followSubjectId));
 		}
