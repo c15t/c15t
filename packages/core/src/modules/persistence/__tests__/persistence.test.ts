@@ -25,8 +25,13 @@ import {
 	STORAGE_KEY_V2,
 	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../../libs/storage-keys';
+import { readStoredRecordsFromCookieHeader } from '../hydrate';
 import { createPersistence } from '../index';
-import { clearStoredConsentRecords } from './record-writes';
+import {
+	clearStoredConsentRecords,
+	writeStoredNoticeDismissal,
+	writeStoredVendorChoice,
+} from './record-writes';
 
 /**
  * Run the macrotask write scheduler without firing the kernel's expiry
@@ -384,6 +389,53 @@ describe('persistence: clear', () => {
 		expect(localStorage.getItem('addtl_consent')).toBeNull();
 		expect(document.cookie).not.toContain('euconsent-v2=');
 		expect(document.cookie).not.toContain('addtl_consent=');
+		handle.dispose();
+	});
+
+	test('voids server-seeded records read before another tab cleared', async () => {
+		const pre = createConsentKernel({ now: NOW });
+		const seed = createPersistence({ kernel: pre });
+		await pre.commands.save({ marketing: true });
+		flushWrites();
+		seed.dispose();
+		writeStoredVendorChoice(
+			{ confirmedAt: NOW, denied: ['meta-pixel'], version: 1 },
+			undefined,
+			NOW
+		);
+		writeStoredNoticeDismissal(
+			{ dismissedAt: NOW, fingerprint: 'notice', version: 1 },
+			undefined,
+			NOW
+		);
+		const initialRecords = readStoredRecordsFromCookieHeader(
+			document.cookie,
+			undefined,
+			NOW
+		);
+		expect(initialRecords).toMatchObject({
+			choice: { categories: { marketing: { value: true } } },
+			noticeDismissal: { dismissedAt: NOW },
+			vendorChoice: { denied: ['meta-pixel'] },
+		});
+
+		vi.setSystemTime(NOW + 1000);
+		const other = createConsentKernel({ now: NOW + 1000 });
+		const otherHandle = createPersistence({ kernel: other });
+		otherHandle.clear();
+		flushWrites();
+		otherHandle.dispose();
+
+		const kernel = createConsentKernel({ initialRecords, now: NOW + 1000 });
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(kernel.getSnapshot()).toMatchObject({
+			explicitChoice: null,
+			noticeDismissal: null,
+			vendorChoice: null,
+		});
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		handle.dispose();
 	});
 });
