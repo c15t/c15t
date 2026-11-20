@@ -707,9 +707,27 @@
 										{#each vendorFeatures as f (f.id)}
 											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>
 												{f.name}
+												{#if f.description}
+													<span
+														class={noStyle
+															? ''
+															: styles.vendorListMetaText || ''}
+													>
+														{f.description}
+													</span>
+												{/if}
 											</li>
 										{/each}
 									</ul>
+									<!-- TCF policy check 14: Features always carry the standard explanation. -->
+									<p
+										class={noStyle ? '' : styles.vendorListMetaText || ''}
+										data-testid={`vendor-${vendor.id}-features-standard-text`}
+									>
+										{vendorData?.standardTexts?.features ||
+											iabT.preferenceCenter.features?.description ||
+											''}
+									</p>
 								</div>
 							{/if}
 						</PreferenceItem.Content>
@@ -911,9 +929,27 @@
 										{#each vendorFeatures as f (f.id)}
 											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>
 												{f.name}
+												{#if f.description}
+													<span
+														class={noStyle
+															? ''
+															: styles.vendorListMetaText || ''}
+													>
+														{f.description}
+													</span>
+												{/if}
 											</li>
 										{/each}
 									</ul>
+									<!-- TCF policy check 14: Features always carry the standard explanation. -->
+									<p
+										class={noStyle ? '' : styles.vendorListMetaText || ''}
+										data-testid={`vendor-${vendor.id}-features-standard-text`}
+									>
+										{vendorData?.standardTexts?.features ||
+											iabT.preferenceCenter.features?.description ||
+											''}
+									</p>
 								</div>
 							{/if}
 						</PreferenceItem.Content>

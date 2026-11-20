@@ -43,6 +43,58 @@ interface CustomVendor {
 	cookieMaxAgeSeconds?: number;
 }
 
+interface VendorFeaturesProps {
+	features: { description: string; id: number; name: string }[];
+	heading: string;
+	standardText: string;
+	testId: string;
+}
+
+/**
+ * A vendor's Features: each with its description, then the standard Features
+ * explanation, which TCF policy check 14 requires wherever Features are
+ * shown. Features never get a control.
+ */
+const VendorFeatures: FC<VendorFeaturesProps> = ({
+	features,
+	heading,
+	standardText,
+	testId,
+}) => {
+	if (features.length === 0) {
+		return null;
+	}
+	return (
+		<div className={styles.vendorPurposesList}>
+			<h4 className={styles.vendorPurposesTitle}>
+				{heading} ({features.length})
+			</h4>
+			<ul className={styles.vendorPurposesItems}>
+				{features.map((feature) => (
+					<li
+						key={feature.id}
+						className={styles.vendorPurposeItem}
+					>
+						{feature.name}
+						{feature.description ? (
+							<span className={styles.vendorListMetaText}>
+								{' '}
+								{feature.description}
+							</span>
+						) : null}
+					</li>
+				))}
+			</ul>
+			<p
+				className={styles.vendorListMetaText}
+				data-testid={testId}
+			>
+				{standardText}
+			</p>
+		</div>
+	);
+};
+
 interface VendorListProps {
 	vendorData: GlobalVendorList | null;
 	purposes: ProcessedPurpose[];
@@ -590,24 +642,15 @@ export const VendorList: FC<VendorListProps> = ({
 					</div>
 				)}
 
-				{vendorFeatures.length > 0 && (
-					<div className={styles.vendorPurposesList}>
-						<h4 className={styles.vendorPurposesTitle}>
-							{iab.preferenceCenter.vendorList.features} (
-							{vendorFeatures.length})
-						</h4>
-						<ul className={styles.vendorPurposesItems}>
-							{vendorFeatures.map((f) => (
-								<li
-									key={f.id}
-									className={styles.vendorPurposeItem}
-								>
-									{f.name}
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
+				<VendorFeatures
+					features={vendorFeatures}
+					heading={iab.preferenceCenter.vendorList.features}
+					standardText={
+						vendorData?.standardTexts?.features ||
+						iab.preferenceCenter.features.description
+					}
+					testId={`vendor-${vendorKey}-features-standard-text`}
+				/>
 			</PreferenceItem.Content>
 		);
 		return (

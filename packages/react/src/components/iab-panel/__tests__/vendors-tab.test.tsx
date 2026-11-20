@@ -189,6 +189,65 @@ describe('IAB preference item interactions', () => {
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
+	// TCF policy check 14: Features always carry the standard explanation and no control.
+	test('lists vendor features with the standard Features text and no switch', async () => {
+		render(
+			<ConsentProvider options={defaultIABOptions}>
+				<IABConsentDialog open />
+			</ConsentProvider>
+		);
+
+		const vendorsTab = await vi.waitFor(
+			() => {
+				const el = Array.from(
+					document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+				).find((button) =>
+					button.textContent?.toLowerCase().includes('vendor')
+				);
+				expect(el).toBeDefined();
+				return getDefined(el);
+			},
+			{ timeout: 5000 }
+		);
+		await userEvent.click(vendorsTab);
+		const vendor = await vi.waitFor(
+			() => {
+				const el = Array.from(
+					document.querySelectorAll<HTMLElement>('[id^="vendor-"]')
+				).find((element) =>
+					element.textContent?.includes('Exponential Interactive')
+				);
+				expect(el).toBeDefined();
+				return getDefined(el);
+			},
+			{ timeout: 5000 }
+		);
+		await userEvent.click(
+			getDefined(
+				vendor.querySelector<HTMLElement>(
+					'[data-slot="preference-item-trigger"]'
+				)
+			)
+		);
+
+		const standard = await vi.waitFor(
+			() => {
+				const el = vendor.querySelector<HTMLElement>(
+					'[data-testid$="-features-standard-text"]'
+				);
+				expect(el).toBeInstanceOf(HTMLElement);
+				return getDefined(el);
+			},
+			{ timeout: 5000 }
+		);
+		// The mock GVL has no standard texts, so the translated standard text shows.
+		expect(standard.textContent).toBe(
+			'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.'
+		);
+		const features = getDefined(standard.parentElement);
+		expect(features.textContent).toContain('Match data');
+		expect(features.querySelector('[role="switch"], input, button')).toBeNull();
+	});
 	test('should keep vendor details collapsed until expanded and allow consent toggle separately', async () => {
 		render(
 			<ConsentProvider options={defaultIABOptions}>

@@ -48,7 +48,8 @@ const vendor: GlobalVendorList['vendors'][number] & {
 const clients: ConsentClient[] = [];
 const render = async (
 	value: typeof vendor | NonIABVendor = vendor,
-	language = 'en'
+	language = 'en',
+	gvlOverrides: Partial<GlobalVendorList> = {}
 ): Promise<HTMLElement> => {
 	const client = init({
 		iab: {
@@ -62,6 +63,7 @@ const render = async (
 						name: 'Device identifiers',
 					},
 				},
+				...gvlOverrides,
 			},
 		},
 		mode: 'offline',
@@ -98,6 +100,32 @@ afterEach(() => {
 });
 
 describe('IAB vendor disclosures', () => {
+	// TCF policy check 14: Features always come with the standard explanation.
+	it('shows each feature with its description and the standard Features text', async () => {
+		const element = await render(vendor, 'en', {
+			standardTexts: { features: 'Standard Features text from the GVL.' },
+		});
+		expect(group(element, 'Features')?.textContent).toContain(
+			completeGVL.features[1]?.description
+		);
+		expect(
+			element.querySelector('[data-testid="iab-vendor-features-standard-text"]')
+				?.textContent
+		).toBe('Standard Features text from the GVL.');
+	});
+
+	it('falls back to the translated Features text when the GVL has none', async () => {
+		const element = await render(vendor, 'en', { standardTexts: undefined });
+		const text = element.querySelector(
+			'[data-testid="iab-vendor-features-standard-text"]'
+		)?.textContent;
+		expect(text).toBe(
+			resolveCopy((clients[0] as ConsentClient).getSnapshot()).t.iab
+				.preferenceCenter.features?.description
+		);
+		expect(text).toBeTruthy();
+	});
+
 	it('renders declared data categories, storage, and localized retention with specific overrides', async () => {
 		const element = await render();
 		expect(group(element, 'Data Categories')?.textContent).toContain(
