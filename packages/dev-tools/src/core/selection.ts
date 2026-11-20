@@ -1,7 +1,11 @@
 import { policyDefault } from '@c15t/core';
 import type { ConsentSnapshot, ConsentState } from '@c15t/core';
 
-/** Read a displayed selection without copying masked effective permissions. */
+/**
+ * Read a displayed selection without copying masked effective permissions:
+ * a staged edit, else the recorded choice, else off when a restriction such
+ * as GPC denies the category, else the presentation or policy default.
+ */
 export const readSelection = (
 	snapshot: ConsentSnapshot,
 	draft: Partial<ConsentState>,
@@ -11,10 +15,13 @@ export const readSelection = (
 	if (category === 'necessary') {
 		return true;
 	}
-	return (
-		draft[category] ??
-		snapshot.explicitChoice?.categories[category]?.value ??
-		defaults?.[category] ??
-		policyDefault(snapshot.policyRule, category)
-	);
+	const chosen =
+		draft[category] ?? snapshot.explicitChoice?.categories[category]?.value;
+	if (chosen !== undefined) {
+		return chosen;
+	}
+	if ((snapshot.restrictions[category]?.length ?? 0) > 0) {
+		return false;
+	}
+	return defaults?.[category] ?? policyDefault(snapshot.policyRule, category);
 };
