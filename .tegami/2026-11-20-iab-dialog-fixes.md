@@ -13,6 +13,6 @@ packages:
 - The script-tag UI shows a registered vendor's data categories.
 - The script-tag IAB banner shows the partner count once.
 - In Vue, the partners link opens the dialog on the vendor list.
-- A failed IAB save is logged once. `saveIABConsentSurface` resolves
+- A failed IAB save is reported once. `saveIABConsentSurface` resolves
   `{ ok: false }` instead of rejecting.
 - Vue records no IAB choice when no CMP is mounted.
