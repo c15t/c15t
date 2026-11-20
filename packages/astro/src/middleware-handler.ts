@@ -6,7 +6,6 @@
  * tests and advanced setups bind it to their own.
  */
 
-import { resolveRequestSubject } from '@c15t/core/server';
 import type { APIContext, MiddlewareHandler } from 'astro';
 
 import { waitUntilFromLocals } from './api/handlers';
@@ -78,15 +77,9 @@ const resolveSkipPaths = function resolveSkipPaths(
  * policy, and the browser applies the visitor's own cookie on boot. Use
  * `<ConsentBannerDeferred />` when a cached page still needs live geo.
  *
- * A visitor with no subject ID gets one in a `c15t-sid` cookie (named after
- * `storageConfig.storageKey`) on this response, and the render reads it, so
- * the page and the browser start with the same ID. The cookie holds only the
- * ID, so the banner still shows. Prerendered routes and prefetches get none,
- * and nothing does with `middleware.subjectCookie: false`.
- *
- * So is the integration's own route under `routePrefix`, and anything
- * listed in `middleware.skip` — those run `next()` with `Astro.locals.c15t`
- * left unset.
+ * The integration's own route under `routePrefix` is skipped, and so is
+ * anything listed in `middleware.skip` — those run `next()` with
+ * `Astro.locals.c15t` left unset.
  *
  * @param options - The resolved integration options.
  * @param middlewareOptions - Test seams.
@@ -107,21 +100,7 @@ export const createConsentMiddleware = function createConsentMiddleware(
 		const prerendered = context.isPrerendered === true;
 		// Astro warns on any read of a prerendered request's headers, and at
 		// build time they hold nothing about a visitor anyway.
-		let headers = prerendered ? new Headers() : context.request.headers;
-		const subject =
-			prerendered || options.middleware?.subjectCookie === false
-				? null
-				: resolveRequestSubject({
-						request: { headers, url: context.request.url },
-						storage: options.storageConfig,
-						trustForwardedHeaders: options.middleware?.trustForwardedHeaders,
-					});
-		if (subject?.setCookie) {
-			const { header: _header, name, value, ...attributes } = subject.setCookie;
-			context.cookies.set(name, value, attributes);
-			headers = new Headers(headers);
-			headers.set('cookie', subject.cookie);
-		}
+		const headers = prerendered ? new Headers() : context.request.headers;
 		const experimentArm =
 			options.experiment && !prerendered
 				? await middlewareOptions.experimentArm?.(context)

@@ -81,6 +81,12 @@ export interface RecordsBoundary {
 	hydrate: (records: HydrationRecords) => HydrationResult;
 	identify: (user: KernelUser) => Promise<void>;
 	setSubjectId: (id: string | null) => void;
+	/** See {@link InternalKernel.markProvisionalSubject}. */
+	markProvisionalSubject: (id: string | null) => void;
+	/** See {@link InternalKernel.getProvisionalSubject}. */
+	getProvisionalSubject: () => string | null;
+	/** A record now carries `id`, so it is no longer provisional. */
+	noteRecordedSubject: (id: string | undefined) => void;
 }
 
 /**
@@ -95,6 +101,9 @@ export const createRecordsBoundary = function createRecordsBoundary({
 	// Bumped by every `identify()` so a subject read started by an earlier
 	// identify cannot apply after a later one.
 	let identifyGeneration = 0;
+	// An ID c15t generated that no record carries yet. It lives in memory
+	// only and is gone on the next page load.
+	let provisionalSubjectId: string | null = null;
 
 	const applyRecords = function applyRecords(
 		records: HydrationRecords,
@@ -169,6 +178,8 @@ export const createRecordsBoundary = function createRecordsBoundary({
 	};
 
 	return {
+		getProvisionalSubject: () => provisionalSubjectId,
+
 		hydrate: (records) => applyRecords(records, false),
 
 		async identify(user) {
@@ -180,6 +191,11 @@ export const createRecordsBoundary = function createRecordsBoundary({
 			const generation = runtime.getGeneration();
 			const { subject, iab } = getSnapshot();
 			const subjectId = subject?.subjectId ?? null;
+			// A provisional ID is gone on the next page load, so linking it
+			// would leave the backend one subject per page view. The identity
+			// travels with the first save instead, as it does when there is no
+			// ID at all. An ID the app, a server or a record supplied links now.
+			const linkedId = subjectId === provisionalSubjectId ? null : subjectId;
 			const patch: SnapshotPatch = { user: { ...user } };
 			if (iab) {
 				patch.iab = { ...iab, authority: null, tcString: null };
@@ -187,7 +203,7 @@ export const createRecordsBoundary = function createRecordsBoundary({
 			runtime.announce(patch, 'user:identified', true);
 			if (transport?.identify) {
 				try {
-					await transport.identify({ ...user }, subjectId);
+					await transport.identify({ ...user }, linkedId);
 				} catch (error) {
 					emit({ command: 'identify', error, type: 'command:error' });
 					throw error;
@@ -200,7 +216,17 @@ export const createRecordsBoundary = function createRecordsBoundary({
 			) {
 				return;
 			}
-			await loadSubjectRecord(subjectId, attempt);
+			await loadSubjectRecord(linkedId, attempt);
+		},
+
+		markProvisionalSubject(id) {
+			provisionalSubjectId = id;
+		},
+
+		noteRecordedSubject(id) {
+			if (id !== undefined && id === provisionalSubjectId) {
+				provisionalSubjectId = null;
+			}
 		},
 
 		setSubjectId(id) {

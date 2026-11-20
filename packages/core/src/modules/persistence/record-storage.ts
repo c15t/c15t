@@ -37,11 +37,7 @@ import type {
 	ConsentSubject,
 	ExplicitChoice,
 } from '../../consent-record/types';
-import {
-	isNonEmptyString,
-	isPlainRecord,
-	ownValue,
-} from '../../consent-record/validation';
+import { isPlainRecord, ownValue } from '../../consent-record/validation';
 import {
 	expandFlatKeys,
 	getRawCookieValue,
@@ -917,94 +913,6 @@ export const readStoredClearEpochFromCookieHeader =
 		return newerEpoch(
 			readRawEpoch(readCookieValueFromHeader(cookieHeader, keys.epoch), now),
 			0
-		);
-	};
-
-/**
- * The subject ID a stored copy holds, `null` when it holds none. It accepts
- * every ID the kernel does, any non-empty string, not only generated `sub_`
- * IDs: an ID the app or a backend assigned may be the only copy, and
- * rejecting it here would replace the subject on the next load.
- */
-const validSubjectId = function validSubjectId(
-	text: string | null | undefined
-): string | null {
-	// The ID is opaque: it is returned as written, never normalized, so a
-	// reload keeps the exact subject a save or identity link targeted.
-	return isNonEmptyString(text) ? text : null;
-};
-
-/** The ID a `<key>-sid` cookie holds: URI-encoded, as it is written. */
-const cookieSubjectId = function cookieSubjectId(
-	raw: string | null | undefined
-): string | null {
-	return raw ? validSubjectId(decodeComponent(raw)) : null;
-};
-
-/** The subject ID the `<key>-sid` cookie holds, `null` when it holds none. */
-export const readStoredCookieSubjectId = function readStoredCookieSubjectId(
-	config: StorageConfig | undefined
-): string | null {
-	return cookieSubjectId(getRawCookieValue(resolveStorageKeys(config).subject));
-};
-
-/**
- * Reads the stored subject ID: the cookie copy, else the localStorage copy.
- * The cookie wins because a server may have set it for this request. An
- * invalid copy counts as absent. `null` when neither holds a valid ID.
- */
-export const readStoredSubjectId = function readStoredSubjectId(
-	config: StorageConfig | undefined,
-	onUnavailable?: () => void
-): string | null {
-	const keys = resolveStorageKeys(config);
-	return (
-		cookieSubjectId(getRawCookieValue(keys.subject, onUnavailable)) ??
-		validSubjectId(readLocalStorageText(keys.subject, onUnavailable))
-	);
-};
-
-/**
- * The subject ID when every readable copy of `<key>-sid` holds it, `null`
- * when a copy is missing or the copies differ, so the caller writes both
- * again. A store the browser blocks does not count as missing.
- */
-export const readSyncedSubjectId = function readSyncedSubjectId(
-	config: StorageConfig | undefined
-): string | null {
-	const keys = resolveStorageKeys(config);
-	let cookieBlocked = false;
-	let localBlocked = false;
-	const cookie = cookieSubjectId(
-		getRawCookieValue(keys.subject, () => {
-			cookieBlocked = true;
-		})
-	);
-	const local = validSubjectId(
-		readLocalStorageText(keys.subject, () => {
-			localBlocked = true;
-		})
-	);
-	if (cookieBlocked) {
-		return local;
-	}
-	if (localBlocked) {
-		return cookie;
-	}
-	return cookie === local ? cookie : null;
-};
-
-/** Server read of the subject ID cookie from a request `Cookie` header. */
-export const readStoredSubjectIdFromCookieHeader =
-	function readStoredSubjectIdFromCookieHeader(
-		cookieHeader: string | undefined,
-		config: StorageConfig | undefined
-	): string | null {
-		return cookieSubjectId(
-			readCookieValueFromHeader(
-				cookieHeader,
-				resolveStorageKeys(config).subject
-			)
 		);
 	};
 

@@ -10,13 +10,17 @@ import {
 } from '../../kernel/clear-records';
 import type { InternalKernel } from '../../kernel/internals';
 import { generateSubjectId } from '../../libs/generate-subject-id';
+import {
+	readLegacySubjectId,
+	removeLegacySubjectId,
+} from '../../libs/legacy-subject-id';
 import type {
 	ConsentSnapshot,
 	ConsentSubject,
 	ExplicitChoice,
 	HydrationRecords,
 } from '../../types';
-import { clearStoredRecords, writeStoredSubjectId } from './clear';
+import { clearStoredRecords } from './clear';
 import {
 	choiceSinceEpoch,
 	noticeSinceEpoch,
@@ -24,17 +28,11 @@ import {
 } from './epoch';
 import {
 	hydrateFromStorage,
-	readRecordedSubjectIdFromCookieHeader,
 	readStoredRecordsForReconcile,
 	readStoredRecordsFromCookieHeader,
 } from './hydrate';
 import type { StoredRecords } from './hydrate';
-import {
-	isNewerDenial,
-	readStoredSubjectId,
-	readSyncedSubjectId,
-	resolveStorageKeys,
-} from './record-storage';
+import { isNewerDenial, resolveStorageKeys } from './record-storage';
 import { persistenceTools } from './tools';
 import type { PersistenceHandle, PersistenceOptions } from './types';
 import { pageWriterLoader, preloadWriter } from './writer-loader';
@@ -309,28 +307,17 @@ export const mountPersistence = function mountPersistence(
 	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 	// The subject ID the kernel holds, as this handle last saw it.
 	let subjectId: string | undefined;
-	// The ID both copies of `<key>-sid` were last read as or written with;
-	// `null` when a copy was missing, so the next store writes both.
-	let storedSubjectId: string | null = null;
-	// An ID for `<key>-sid` that waits until no stored record carries
-	// another ID: until this runtime's writes store it with the records, or
-	// those of another handle whose queued records it started from. A page
-	// that unloads first keeps both on the old ID, and a record another
-	// runtime rewrote in the meantime keeps its ID in `<key>-sid` too.
-	let pendingSubjectId: string | undefined;
-	// An ID this runtime generated or read from `<key>-sid` that no save or
-	// `identify()` has used yet. Another tab's stored ID replaces it, so two
-	// tabs opened together settle on one ID.
+	// An ID this runtime generated that no save or `identify()` has used
+	// yet. It lives in memory only: nothing stores a subject ID before a
+	// record carries it. When the records another tab stores replace it,
+	// `subject:resolved` names it.
 	let unusedSubjectId: string | undefined;
+	// The ID this handle generated and marked provisional, until a record
+	// carries it. `identify()` does not link it, so it stays unused.
+	let provisionalSubjectId: string | undefined;
 	// Set while this handle announces a subject change it only followed. The
 	// change came from records or a response, so there is nothing to write.
 	let followingSubject = false;
-	// Set while this handle takes the unused ID another tab stored.
-	let adopting = false;
-	// The stored ID this handle last refused, with its own ID at the time.
-	// It republishes its ID once per refusal, so two tabs that both used
-	// their IDs stop overwriting each other.
-	let refused: [own: string, stored: string] | undefined;
 
 	const land = function land(module: WriterModule): void {
 		if (writer) {
@@ -358,16 +345,6 @@ export const mountPersistence = function mountPersistence(
 		}
 		requested.clear();
 		writer.flush();
-		// A handed-over handle's own pending ID is an earlier one: the
-		// records it just stored carry the holder's.
-		const publish = handed
-			? subjectHolder(kernel).getSnapshot().subject?.subjectId
-			: pendingSubjectId;
-		pendingSubjectId = undefined;
-		if (publish) {
-			// oxlint-disable-next-line no-use-before-define -- Runs only after assembly.
-			storeSubjectId(publish);
-		}
 		if (queuedWrites.get(consentKey) === kernel) {
 			queuedWrites.delete(consentKey);
 		}
@@ -427,10 +404,6 @@ export const mountPersistence = function mountPersistence(
 			for (const kind of kinds) {
 				landed.schedule(kind);
 			}
-			if (pendingSubjectId) {
-				// oxlint-disable-next-line no-use-before-define -- Runs only after assembly.
-				storeSubjectId(pendingSubjectId);
-			}
 			return;
 		}
 		queuedWrites.set(consentKey, kernel);
@@ -476,7 +449,7 @@ export const mountPersistence = function mountPersistence(
 		// exists. Scheduling without one would run the writer's clear branch
 		// and delete a stored denial this kernel never hydrated. The notice
 		// record carries it for a visitor who only acknowledged a notice.
-		// Without any of them, `<key>-sid` alone holds the subject.
+		// Without any of them, the subject lives in memory only.
 		const kinds: WriteKind[] = [];
 		if (snapshot.explicitChoice) {
 			kinds.push('choice');
@@ -503,7 +476,11 @@ export const mountPersistence = function mountPersistence(
 			saving = false;
 		}),
 		kernel.events.on('user:identified', () => {
-			unusedSubjectId = undefined;
+			// `identify()` links an ID only once a record carries it. A
+			// provisional one stays unused and still follows another tab.
+			if (unusedSubjectId !== provisionalSubjectId) {
+				unusedSubjectId = undefined;
+			}
 		}),
 		kernel.events.on('choice:recorded', ({ actionAt, snapshot }) => {
 			noteGeneratedSubject(snapshot, actionAt);
@@ -525,6 +502,22 @@ export const mountPersistence = function mountPersistence(
 			}
 			state.noticeRecorded = true;
 			request('notice');
+			// `dismissNotice()` sends nothing, so the ID stops being
+			// provisional only once the stored acknowledgement carries it.
+			const id = snapshot.subject?.subjectId;
+			void (async () => {
+				await landing;
+				writer?.flush();
+				if (
+					id !== undefined &&
+					kernel.getSnapshot().subject?.subjectId === id &&
+					readStoredRecordsForReconcile(storageConfig, now())
+						.recordedSubjectId === id
+				) {
+					kernel.markProvisionalSubject(null);
+					provisionalSubjectId = undefined;
+				}
+			})();
 		}),
 		kernel.events.on('vendors:recorded', ({ actionAt, snapshot }) => {
 			noteGeneratedSubject(snapshot, actionAt);
@@ -652,20 +645,28 @@ export const mountPersistence = function mountPersistence(
 	};
 
 	/**
-	 * `records` without the ID only `<key>-sid` holds, for a kernel whose
-	 * subject this handle leaves alone. An ID a record carries stays.
+	 * `records` with the ID the kernel holds when no stored record carries
+	 * one, such as after another runtime removed the records. The ID lives
+	 * in memory until a record carries it, so a read that finds none keeps
+	 * it instead of making a new one. A linked identity goes with the
+	 * records that carried it.
 	 */
-	const withoutStoredSubjectId = function withoutStoredSubjectId(
+	const withKernelSubjectId = function withKernelSubjectId(
 		records: HydrationRecords,
 		read: StoredRecords
 	): HydrationRecords {
-		if (handlesSubject() || read.recordedSubjectId || !records.subject) {
+		const held = kernel.getSnapshot().subject?.subjectId;
+		if (
+			!handlesSubject() ||
+			read.recordedSubjectId ||
+			records.subject === undefined ||
+			!held
+		) {
 			return records;
 		}
-		const { subjectId: _subjectId, ...subject } = records.subject;
 		return {
 			...records,
-			subject: Object.keys(subject).length > 0 ? subject : null,
+			subject: { ...records.subject, subjectId: held },
 		};
 	};
 
@@ -689,7 +690,7 @@ export const mountPersistence = function mountPersistence(
 			kernel,
 			storageConfig,
 			now(),
-			(records, read) => withQueued(withoutStoredSubjectId(records, read))
+			(records, read) => withQueued(withKernelSubjectId(records, read))
 		);
 		if (!stored) {
 			return null;
@@ -706,43 +707,8 @@ export const mountPersistence = function mountPersistence(
 		return hydrateStored()?.found ?? false;
 	};
 
-	/** Whether a stored record carries a subject ID other than `id`. */
-	const recordsCarryOther = function recordsCarryOther(id: string): boolean {
-		const recorded = readStoredRecordsForReconcile(
-			storageConfig,
-			now()
-		).recordedSubjectId;
-		return recorded !== null && recorded !== id;
-	};
-
 	/**
-	 * Stores `id` in `<key>-sid` once no stored record carries another ID,
-	 * else keeps it pending: records win on the next load, so `<key>-sid`
-	 * ahead of them would name an ID a reload does not restore.
-	 */
-	const storeSubjectId = function storeSubjectId(id: string): void {
-		// This runtime's own scheduled writes go first: a rewrite it just
-		// requested can bring the records to the ID.
-		writer?.flush();
-		if (
-			(!writer &&
-				(requested.has('choice') ||
-					requested.has('notice') ||
-					requested.has('vendors'))) ||
-			recordsCarryOther(id)
-		) {
-			pendingSubjectId = id;
-			return;
-		}
-		pendingSubjectId = undefined;
-		if (id !== storedSubjectId) {
-			writeStoredSubjectId(id, storageConfig);
-			storedSubjectId = id;
-		}
-	};
-
-	/**
-	 * Follows the kernel's subject ID into `<key>-sid`. An ID removed with
+	 * Follows the kernel's subject ID. An ID removed with
 	 * `set.subjectId(null)` is replaced with a new one: a browser runtime
 	 * always has an ID. When an unused ID is replaced, `subject:resolved`
 	 * names it, so anything that referred to it can follow.
@@ -768,6 +734,11 @@ export const mountPersistence = function mountPersistence(
 					: next;
 			state.freshSubjectId = next;
 			state.freshSubjectAt = now();
+			// With records, the new ID is rewritten into them below.
+			if (unusedSubjectId === next) {
+				kernel.markProvisionalSubject(next);
+				provisionalSubjectId = next;
+			}
 			kernel.hydrate({ subject: { ...snapshot.subject, subjectId: next } });
 			return;
 		}
@@ -782,14 +753,8 @@ export const mountPersistence = function mountPersistence(
 			// records follow it, or the next load restores the old ID.
 			rekeyRecords(snapshot);
 		}
-		storeSubjectId(id);
 		if (previous !== undefined && previous === unusedSubjectId) {
-			// Another tab's ID stays unused. One the app or the server named
-			// is kept.
-			unusedSubjectId = adopting ? id : undefined;
-			if (adopting) {
-				state.freshSubjectId = id;
-			}
+			unusedSubjectId = undefined;
 			followingSubject = true;
 			try {
 				kernel.events.emit({
@@ -846,27 +811,36 @@ export const mountPersistence = function mountPersistence(
 	 * The subject to start with and whether its ID is a local one, which
 	 * yields to a subject another runtime stored. Records storage held keep
 	 * the ID they carry. Otherwise a subject the server named is kept, then
-	 * the ID in `<key>-sid`, then a new one. A server seed read from the
-	 * cookies alone yields to the records as storage holds them, as on a
-	 * load that hydrates.
+	 * a new one. A server seed read from the cookies alone yields to the
+	 * records as storage holds them, as on a load that hydrates. A seed
+	 * from elsewhere, such as a backend or the app, keeps its ID.
 	 */
 	const startingSubject = function startingSubject(
 		before: ConsentSubject | null,
 		recorded: ConsentSubject | null,
-		stored: string | null
-	): [subject: ConsentSubject, local: boolean] {
-		const { subject } = kernel.getSnapshot();
+		legacy: string | null
+	): [subject: ConsentSubject, local: boolean, origin?: 'new' | 'legacy'] {
+		const snapshot = kernel.getSnapshot();
+		const { subject } = snapshot;
 		if (!recorded) {
 			if (before?.subjectId) {
 				return [{ ...subject, ...before }, false];
 			}
-			return [
-				{
-					...subject,
-					subjectId: subject?.subjectId ?? stored ?? generateSubjectId(),
-				},
-				true,
-			];
+			if (subject?.subjectId) {
+				return [subject, true];
+			}
+			// Records an older version stored without an ID took theirs from
+			// the 3.2 `<key>-sid` copy. Keeping it with them now spares the
+			// visitor a new ID on every load until they save again.
+			if (
+				legacy &&
+				(snapshot.explicitChoice ||
+					snapshot.vendorChoice ||
+					snapshot.noticeDismissal)
+			) {
+				return [{ ...subject, subjectId: legacy }, false, 'legacy'];
+			}
+			return [{ ...subject, subjectId: generateSubjectId() }, true, 'new'];
 		}
 		if (
 			subject &&
@@ -877,11 +851,7 @@ export const mountPersistence = function mountPersistence(
 			// do not hold, so it did not come from them: it stands, whole.
 			return [subject, false];
 		}
-		if (
-			!subject?.subjectId ||
-			recorded.subjectId === stored ||
-			fromCookiesAlone(subject.subjectId)
-		) {
+		if (!subject?.subjectId || fromCookiesAlone(subject.subjectId)) {
 			// Hydration is deferred: take the subject it will bring, whole. A
 			// seed from a consent cookie older than storage, such as one whose
 			// rewrite the browser dropped, yields to the subject storage
@@ -894,18 +864,17 @@ export const mountPersistence = function mountPersistence(
 
 	/**
 	 * Gives the kernel a subject ID at startup, before anything binds to
-	 * it (see {@link startingSubject}). An ID no stored record carries is
-	 * stored in `<key>-sid` at once so a reload keeps it. The ID alone
-	 * records no choice.
+	 * it (see {@link startingSubject}). An ID no stored record carries stays
+	 * in memory until a save records it, so nothing is stored before the
+	 * visitor acts. The ID alone records no choice.
 	 */
 	const startSubject = function startSubject(
 		before: ConsentSubject | null,
-		recorded: ConsentSubject | null
-	): void {
-		const stored = readStoredSubjectId(storageConfig);
-		storedSubjectId = readSyncedSubjectId(storageConfig);
+		recorded: ConsentSubject | null,
+		legacy: string | null
+	): boolean {
 		const snapshot = kernel.getSnapshot();
-		const [subject, local] = startingSubject(before, recorded, stored);
+		const [subject, local, origin] = startingSubject(before, recorded, legacy);
 		const id = subject.subjectId as string;
 		subjectId = id;
 		if (local) {
@@ -917,32 +886,31 @@ export const mountPersistence = function mountPersistence(
 				unusedSubjectId = id;
 			}
 		}
+		if (origin === 'new') {
+			kernel.markProvisionalSubject(id);
+			provisionalSubjectId = id;
+		}
 		if (!sameSubject(subject, snapshot.subject)) {
 			kernel.hydrate({ subject });
 		}
-		// Records that carry the ID already keep it: hydrating them writes
-		// nothing, even when a `<key>-sid` copy holds another ID. Cookies
-		// alone cannot tell a copy a dropped write left behind from one
-		// another runtime rewrote since, so startup does not overwrite it.
-		// A clear stores it before it removes them.
-		if (id !== recorded?.subjectId) {
-			storeSubjectId(id);
+		if (origin === 'legacy') {
+			rekeyRecords(kernel.getSnapshot());
 		}
+		return origin === 'legacy';
 	};
 
 	/**
 	 * Starts from the subject another handle's queued records carry. This
 	 * handle starts from those records (`withQueued`), so it takes their
 	 * subject too, and the change to it: it rewrites the records under the
-	 * subject it holds when its own write code lands, and `<key>-sid`
-	 * follows them. The owner's handle then lands only its decisions.
-	 * Storage keeps the ID it held until then.
+	 * subject it holds when its own write code lands. The owner's handle
+	 * then lands only its decisions. Storage keeps the ID it held until
+	 * then.
 	 */
 	const startQueuedSubject = function startQueuedSubject(
 		owner: InternalKernel,
 		id: string
 	): void {
-		storedSubjectId = readSyncedSubjectId(storageConfig);
 		subjectId = id;
 		if (owner === kernel) {
 			return;
@@ -956,60 +924,29 @@ export const mountPersistence = function mountPersistence(
 		// The subject change is this handle's now: a later one made here
 		// supersedes it before the owner's write could land it.
 		handedOver.set(owner, kernel);
+		// An ID the owner generated that no stored record carries yet stays
+		// provisional here until one does.
+		if (owner.getProvisionalSubject() === id) {
+			kernel.markProvisionalSubject(id);
+			provisionalSubjectId = id;
+			void (async () => {
+				await landing;
+				writer?.flush();
+				if (
+					kernel.getSnapshot().subject?.subjectId === id &&
+					readStoredRecordsForReconcile(storageConfig, now())
+						.recordedSubjectId === id
+				) {
+					kernel.markProvisionalSubject(null);
+					provisionalSubjectId = undefined;
+				}
+			})();
+		}
 		if (
 			readStoredRecordsForReconcile(storageConfig, now()).recordedSubjectId !==
 			id
 		) {
 			rekeyRecords(kernel.getSnapshot());
-		}
-		storeSubjectId(id);
-	};
-
-	/**
-	 * Takes the ID another tab stored when this runtime's is unused, and
-	 * stores this runtime's again when storage lost it. A runtime whose ID
-	 * is used stores it over another tab's, so a tab still holding an
-	 * unused ID takes it instead.
-	 */
-	const adoptStoredSubjectId = function adoptStoredSubjectId(): void {
-		if (subjectId === undefined || disposed) {
-			return;
-		}
-		const stored = readStoredSubjectId(storageConfig);
-		storedSubjectId = readSyncedSubjectId(storageConfig);
-		if (!stored || stored === subjectId) {
-			// Restores a copy the browser dropped.
-			storeSubjectId(subjectId);
-			return;
-		}
-		const snapshot = kernel.getSnapshot();
-		if (
-			subjectId === unusedSubjectId &&
-			!snapshot.explicitChoice &&
-			!snapshot.vendorChoice
-		) {
-			adopting = true;
-			try {
-				kernel.hydrate({ subject: { ...snapshot.subject, subjectId: stored } });
-			} finally {
-				adopting = false;
-			}
-			return;
-		}
-		if (refused?.[0] !== subjectId || refused[1] !== stored) {
-			refused = [subjectId, stored];
-			// The record cookies name the stored ID too: the runtime that wrote
-			// them, such as a sibling subdomain sharing the cookies, agrees with
-			// it. This runtime's own copy may be the stale one, so it keeps its
-			// ID without writing it over theirs.
-			const header = readCookieHeader();
-			if (
-				header === null ||
-				readRecordedSubjectIdFromCookieHeader(header, storageConfig, now()) !==
-					stored
-			) {
-				storeSubjectId(subjectId);
-			}
 		}
 	};
 
@@ -1023,7 +960,6 @@ export const mountPersistence = function mountPersistence(
 		];
 		if (options.sync !== false) {
 			const watchStorage = function watchStorage(): void {
-				adoptStoredSubjectId();
 				scheduleReconcile();
 			};
 			const watched = new Set<string | null>([
@@ -1040,10 +976,7 @@ export const mountPersistence = function mountPersistence(
 					window,
 					'storage',
 					(event) => {
-						const { key } = event as StorageEvent;
-						if (key === keys.subject) {
-							adoptStoredSubjectId();
-						} else if (watched.has(key)) {
+						if (watched.has((event as StorageEvent).key)) {
 							watchStorage();
 						}
 					},
@@ -1073,6 +1006,16 @@ export const mountPersistence = function mountPersistence(
 	};
 
 	if (browser) {
+		// c15t 3.2 stored the subject ID before any choice. It is read once,
+		// for records an older version stored without an ID, then removed.
+		// Only a handle that owns the subject adopts it, and a throwaway one
+		// that only reads (`keepSubject`, such as the script-loader
+		// preload's) leaves the copy alone.
+		const legacySubjectId = handlesSubject()
+			? readLegacySubjectId(storageConfig)
+			: null;
+		// Whether the copy waits for the records to carry an ID before it goes.
+		let keepLegacyUntilRecorded = false;
 		// A kernel mounted again holds its own subject, whatever an earlier
 		// handle handed it to.
 		handedOver.delete(kernel);
@@ -1085,13 +1028,34 @@ export const mountPersistence = function mountPersistence(
 			const queuedSubjectId = queued?.getSnapshot().subject?.subjectId;
 			if (queued && queuedSubjectId) {
 				startQueuedSubject(queued, queuedSubjectId);
+				// An earlier handle may have adopted the copy, and its rewrite
+				// is still queued.
+				keepLegacyUntilRecorded = legacySubjectId !== null;
 			} else {
-				startSubject(
+				keepLegacyUntilRecorded = startSubject(
 					seedMissedClear ? subjectAfterClear(before) : before,
-					recorded
+					recorded,
+					legacySubjectId
 				);
 			}
 			unsubscribers.push(kernel.subscribe(followSubjectId));
+		}
+		if (keepLegacyUntilRecorded) {
+			// The copy is the ID's only durable home until the records carry
+			// it, so it goes once the rewrite has landed. A page that unloads
+			// first, or write code that never loads, keeps it for next time.
+			void (async () => {
+				await landing;
+				writer?.flush();
+				if (
+					readStoredRecordsForReconcile(storageConfig, now())
+						.recordedSubjectId !== null
+				) {
+					removeLegacySubjectId(storageConfig);
+				}
+			})();
+		} else if (!options.keepSubject) {
+			removeLegacySubjectId(storageConfig);
 		}
 	}
 	// Without a document there is nothing to read, and every write is a
@@ -1134,10 +1098,6 @@ export const mountPersistence = function mountPersistence(
 				hydrateRequested = false;
 				clearStoredRecords(storageConfig, at, baseline?.[0].epoch ?? 0);
 				baseline = [readStoredRecordsForReconcile(storageConfig, at), false];
-			}
-			// After the queued writes go: no record waits to carry the ID.
-			if (subjectId) {
-				storeSubjectId(subjectId);
 			}
 			clearKernelRecords(kernel, at);
 		},

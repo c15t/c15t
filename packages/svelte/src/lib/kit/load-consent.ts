@@ -15,11 +15,7 @@ import {
 	snapshot as builtSnapshot,
 } from '@c15t/core/generated';
 import type { ConsentMode } from '@c15t/core/modes';
-import {
-	readWaitUntil,
-	resolveRequestConsent,
-	resolveRequestSubject,
-} from '@c15t/core/server';
+import { readWaitUntil, resolveRequestConsent } from '@c15t/core/server';
 import type { ResolveRequestConsentOptions } from '@c15t/core/server';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -160,63 +156,16 @@ const browserMode = function browserMode(mode: ConsentMode): ConsentMode {
 	return data;
 };
 
-/** The consent cookie core reads when no `cookieName` is given. */
-const DEFAULT_COOKIE_NAME = 'c15t';
-
-/** Whether two `cookieName` options name the same cookie once defaulted. */
-const sameCookieName = function sameCookieName(
-	left: string | undefined,
-	right: string | undefined
-): boolean {
-	return (left ?? DEFAULT_COOKIE_NAME) === (right ?? DEFAULT_COOKIE_NAME);
-};
-
-/**
- * The request cookie header the resolution reads. The handle set the subject
- * cookie under its own name; a call that reads another name sets that one's
- * cookie here, with the handle's attributes and forwarded-header trust.
- */
-const requestCookie = function requestCookie(
-	event: RequestEvent,
-	locals: C15tLocals | undefined,
-	cookieName: string | undefined,
-	shared: boolean,
-	options: LoadConsentOptions
-): string | undefined {
-	if (
-		!locals ||
-		locals.subjectCookie === false ||
-		sameCookieName(cookieName, locals.cookieName)
-	) {
-		return locals?.cookie;
-	}
-	const subject = resolveRequestSubject({
-		request: { headers: event.request.headers, url: event.url },
-		shared,
-		storage: { ...locals.storage, storageKey: cookieName },
-		trustForwardedHeaders:
-			options.trustForwardedHeaders ?? locals.trustForwardedHeaders,
-	});
-	if (!subject?.setCookie) {
-		return undefined;
-	}
-	const { header: _header, name, value, ...attributes } = subject.setCookie;
-	event.cookies.set(name, value, attributes);
-	return subject.cookie;
-};
-
 /**
  * The request as `c15tHandle` left it: its inputs, unless this call
- * overrides them, and the cookie header with the subject ID it set.
+ * overrides them.
  */
 const requestFrom = function requestFrom(
 	event: RequestEvent,
 	locals: C15tLocals | undefined,
-	overridesPerCall: boolean,
-	cookie: string | undefined
+	overridesPerCall: boolean
 ) {
 	return {
-		cookie,
 		headers: event.request.headers,
 		inputs: locals && !overridesPerCall ? locals.inputs : undefined,
 		url: event.url,
@@ -286,12 +235,7 @@ export const loadConsent = async function loadConsent(
 			region: options.region,
 		},
 		reportSessions: options.reportSessions,
-		request: requestFrom(
-			event,
-			locals,
-			overridesPerCall,
-			requestCookie(event, locals, cookieName, shared, options)
-		),
+		request: requestFrom(event, locals, overridesPerCall),
 		// A prerendered page is one HTML file for every visitor.
 		shared,
 		storage: cookieName ? { storageKey: cookieName } : undefined,

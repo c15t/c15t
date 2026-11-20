@@ -11,12 +11,9 @@
  */
 import type { CookieOptions } from '../../libs/cookie';
 import { deleteCookie, writeCookie } from '../../libs/cookie';
+import { removeLegacySubjectId } from '../../libs/legacy-subject-id';
 import { EPOCH_CLOCK_TOLERANCE_MS } from './record-codec';
-import {
-	readStoredClearEpoch,
-	readStoredCookieSubjectId,
-	resolveStorageKeys,
-} from './record-storage';
+import { readStoredClearEpoch, resolveStorageKeys } from './record-storage';
 import type { StorageConfig } from './types';
 
 const removeLocalStorageKey = function removeLocalStorageKey(
@@ -33,7 +30,8 @@ const removeLocalStorageKey = function removeLocalStorageKey(
  * Removes explicit choices (configured and legacy keys, cookie and
  * localStorage), the notice dismissal and the vendor denials with their
  * cookie projections, the legacy `<key>-privacy` record an alpha may have
- * left, and the IAB records. Cookie deletion uses the same domain handling
+ * left, the `<key>-sid` subject ID c15t 3.2 stored before any choice, and
+ * the IAB records. Cookie deletion uses the same domain handling
  * as writes so a cross-subdomain cookie is actually removed.
  *
  * Queued backend replays and subject reassignments are the kernel's save
@@ -72,6 +70,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 			deleteCookie(key, cookie, config);
 		}
 	}
+	removeLegacySubjectId(config, cookie);
 	// Addon bytes must be removed even when the addon is not mounted.
 	removeLocalStorageKey('c15t-iab-authority-v1');
 	for (const key of ['euconsent-v2', 'addtl_consent']) {
@@ -114,45 +113,6 @@ export const writeStoredClearEpoch = function writeStoredClearEpoch(
 		// Blocked or full storage: the cookie copy still carries the epoch.
 	}
 	writeCookie(key, text, cookie, config);
-};
-
-/**
- * Writes the subject ID to localStorage and its cookie, URI-encoded in the
- * cookie. First-load code so an ID generated at startup survives a reload
- * straight away, before the writer chunk loads. A clear leaves it in place.
- *
- * @internal
- */
-export const writeStoredSubjectId = function writeStoredSubjectId(
-	subjectId: string,
-	config: StorageConfig | undefined,
-	cookie?: CookieOptions
-): void {
-	if (typeof document === 'undefined') {
-		return;
-	}
-	const key = resolveStorageKeys(config).subject;
-	let storedLocally = false;
-	try {
-		const storage = window.localStorage;
-		if (storage) {
-			storage.setItem(key, subjectId);
-			storedLocally = true;
-		}
-	} catch {
-		// Blocked or full storage: the cookie copy still carries the ID.
-	}
-	try {
-		writeCookie(key, encodeURIComponent(subjectId), cookie, config);
-	} catch {
-		// An ID with a lone surrogate has no URI encoding, so no cookie copy.
-	}
-	// The cookie copy wins on the next read. If the browser refused the new
-	// cookie, for example one over its size limit, the old ID would come
-	// back, so remove the cookie and let the localStorage copy be read.
-	if (storedLocally && readStoredCookieSubjectId(config) !== subjectId) {
-		deleteCookie(key, cookie, config);
-	}
 };
 
 /**

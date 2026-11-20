@@ -1,8 +1,9 @@
 /**
  * A visitor has a subject ID from the first snapshot, before anything
- * binds to the client, and it stays the same through a reload and an
- * opt-out. Code that keys what it keeps by that ID can delete it all when
- * the visitor opts out, even though nothing was saved before.
+ * binds to the client. Until a save records it, it lives in memory only:
+ * nothing is stored, and a reload starts with a new one. On the page, it
+ * stays the same through an opt-out, so code that keys what it keeps by
+ * that ID can delete it all when the visitor opts out.
  */
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
@@ -131,45 +132,49 @@ const createActivityLog = function createActivityLog() {
 	};
 };
 
-test('activity kept before any save is deleted under the same ID when the visitor opts out after a reload', async () => {
+test('a reload before any save starts with a new ID and stores nothing', async () => {
+	const first = await start(load());
+	const subjectId = first.first.subject?.subjectId as string;
+	expect(subjectId).toMatch(/^sub_/u);
+	expect(first.ready.subject?.subjectId).toBe(subjectId);
+	expect(first.ready.explicitChoice).toBeNull();
+	expect(document.cookie).toBe('');
+	expect(localStorage.getItem('c15t-sid')).toBeNull();
+	clients.splice(0).forEach((client) => client.dispose());
+
+	const reload = await start(load());
+	expect(reload.first.subject?.subjectId).toMatch(/^sub_/u);
+	expect(reload.first.subject?.subjectId).not.toBe(subjectId);
+});
+
+test('activity kept before any save is deleted under the same ID when the visitor opts out', async () => {
 	saves.length = 0;
 	const log = createActivityLog();
 
-	// First load: the ID is there from the first snapshot, everything is
-	// allowed by default and nothing is saved.
-	const first = load();
-	const firstLoad = await start(first);
-	const subjectId = firstLoad.first.subject?.subjectId as string;
+	// The ID is there from the first snapshot, everything is allowed by
+	// default and nothing is saved.
+	const client = load();
+	const page = await start(client);
+	const subjectId = page.first.subject?.subjectId as string;
 	expect(subjectId).toMatch(/^sub_/u);
-	expect(firstLoad.ready.subject?.subjectId).toBe(subjectId);
-	expect(firstLoad.ready.effectivePermissions.measurement).toBe(true);
-	expect(firstLoad.ready.explicitChoice).toBeNull();
+	expect(page.ready.effectivePermissions.measurement).toBe(true);
+	expect(page.ready.explicitChoice).toBeNull();
+	expect(client.hasConsented()).toBe(false);
 
-	log.bind(first);
-	log.capture(first, 'page_view');
-	log.capture(first, 'signup_click');
+	log.bind(client);
+	log.capture(client, 'page_view');
+	log.capture(client, 'signup_click');
 	expect(log.kept.get(subjectId)).toEqual(['page_view', 'signup_click']);
-	log.unbind();
-	first.dispose();
 
-	// Reload: the same ID, still no recorded choice.
-	const second = load();
-	const reload = await start(second);
-	expect(reload.first.subject?.subjectId).toBe(subjectId);
-	expect(reload.ready.explicitChoice).toBeNull();
-	expect(second.hasConsented()).toBe(false);
-	log.bind(second);
-	log.capture(second, 'page_view');
-	expect(log.kept.get(subjectId)).toHaveLength(3);
-
-	// Opt out: the ID does not change, so everything kept under it goes.
-	const result = await second.rejectAll();
+	// Opt out: the ID does not change, so everything kept under it goes,
+	// and the save records it.
+	const result = await client.rejectAll();
 	expect(result.ok).toBe(true);
-	expect(second.getSnapshot().subject?.subjectId).toBe(subjectId);
+	expect(client.getSnapshot().subject?.subjectId).toBe(subjectId);
 	expect(log.kept.has(subjectId)).toBe(false);
 	expect(saves).toEqual([expect.objectContaining({ subjectId })]);
 
-	log.capture(second, 'page_view');
+	log.capture(client, 'page_view');
 	expect(log.kept.size).toBe(0);
 });
 

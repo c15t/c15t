@@ -135,8 +135,8 @@ describe('persistence: write path', () => {
 		kernel.set.draft({ marketing: true });
 		flushWrites();
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
-		// Only the subject ID startup stored, which records no choice.
-		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-sid`]);
+		// Startup stores nothing, not even the subject ID.
+		expect(cookieNames()).toEqual([]);
 	});
 
 	test('writes the v3 envelope after save()', async () => {
@@ -230,7 +230,6 @@ describe('persistence: write path', () => {
 		expect(cookieNames()).toEqual([
 			`${STORAGE_KEY_V2}-notice`,
 			`${STORAGE_KEY_V2}-notice-subject`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
 
 		const read = createConsentKernel({
@@ -260,8 +259,8 @@ describe('persistence: write path', () => {
 
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
-		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-sid`]);
-		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-sid`]);
+		expect(Object.keys(localStorage)).toEqual([]);
+		expect(cookieNames()).toEqual([]);
 
 		// The browser stops sending the signal: the restriction goes with it.
 		kernel.set.privacySignals({ gpc: false });
@@ -323,22 +322,18 @@ describe('persistence: clear', () => {
 		const snap = kernel.getSnapshot();
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.noticeDismissal).toBeNull();
-		// The subject ID stays, so the visitor can still be reached.
+		// The subject ID stays in memory, so the visitor can still be reached.
 		expect(snap.subject).toEqual({ subjectId });
 		expect(snap.promptRequirement).toEqual({
 			kind: 'notice',
 			reason: 'missing',
 		});
-		// Only the subject ID and the clear epoch stay behind, so no record
-		// comes back. The live signal alone keeps masking the permission.
+		// Only the clear epoch stays behind, so no record comes back. The
+		// live signal alone keeps masking the permission.
 		expect(Object.keys(localStorage).sort()).toEqual([
 			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
-		expect(cookieNames()).toEqual([
-			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
-		]);
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-epoch`]);
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.restrictions.marketing).toEqual(['gpc']);
 	});
@@ -356,19 +351,14 @@ describe('persistence: clear', () => {
 			STORAGE_KEY_V2,
 			`${STORAGE_KEY_V2}-notice`,
 			`${STORAGE_KEY_V2}-notice-subject`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
 
 		handle.clear();
 		flushWrites();
 		expect(Object.keys(localStorage).sort()).toEqual([
 			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
-		expect(cookieNames()).toEqual([
-			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
-		]);
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-epoch`]);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 
@@ -623,11 +613,14 @@ test('clear cancels a queued canonical subject write', async () => {
 	await vi.advanceTimersByTimeAsync(0);
 	await pending;
 	flushWrites();
+	// The clear keeps the subject ID in memory, and nothing else of the
+	// subject.
+	expect(kernel.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
 	const restored = createConsentKernel();
 	const reader = createPersistence({ kernel: restored });
 	expect(restored.getSnapshot().explicitChoice).toBeNull();
-	// The clear keeps the subject ID, and nothing else of the subject.
-	expect(restored.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
+	// No queued write brought the cleared record back under the canonical ID.
+	expect(restored.getSnapshot().subject?.subjectId).not.toBe('canonical');
 	reader.dispose();
 	restored.dispose();
 	persistence.dispose();

@@ -407,8 +407,7 @@ const prefersStoredSubject = function prefersStoredSubject(
 /**
  * The subject once the stored choice was removed. With no identity left in
  * a stored record the identity goes with the choice and the ID stays, as a
- * clear leaves it. `<key>-sid` alone is not such a record: it holds the ID
- * and never an identity. A subject the vendor record
+ * clear leaves it. A subject the vendor record
  * still carries follows the usual precedence, so it never replaces an id
  * the server resolved or an identity from `identify()` it should yield to.
  */
@@ -516,7 +515,7 @@ const reconcileSubject = function reconcileSubject(
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
 	const { explicitChoice, vendorChoice } = snapshot;
-	// With no record carrying it, the subject is `<key>-sid` alone and goes
+	// With no record carrying it, the subject lives in memory only and goes
 	// with the records present.
 	const carries = (kind: StoredRecordKind, present: boolean): boolean =>
 		carrier === kind || (carrier === null && present);

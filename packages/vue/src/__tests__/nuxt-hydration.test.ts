@@ -515,7 +515,7 @@ test('an `ssr: false` route that resolves in the browser starts once the app mou
 	expect(hooks).toContain('app:mounted');
 });
 
-test('the server render gives a new visitor a subject ID the browser starts with', async () => {
+test('the server render sets no subject cookie for a new visitor', async () => {
 	const { default: plugin } = await vi.importActual<{
 		default: (app: {
 			vueApp: App;
@@ -569,81 +569,16 @@ test('the server render gives a new visitor a subject ID the browser starts with
 			runWithContext: (run) => run(),
 			vueApp: app,
 		});
-		const html = await renderToString(app);
+		await renderToString(app);
 		const subjectId = context.snapshot.value.subject?.subjectId;
 		const { explicitChoice } = context.snapshot.value;
 		context.dispose();
 		vi.unstubAllGlobals();
-		return { explicitChoice, html, subjectId };
+		return { explicitChoice, subjectId };
 	};
 
 	const first = await renderOnServer({ cookie: 'theme=dark' });
-	expect(first.subjectId).toMatch(/^sub_/u);
+	expect(first.subjectId).toBeUndefined();
 	expect(first.explicitChoice).toBeNull();
-	expect(nuxt.cookies).toEqual([
-		{
-			name: 'c15t-sid',
-			options: {
-				encode: expect.any(Function),
-				httpOnly: false,
-				maxAge: 365 * 86_400,
-				path: '/',
-				sameSite: 'lax',
-				secure: true,
-			},
-			value: first.subjectId,
-		},
-	]);
-
-	// The response holds the raw ID, the same bytes the render's request had.
-	const encode = nuxt.cookies[0]?.options.encode as (value: string) => string;
-	expect(encode(first.subjectId as string)).toBe(first.subjectId);
-
-	// The browser now holds the cookie the response set.
-	const payload = JSON.stringify(
-		[...nuxt.state].map(([key, value]) => [key, value.value])
-	);
-	nuxt.state = new Map(
-		(JSON.parse(payload) as [string, unknown][]).map(([key, value]) => [
-			key,
-			ref(value),
-		])
-	);
-	nuxt.headers = {};
-	document.cookie = `c15t-sid=${first.subjectId}; path=/`;
-	const clientApp = createSSRApp(Probe);
-	await plugin({
-		hook: () => undefined,
-		payload: { serverRendered: true },
-		runWithContext: (run) => run(),
-		vueApp: clientApp,
-	});
-	const container = document.createElement('div');
-	container.innerHTML = first.html;
-	document.body.append(container);
-	clientApp.mount(container);
-	await nextTick();
-	try {
-		expect(context.snapshot.value.subject?.subjectId).toBe(first.subjectId);
-		expect(context.snapshot.value.explicitChoice).toBeNull();
-		expect(
-			document.querySelector('[data-testid="consent-banner-root"]')
-		).not.toBeNull();
-	} finally {
-		clientApp.unmount();
-		document.cookie = 'c15t-sid=; path=/; max-age=0';
-	}
-
-	const returning = await renderOnServer({
-		cookie: `c15t-sid=${first.subjectId}`,
-	});
-	expect(returning.subjectId).toBe(first.subjectId);
-	expect(nuxt.cookies).toEqual([]);
-
-	const prefetch = await renderOnServer({
-		cookie: '',
-		'sec-purpose': 'prefetch',
-	});
-	expect(prefetch.subjectId).toBeUndefined();
 	expect(nuxt.cookies).toEqual([]);
 });
