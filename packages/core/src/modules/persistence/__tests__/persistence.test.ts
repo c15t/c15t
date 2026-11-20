@@ -524,7 +524,7 @@ describe('persistence: a server seed that missed a clear', () => {
 		const before = await savedRecords(NOW + 100, { measurement: true });
 		clearInAnotherTab(NOW + 200);
 		const after = await savedRecords(NOW + 300, { marketing: false });
-		await savedRecords(NOW + 350, { measurement: true });
+		await savedRecords(NOW + 350, { experience: true, measurement: true });
 
 		const kernel = createConsentKernel({
 			initialRecords: {
@@ -548,6 +548,8 @@ describe('persistence: a server seed that missed a clear', () => {
 			confirmedAt: NOW + 350,
 			value: true,
 		});
+		// The seed never held this one, so a stored grant for it stays out.
+		expect(categories?.experience).toBeUndefined();
 		handle.dispose();
 	});
 });

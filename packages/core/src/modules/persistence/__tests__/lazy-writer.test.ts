@@ -1254,3 +1254,89 @@ test('a seeded page does not take a queued choice from before a clear in another
 	handle.dispose();
 	queuedHandle.dispose();
 });
+
+describe('a seeded page beside a queue from before a clear in another tab', () => {
+	/** A second handle whose save stays queued, then a clear in another tab. */
+	const queueThenClear = async () => {
+		await seedChoice({ marketing: true });
+		const stored = storedChoice();
+		const seed = readStoredRecordsForReconcile(undefined, Date.now()).records;
+
+		vi.setSystemTime(NOW + 10);
+		const queued = createConsentKernel({
+			initialRecords: {
+				...seed,
+				subject: { ...seed.subject, externalId: 'user-1' },
+			},
+			now: Date.now(),
+		});
+		const queuedHandle = createPersistence(
+			{ kernel: queued, sync: false },
+			heldBackLoader().loader
+		);
+		const saving = queued.commands.save({ marketing: true, measurement: true });
+		saving.catch(() => undefined);
+		expect(queuedWrites.get(STORAGE_KEY_V2)).toBe(queued);
+
+		vi.setSystemTime(NOW + 1000);
+		clearStoredConsentRecords();
+		writeStoredClearEpoch(NOW + 1000, undefined);
+		return { queuedHandle, seed, stored };
+	};
+
+	const mountSeeded = (seed: Parameters<typeof createConsentKernel>[0]) => {
+		const kernel = createConsentKernel(seed);
+		const handle = createPersistence(
+			{ kernel, skipHydration: true, sync: false },
+			heldBackLoader().loader
+		);
+		return { handle, kernel };
+	};
+
+	test('takes the record storage holds since the clear, not the queued one', async () => {
+		const { queuedHandle, seed, stored } = await queueThenClear();
+		const granted = stored?.choice.categories.marketing;
+		if (!(stored && granted)) {
+			throw new Error('Expected a stored grant');
+		}
+		vi.setSystemTime(NOW + 1500);
+		writeStoredConsentEnvelope(
+			{
+				categories: {
+					marketing: { ...granted, confirmedAt: NOW + 1500, value: false },
+				},
+				subject: stored.subject ?? undefined,
+				version: 3,
+			},
+			{ now: NOW + 1500 }
+		);
+
+		const { handle, kernel } = mountSeeded({
+			initialRecords: seed,
+			now: Date.now(),
+		});
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing
+		).toMatchObject({ confirmedAt: NOW + 1500, value: false });
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement
+		).toBeUndefined();
+		handle.dispose();
+		queuedHandle.dispose();
+	});
+
+	test('does not take the queued subject or its linked identity', async () => {
+		const { queuedHandle, seed } = await queueThenClear();
+
+		const { handle, kernel } = mountSeeded({
+			initialRecords: seed,
+			now: Date.now(),
+		});
+
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(kernel.getSnapshot().subject).not.toHaveProperty('externalId');
+		handle.dispose();
+		queuedHandle.dispose();
+	});
+});

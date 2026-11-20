@@ -122,29 +122,37 @@ const seededChoicePatch = function seededChoicePatch(
 	if (surviving === seeded && denials.length === 0) {
 		return undefined;
 	}
-	// A category the epoch voided yields to storage; one that survived wins.
-	const yielded = surviving === seeded ? {} : stored?.categories;
+	// Only a category the epoch voided yields to storage. One that survived
+	// wins, and one the seed never held takes no stored grant.
+	const yielded = Object.entries(stored?.categories ?? {}).filter(
+		([category]) =>
+			seeded !== null && category in seeded.categories && !(category in kept)
+	);
 	return {
-		categories: { ...yielded, ...kept, ...Object.fromEntries(denials) },
+		categories: {
+			...Object.fromEntries(yielded),
+			...kept,
+			...Object.fromEntries(denials),
+		},
 		version: 3,
 	};
 };
 
 /**
- * Records that include another handle's queued ones, without those from
- * before the clear epoch. A queue written before another tab cleared never
- * saw that clear, so it must not bring a cleared record back.
+ * Whether another handle's queued records include one from before the clear
+ * epoch. Such a queue never saw that clear, so a seeded page reads storage
+ * alone and leaves the queue out.
  */
-const queuedSinceEpoch = function queuedSinceEpoch(
-	records: HydrationRecords,
+const queueMissedClear = function queueMissedClear(
+	queued: ConsentSnapshot,
 	epoch: number
-): HydrationRecords {
-	return {
-		...records,
-		choice: choiceSinceEpoch(records.choice ?? null, epoch, false),
-		noticeDismissal: noticeSinceEpoch(records.noticeDismissal ?? null, epoch),
-		vendorChoice: vendorChoiceSinceEpoch(records.vendorChoice ?? null, epoch),
-	};
+): boolean {
+	return [
+		choiceSinceEpoch(queued.explicitChoice, epoch, false) !==
+			queued.explicitChoice,
+		noticeSinceEpoch(queued.noticeDismissal, epoch) !== queued.noticeDismissal,
+		vendorChoiceSinceEpoch(queued.vendorChoice, epoch) !== queued.vendorChoice,
+	].includes(true);
 };
 
 /**
@@ -514,8 +522,8 @@ export const mountPersistence = function mountPersistence(
 	 * seeded decision from the clearing millisecond is kept: the seed does
 	 * not say whether its writer had seen the clear. Seeded decisions that
 	 * outlive the clear stay the seed, so a stored grant still cannot
-	 * replace them. Another handle's queued records from before the clear
-	 * are void as well. The seeded subject keeps its ID alone, as after any
+	 * replace them. Another handle's queue from before the clear is left
+	 * out, and storage is read alone. The seeded subject keeps its ID alone, as after any
 	 * clear.
 	 *
 	 * The read also becomes what the writer starts from: the kernel's
@@ -530,9 +538,11 @@ export const mountPersistence = function mountPersistence(
 			const at = now();
 			const read = readStoredRecordsForReconcile(storageConfig, at);
 			baseline = [read, false];
-			const records = queuedWrites.has(consentKey)
-				? queuedSinceEpoch(withQueued(read.records), read.epoch)
-				: read.records;
+			const queued = queuedWrites.get(consentKey)?.getSnapshot();
+			const records =
+				queued && queueMissedClear(queued, read.epoch)
+					? read.records
+					: withQueued(read.records);
 			const snapshot = kernel.getSnapshot();
 			const patch: HydrationRecords = {};
 			const choice = choiceSinceEpoch(
