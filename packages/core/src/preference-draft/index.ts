@@ -35,11 +35,13 @@
  */
 import { compareCanonical } from '@c15t/schema/types';
 
-import { displayedCategories as listDisplayed } from '../consent/consent-types';
+import {
+	displayedCategories as listDisplayed,
+	policyDefault,
+} from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { listedVendors } from '../libs/vendors';
 import { deniedVendorIds } from '../modules/has';
-import { policyDefault } from '../policy';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
