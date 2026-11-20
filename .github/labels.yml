@@ -44,10 +44,6 @@
   color: 'fbca04'
   description: Svelte and SvelteKit adapter
 
-- name: area:solid
-  color: 'fbca04'
-  description: Solid adapter
-
 - name: area:tanstack
   color: 'fbca04'
   description: TanStack Start or TanStack Router — not React Router
@@ -59,14 +55,6 @@
 - name: area:astro
   color: 'fbca04'
   description: Astro integration
-
-- name: area:react-native
-  color: 'fbca04'
-  description: React Native / Expo adapter
-
-- name: area:mobile
-  color: 'fbca04'
-  description: Native mobile foundations (Swift, Kotlin, ATT)
 
 - name: area:js
   color: 'fbca04'

@@ -13,10 +13,6 @@ on:
         description: Select changes since the last successful release on this branch
         type: boolean
         default: false
-      skip_mobile_device:
-        description: Run advisory native app builds in their separate push workflow
-        type: boolean
-        default: false
     outputs:
       built:
         description: Same-run library outputs are available in ci-build
@@ -57,8 +53,6 @@ jobs:
       bundle: ${{ steps.plan.outputs.bundle }}
       performance: ${{ steps.plan.outputs.performance }}
       baseRef: ${{ steps.plan.outputs.baseRef }}
-      mobile: ${{ steps.plan.outputs.mobile }}
-      mobileBrowserOrDevice: ${{ steps.plan.outputs.mobileBrowserOrDevice }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -324,231 +318,6 @@ jobs:
         with:
           scope: browser-${{ matrix.integration.kind }}
 
-  # Mobile SDK. The native kernels speak their own toolchains, so no JS job can cover
-  # them: Swift needs a macOS runner with Xcode, and the Android library assembly needs
-  # the Android SDK, which Depot's Ubuntu image ships.
-  #
-  # Cost per selected pull request, with both legs in parallel: roughly 10 minutes of
-  # macOS (SwiftPM debug build, two `swift test` runs, then the benchmark run, which
-  # builds a release Swift core, links an arm64 iOS slice, and builds both Gradle
-  # projects for the Android byte rows) and roughly 8 minutes of Ubuntu (two Gradle
-  # assemblies, the SDK's vitest suite, one benchmark run). The macOS leg is the
-  # expensive one: a macOS runner bills roughly eight times an Ubuntu runner, so this
-  # job rather than the browser matrix is what a mobile pull request pays for. iOS runs
-  # on a GitHub-hosted macOS runner and Android on a Depot Ubuntu runner (GitHub's
-  # for fork pull requests; see .github/CI.md).
-  #
-  # Native sources, protocol/spec changes, mobile benchmark inputs and full
-  # validation select this job. Affected JavaScript tests run in `packages`.
-  mobile:
-    permissions:
-      contents: read
-      id-token: write
-    name: Mobile SDK (${{ matrix.kind }})
-    needs: [repository, build]
-    if: needs.repository.outputs.mobile == 'true'
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - kind: ios-toolchain
-            report: mobile-ios-toolchain
-            runner: macos-latest
-          - kind: android-js
-            report: mobile-android-js
-            runner: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'depot-ubuntu-24.04-4' }}
-    env:
-      # Xcode versions this job accepts, most preferred first. 27 is the version
-      # native/CONTRACT.md and packages/react-native/ios/README.md standardise on, and the
-      # one that carries the iOS 27.2 SDK; 26 still builds every Swift source here because
-      # the expanded tracking request is reached by selector at runtime, never by
-      # declaration. macos-latest ships 26 only; 27 is a preview runner image. DEVELOPER_DIR
-      # is set per run rather than switched with `sudo xcode-select`, because the machine's
-      # selection may point at Command Line Tools, whose SwiftPM cannot build an iOS slice.
-      C15T_XCODE_VERSIONS: '27 26'
-      # Where the mobile harness stores its run, so the artifact is this leg's evidence.
-      BENCH_OUTPUT_DIR: ${{ github.workspace }}/.ci-reports/${{ matrix.report }}
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          built: 'true'
-          cache-scope: mobile-${{ matrix.kind }}
-      - name: Select the pinned Xcode
-        if: matrix.kind == 'ios-toolchain'
-        run: |
-          target=""
-          for version in ${C15T_XCODE_VERSIONS}; do
-            # Newest point release of this major first; the glob sorts lexically, so
-            # take the last match. A missing major expands to no matches at all.
-            for candidate in /Applications/Xcode_${version}*.app /Applications/Xcode-${version}*.app; do
-              if [ -d "${candidate}/Contents/Developer" ]; then
-                target="${candidate}"
-              fi
-            done
-            if [ -n "${target}" ]; then
-              break
-            fi
-          done
-          if [ -z "${target}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
-            target=/Applications/Xcode.app
-          fi
-          if [ -z "${target}" ]; then
-            echo "No Xcode ${C15T_XCODE_VERSIONS} in /Applications. This runner has:" >&2
-            ls /Applications >&2
-            exit 1
-          fi
-          # Both the mobile harness and the commands in native/CONTRACT.md address
-          # /Applications/Xcode.app, so a versioned bundle is linked to that name too.
-          if [ "${target}" != "/Applications/Xcode.app" ] && [ ! -e /Applications/Xcode.app ]; then
-            sudo ln -s "${target}" /Applications/Xcode.app
-          fi
-          echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> "${GITHUB_ENV}"
-          xcodebuild -version
-          # Fail here with a version number instead of inside a Swift step minutes later.
-          accepted="$(printf '%s' "${C15T_XCODE_VERSIONS}" | tr ' ' '|')"
-          xcodebuild -version | head -n 1 | grep -qE "^Xcode (${accepted})[. ]" || {
-            echo "Expected Xcode ${C15T_XCODE_VERSIONS}, found the version above." >&2
-            exit 1
-          }
-      - name: Use the JDK the Gradle toolchain asks for
-        if: matrix.kind == 'android-js'
-        run: |
-          if [ -z "${JAVA_HOME_17_X64:-}" ]; then
-            echo "No JDK 17 on this runner: JAVA_HOME_17_X64 is unset, and native/core-android pins jvmToolchain(17)." >&2
-            exit 1
-          fi
-          echo "JAVA_HOME=${JAVA_HOME_17_X64}" >> "${GITHUB_ENV}"
-      - name: Cache SwiftPM
-        if: matrix.kind == 'ios-toolchain'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: |
-            native/core-swift/.build
-            packages/react-native/.build
-            ~/Library/Caches/org.swift.swiftpm
-          key: swiftpm-${{ runner.os }}-${{ hashFiles('native/core-swift/Package.swift', 'native/core-swift/Sources/**/*.swift', 'packages/react-native/Package.swift') }}
-      - name: Cache Gradle
-        # Both legs, because the harness measures Android class bytes on the iOS leg too:
-        # it builds the two Gradle projects as part of the `bundle` surface. Without this
-        # cache that leg spends minutes of macOS time downloading the dependency graph for
-        # a row it does not gate on.
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.gradle/build-cache
-          key: gradle-${{ runner.os }}-${{ hashFiles('native/core-android/gradle/wrapper/gradle-wrapper.properties', 'native/core-android/gradle/libs.versions.toml', 'packages/react-native/android/gradle.properties') }}
-      - name: Build and test the Swift core
-        if: matrix.kind == 'ios-toolchain'
-        run: |
-          set -ex
-          swift build --package-path native/core-swift
-          swift test --package-path native/core-swift
-      # A separate step so the failing check names the layer that broke.
-      - name: Build and test the binding's wire layer
-        if: matrix.kind == 'ios-toolchain'
-        run: |
-          set -ex
-          # The binding's React-free half, which is where every wire-format decision
-          # lives. The TurboModule itself needs a host app, so it is built by the mobile
-          # device group instead.
-          swift build --package-path packages/react-native
-          swift test --package-path packages/react-native
-      - name: Test the Kotlin core and assemble the Android library
-        if: matrix.kind == 'android-js'
-        run: |
-          set -ex
-          cd native/core-android
-          ./gradlew :c15t-core:test :c15t-android:assembleRelease --console=plain
-          # The mobile harness invokes Gradle with --offline so a benchmark run never
-          # waits on a download. Warm the bench source set here, or the Kotlin rows
-          # report not-measured and the summary step fails the run.
-          ./gradlew :c15t-core:bench --console=plain -q
-      - name: Assemble the React Native Android binding
-        if: matrix.kind == 'android-js'
-        run: |
-          cd packages/react-native/android
-          ./gradlew :c15t-react-native:assembleRelease --console=plain
-      - name: Generate the Codegen spec and compile the binding against it
-        if: matrix.kind == 'android-js'
-        # Assembling the AAR proves the bridge compiles against the hand-written stand-in in
-        # :c15t-spec. It says nothing about what Codegen emits for src/specs, which is the
-        # class that exists at runtime: a stand-in that drifted from generated output still
-        # compiles here and fails only in the user's app. Here React Native's generator runs
-        # over src/specs, :c15t-spec swaps its source set to the result, and the bridge is
-        # compiled against that. The generated class reaches the bridge through the same
-        # compileOnly edge as the stand-in, so it stays out of the AAR either way -- the
-        # step below asserts the AAR is still spec-free.
-        run: |
-          set -ex
-          cd packages/react-native/android
-          ./gradlew --console=plain -Pc15t.spec.source=codegen \
-            :c15t-spec:assembleRelease :c15t-react-native:assembleRelease
-          # Fail here, naming the file, if generation went quiet rather than wrong.
-          test -f c15t-spec/build/generated/c15t-spec/java/com/c15t/reactnative/NativeC15tSpec.java
-          # The other half of the mode: compiling the generated spec must not put it in the
-          # artifact. Two copies of that class in one APK is a duplicate-class failure.
-          unzip -p c15t-react-native/build/outputs/aar/c15t-react-native-release.aar classes.jar \
-            > "${RUNNER_TEMP}/bridge-classes.jar"
-          leaked="$(unzip -l "${RUNNER_TEMP}/bridge-classes.jar" | grep -c NativeC15tSpec || true)"
-          if [ "${leaked}" != "0" ]; then
-            echo "NativeC15tSpec is in the bridge AAR (${leaked} entries), where an app would meet a second copy of it." >&2
-            exit 1
-          fi
-      - name: Resolve the binding the way a host app autolinks it
-        if: matrix.kind == 'android-js'
-        # Assembling the AAR proves Gradle can compile the library. It says nothing about
-        # whether React Native's CLI can find the library at all, and a host app's
-        # settings.gradle runs `react-native config`: a package the CLI cannot resolve fails
-        # that app's build before a single task runs. This asks the CLI from the bare example
-        # app's own install, which is the cheapest place that answer exists.
-        run: bun scripts/react-native-autolink.ts
-      - name: Measure the mobile budgets
-        run: bun run --cwd benchmarks/mobile bench:ci
-      # The harness already failed the job above if a measured number broke a ceiling.
-      # This step owns the other half of the gate: a row that should have produced a
-      # number and did not, and the machine-readable summary either way.
-      - name: Publish the mobile benchmark summary
-        if: ${{ !cancelled() }}
-        run: bun scripts/ci-mobile-bench-report.ts --kind "${{ matrix.kind }}" --report-dir ".ci-reports/${{ matrix.report }}"
-      - name: Save mobile evidence
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: mobile-${{ matrix.kind }}
-          include-hidden-files: true
-          path: |
-            .ci-reports/${{ matrix.report }}/
-            native/core-android/build/reports/
-            packages/react-native/android/c15t-react-native/build/reports/
-            packages/react-native/coverage/
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - uses: ./.github/actions/save-turbo-cache
-        if: github.event_name != 'pull_request'
-        with:
-          scope: mobile-${{ matrix.kind }}
-
-  # Native app builds remain visible on PRs and full validation. Release pushes
-  # run the advisory workflow independently so publishing cannot wait for it.
-  mobileBrowserOrDevice:
-    permissions:
-      contents: read
-      actions: read
-      id-token: write
-    needs: [repository, build]
-    if: needs.repository.outputs.mobileBrowserOrDevice == 'true' && !inputs.skip_mobile_device
-    uses: ./.github/workflows/mobile-device.yml
-    with:
-      built: true
-
   bundle:
     permissions:
       contents: read
@@ -583,7 +352,6 @@ jobs:
         packages,
         backend,
         browser,
-        mobile,
         bundle,
         performance,
       ]

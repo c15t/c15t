@@ -173,7 +173,7 @@ test('c15t install commands select the documented release', async () => {
 	expect(wrong).toEqual([]);
 });
 
-// React Native is not published with v3. Drop this check when it ships.
+// This repository does not ship React Native; keep published docs free of it.
 test('published docs do not mention React Native', async () => {
 	const files = await fg(['**/*.mdx', 'docs.config.ts'], { cwd: docsRoot });
 	const mentions = files.filter((file) =>
