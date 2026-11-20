@@ -115,6 +115,14 @@ not automatically reach a portaled dialog.
 | `--consent-banner-max-width` | `440px` | Floating card |
 | `--consent-banner-widget-max-width` | `20rem` | Widget |
 | `--consent-banner-wall-max-width` | `30rem` | Choice wall |
+| `--consent-banner-padding-mobile` | `var(--c15t-space-md)` | Inset of the floating card's and choice wall's text and buttons, below 640px |
+| `--consent-banner-padding` | `var(--c15t-space-lg)` | The same inset from 640px up |
+| `--consent-dialog-card-padding-mobile` | `var(--c15t-space-md)` | Inset inside the preferences dialog's card, and the gap around it, below 640px |
+| `--consent-dialog-card-padding` | `var(--c15t-space-lg)` | The same inset and gap from 640px up |
+
+The text and the buttons share one inset, so they start on the same edge.
+The bar and the widget set their own padding and ignore both banner
+variables.
 
 The banner footer lays out its actions by the card's width, not the
 viewport's. With the default `compact` profile, a card narrower than 22rem
