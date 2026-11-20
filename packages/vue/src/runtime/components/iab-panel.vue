@@ -341,24 +341,20 @@ const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
 };
 
 const onAction = async function onAction(action: PresentationAction) {
-	try {
-		if (action === 'save') {
-			// The switches already wrote the selection; this encodes it.
-			await save(
-				{ ...iabSelection.value, preferenceCenterTab: activeTab.value },
-				activeTab.value
-			);
-			return;
-		}
-		if (action === 'accept') {
-			await save('all', activeTab.value);
-			return;
-		}
-		if (action === 'reject') {
-			await save('none', activeTab.value);
-		}
-	} catch {
-		// Leave the prompt available so a failed vendor-list load can be retried.
+	if (action === 'save') {
+		// The switches already wrote the selection; this encodes it.
+		await save(
+			{ ...iabSelection.value, preferenceCenterTab: activeTab.value },
+			activeTab.value
+		);
+		return;
+	}
+	if (action === 'accept') {
+		await save('all', activeTab.value);
+		return;
+	}
+	if (action === 'reject') {
+		await save('none', activeTab.value);
 	}
 };
 

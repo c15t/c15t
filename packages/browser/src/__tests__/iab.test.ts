@@ -402,6 +402,29 @@ describe('IAB browser entry', () => {
 			'true'
 		);
 	});
+	it('reports a failed IAB save once through the error event and returns not-ok', async () => {
+		const client = await start();
+		const { iab } = client.runtime;
+		if (!iab) {
+			throw new Error('Expected IAB handle');
+		}
+		const failure = new Error('tc string encoding failed');
+		vi.spyOn(iab, 'save').mockRejectedValueOnce(failure);
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* asserted below */
+		});
+		const errors = vi.fn();
+		client.on('error', errors);
+		try {
+			expect(await client.acceptAll()).toEqual({ ok: false });
+			expect(errors).toHaveBeenCalledOnce();
+			expect(errors).toHaveBeenCalledWith(failure);
+			expect(consoleError).not.toHaveBeenCalled();
+			expect(client.getSnapshot().activeUI).toBe('banner');
+		} finally {
+			consoleError.mockRestore();
+		}
+	});
 	it('closes preferences on the local record when the backend save fails', async () => {
 		const factory = offline({ acknowledgeNoRecords: true });
 		const mode: typeof factory = Object.assign(

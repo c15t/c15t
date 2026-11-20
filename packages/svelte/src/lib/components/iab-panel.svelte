@@ -259,11 +259,7 @@
 			return;
 		}
 		const state = iabState;
-		try {
-			await saveIABConsentSurface(consent.kernel, () => state.save());
-		} catch {
-			// Keep the prompt available so a later action can retry the failed load/save.
-		}
+		await saveIABConsentSurface(consent.kernel, () => state.save());
 	};
 
 	const handleAcceptAll = function handleAcceptAll() {

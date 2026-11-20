@@ -250,3 +250,48 @@ test.each(['banner', 'dialog'] as const)(
 		expect(Object.values(decoded.vendorConsents)).not.toContain(true);
 	}
 );
+
+test.each(['banner', 'dialog'] as const)(
+	'reports a failed IAB %s save once through console.error',
+	async (surface) => {
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* asserted below */
+		});
+		onTestFinished(() => errorSpy.mockRestore());
+		const context = createVueConsentKernelContext({ config, prefetch: init });
+		onTestFinished(() => context.dispose());
+		const handle = createHandle(context.kernel);
+		context.iab = handle;
+		await handle.whenReady();
+		vi.spyOn(handle, 'save').mockRejectedValueOnce(new Error('save failed'));
+		context.kernel.set.activeUI(surface);
+
+		const container = document.createElement('div');
+		document.body.append(container);
+		onTestFinished(() => container.remove());
+		const app = createApp(
+			(surface === 'banner' ? IabPrompt : IabPanel) as Component
+		);
+		app.provide(consentConfigKey, config);
+		app.provide(symbolKernelContext, context);
+		app.provide(symbolKernel, context.kernel);
+		app.provide(symbolSnapshot, context.snapshot);
+		app.provide(symbolInit, context.init);
+		app.provide(symbolActiveUI, context.activeUI);
+		app.provide(symbolConsent, context.storedConsent);
+		app.mount(container);
+		onTestFinished(() => app.unmount());
+
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? '[data-testid="iab-consent-banner-accept-button"]'
+					: '[data-testid="iab-consent-dialog-card"] [data-action="accept"]'
+			);
+		await vi.waitFor(() => expect(button()).not.toBeNull());
+		button()?.click();
+
+		await vi.waitFor(() => expect(errorSpy).toHaveBeenCalledOnce());
+		expect(context.kernel.getSnapshot().activeUI).toBe(surface);
+	}
+);
