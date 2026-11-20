@@ -10,20 +10,14 @@ packages:
   '@c15t/vue': minor
 ---
 
-### Drop the unused `c15t-sid` cookie
+### Stop storing `c15t-sid` before a choice
 
-c15t 3.2 stored a subject ID in a `c15t-sid` cookie and localStorage key on
-the first page load, before the visitor chose anything. Nothing used it
-before a save, so the ID now lives in memory until the first save stores it
-with the record. A reload before that starts with a new ID.
+c15t no longer writes the `c15t-sid` cookie or localStorage key on first load.
+The subject ID is stored with the visitor's first saved record, and a leftover
+`c15t-sid` is removed on start. `identify()` before the first save is sent
+with that save.
 
-- On start, c15t removes a `c15t-sid` an earlier version left.
-- The framework adapters no longer set the cookie. A server render reads
-  the ID from the record cookies.
-- `identify()` before the first save sends the identity with that save
-  instead of `PATCH /subjects/:id`.
-- `resolveRequestSubject()` is deprecated and never returns a cookie to
-  set. Each adapter's `subjectCookie` option does nothing. Both are removed
-  in v4.
+`resolveRequestSubject()` and each adapter's `subjectCookie` option are
+deprecated and do nothing. v4 removes them.
 
 If your cookie policy lists `c15t-sid`, remove it.
