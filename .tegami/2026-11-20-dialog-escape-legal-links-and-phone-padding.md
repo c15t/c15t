@@ -10,5 +10,6 @@ packages:
 
 - Escape closes only the top dialog.
 - Vue leaves out a legal link that has no URL instead of linking to `#`.
-- Legal links that open in a new tab get `rel="noopener noreferrer"`.
+- Legal links that open in a new tab get `rel="noopener noreferrer"` by
+  default.
 - The banner and preferences dialog use even padding on phones.
