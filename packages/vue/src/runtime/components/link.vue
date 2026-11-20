@@ -21,6 +21,12 @@ const entry = computed(() => config.value.legalLinks?.[props.link]);
 // A link with no `href`, passed or in the config, renders nothing, as in
 // the other SDKs.
 const href = computed(() => props.href ?? entry.value?.href);
+const target = computed(() => entry.value?.target);
+const rel = computed(
+	() =>
+		entry.value?.rel ||
+		(target.value === '_blank' ? 'noopener noreferrer' : undefined)
+);
 
 const testId = computed(() => {
 	const surface =
@@ -34,8 +40,8 @@ const testId = computed(() => {
 		v-if="href"
 		v-bind="config.components?.link?.[context]"
 		:href="href"
-		:target="entry?.target"
-		:rel="entry?.rel"
+		:target="target"
+		:rel="rel"
 		:data-testid="testId"
 		:class="legalStyles.legalLink"
 	>

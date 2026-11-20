@@ -3,12 +3,18 @@
 	import ConsentBanner from '../../lib/components/prompt.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 
-	let { options }: { options: ConsentManagerOptions } = $props();
+	let {
+		options,
+		legalLinks = ['privacyPolicy', 'cookiePolicy'],
+	}: {
+		options: ConsentManagerOptions;
+		legalLinks?: ('privacyPolicy' | 'cookiePolicy' | 'termsOfService')[];
+	} = $props();
 </script>
 
 <ConsentProvider {options}>
 	<ConsentBanner
 		description="Copy."
-		legalLinks={['privacyPolicy', 'cookiePolicy']}
+		{legalLinks}
 	/>
 </ConsentProvider>

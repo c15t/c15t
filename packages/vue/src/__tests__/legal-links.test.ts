@@ -101,4 +101,64 @@ describe('ConsentLink', () => {
 
 		expect(wrapper.find('a').exists()).toBe(false);
 	});
+
+	test('adds rel="noopener noreferrer" when target is _blank without rel', () => {
+		const wrapper = mount(ConsentLink, {
+			global: {
+				provide: {
+					[consentConfigKey as symbol]: {
+						legalLinks: {
+							privacyPolicy: {
+								href: '/privacy',
+								label: 'Privacy',
+								target: '_blank',
+							},
+						},
+					} satisfies Partial<ConsentConfig>,
+					[symbolInit as symbol]: ref({}),
+				},
+			},
+			props: { context: 'banner', link: 'privacyPolicy' },
+		});
+
+		expect(wrapper.find('a').attributes('target')).toBe('_blank');
+		expect(wrapper.find('a').attributes('rel')).toBe('noopener noreferrer');
+	});
+
+	test('keeps explicit rel and omits rel when target is not _blank', () => {
+		const explicitRel = mount(ConsentLink, {
+			global: {
+				provide: {
+					[consentConfigKey as symbol]: {
+						legalLinks: {
+							privacyPolicy: {
+								href: '/privacy',
+								rel: 'noopener',
+								target: '_blank',
+							},
+						},
+					} satisfies Partial<ConsentConfig>,
+					[symbolInit as symbol]: ref({}),
+				},
+			},
+			props: { context: 'banner', link: 'privacyPolicy' },
+		});
+		expect(explicitRel.find('a').attributes('rel')).toBe('noopener');
+
+		const sameTab = mount(ConsentLink, {
+			global: {
+				provide: {
+					[consentConfigKey as symbol]: {
+						legalLinks: {
+							privacyPolicy: { href: '/privacy', target: '_self' },
+						},
+					} satisfies Partial<ConsentConfig>,
+					[symbolInit as symbol]: ref({}),
+				},
+			},
+			props: { context: 'banner', link: 'privacyPolicy' },
+		});
+		expect(sameTab.find('a').attributes('target')).toBe('_self');
+		expect(sameTab.find('a').attributes('rel')).toBeUndefined();
+	});
 });
