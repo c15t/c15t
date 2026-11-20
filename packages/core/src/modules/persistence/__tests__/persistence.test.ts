@@ -366,6 +366,26 @@ describe('persistence: clear', () => {
 		]);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	});
+
+	test('removes IAB addon records including addtl_consent', () => {
+		const kernel = createConsentKernel({ now: NOW });
+		const handle = createPersistence({ kernel });
+		localStorage.setItem('c15t-iab-authority-v1', 'receipt');
+		localStorage.setItem('euconsent-v2', 'tc-string');
+		localStorage.setItem('addtl_consent', '2~89.2577~dv.');
+		document.cookie = 'euconsent-v2=tc-string; path=/';
+		document.cookie = 'addtl_consent=2~89.2577~dv.; path=/';
+
+		handle.clear();
+		flushWrites();
+
+		expect(localStorage.getItem('c15t-iab-authority-v1')).toBeNull();
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(localStorage.getItem('addtl_consent')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+		expect(document.cookie).not.toContain('addtl_consent=');
+		handle.dispose();
+	});
 });
 
 describe('persistence: dispose', () => {

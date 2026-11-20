@@ -40,6 +40,7 @@ export const createClearOnRevocationWith = (
 		// Keep the optional IAB addon's receipts without importing its runtime.
 		'c15t-iab-authority-v1',
 		'euconsent-v2',
+		'addtl_consent',
 	]);
 	for (const key of [storageKey, storageConfig?.storageKey || storageKey]) {
 		for (const resolved of Object.values(
