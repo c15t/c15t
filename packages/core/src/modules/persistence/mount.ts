@@ -140,8 +140,8 @@ const seededChoicePatch = function seededChoicePatch(
 
 /**
  * Whether another handle's queued records include one from before the clear
- * epoch. Such a queue never saw that clear, so a seeded page reads storage
- * alone and leaves the queue out.
+ * epoch. Such a queue never saw that clear, so a seeded page takes from it
+ * only what was recorded since.
  */
 const queueMissedClear = function queueMissedClear(
 	queued: ConsentSnapshot,
@@ -153,6 +153,56 @@ const queueMissedClear = function queueMissedClear(
 		noticeSinceEpoch(queued.noticeDismissal, epoch) !== queued.noticeDismissal,
 		vendorChoiceSinceEpoch(queued.vendorChoice, epoch) !== queued.vendorChoice,
 	].includes(true);
+};
+
+/** The record made later, or the one that exists. */
+const laterOf = function laterOf<RecordType>(
+	stored: RecordType | null,
+	queued: RecordType | null,
+	madeAt: (record: RecordType) => number
+): RecordType | null {
+	if (!(stored && queued)) {
+		return queued ?? stored;
+	}
+	return madeAt(queued) >= madeAt(stored) ? queued : stored;
+};
+
+/**
+ * Storage's records with another handle's queued ones laid over them, for a
+ * queue that missed the clear `epoch` marks. A queued record from before
+ * that clear is void. Of the rest, the later of the queued and the stored
+ * one stands, category by category for a choice.
+ */
+const queuedSinceClear = function queuedSinceClear(
+	stored: HydrationRecords,
+	queued: ConsentSnapshot,
+	epoch: number
+): HydrationRecords {
+	const choice = choiceSinceEpoch(queued.explicitChoice, epoch, false);
+	const categories = { ...stored.choice?.categories };
+	for (const [category, decision] of Object.entries(choice?.categories ?? {})) {
+		const key = category as keyof typeof categories;
+		categories[key] = laterOf(
+			categories[key] ?? null,
+			decision,
+			(made) => made.confirmedAt
+		) as (typeof categories)[typeof key];
+	}
+	return {
+		...stored,
+		choice:
+			Object.keys(categories).length > 0 ? { categories, version: 3 } : null,
+		noticeDismissal: laterOf(
+			stored.noticeDismissal ?? null,
+			noticeSinceEpoch(queued.noticeDismissal, epoch),
+			(made) => made.dismissedAt
+		),
+		vendorChoice: laterOf(
+			stored.vendorChoice ?? null,
+			vendorChoiceSinceEpoch(queued.vendorChoice, epoch),
+			(made) => made.confirmedAt
+		),
+	};
 };
 
 /**
@@ -522,8 +572,8 @@ export const mountPersistence = function mountPersistence(
 	 * seeded decision from the clearing millisecond is kept: the seed does
 	 * not say whether its writer had seen the clear. Seeded decisions that
 	 * outlive the clear stay the seed, so a stored grant still cannot
-	 * replace them. Another handle's queue from before the clear is left
-	 * out, and storage is read alone. The seeded subject keeps its ID alone, as after any
+	 * replace them. From another handle's queue that missed the clear, only
+	 * records made since count. The seeded subject keeps its ID alone, as after any
 	 * clear.
 	 *
 	 * The read also becomes what the writer starts from: the kernel's
@@ -541,7 +591,7 @@ export const mountPersistence = function mountPersistence(
 			const queued = queuedWrites.get(consentKey)?.getSnapshot();
 			const records =
 				queued && queueMissedClear(queued, read.epoch)
-					? read.records
+					? queuedSinceClear(read.records, queued, read.epoch)
 					: withQueued(read.records);
 			const snapshot = kernel.getSnapshot();
 			const patch: HydrationRecords = {};

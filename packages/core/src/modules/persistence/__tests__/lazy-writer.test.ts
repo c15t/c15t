@@ -1326,6 +1326,27 @@ describe('a seeded page beside a queue from before a clear in another tab', () =
 		queuedHandle.dispose();
 	});
 
+	test('keeps a queued decision made after the clear', async () => {
+		const { queuedHandle, seed } = await queueThenClear();
+		const queued = queuedWrites.get(STORAGE_KEY_V2);
+		vi.setSystemTime(NOW + 1200);
+		queued?.commands.save({ measurement: false }).catch(() => undefined);
+
+		const { handle, kernel } = mountSeeded({
+			initialRecords: seed,
+			now: Date.now(),
+		});
+
+		const categories = kernel.getSnapshot().explicitChoice?.categories;
+		expect(categories?.measurement).toMatchObject({
+			confirmedAt: NOW + 1200,
+			value: false,
+		});
+		expect(categories?.marketing).toBeUndefined();
+		handle.dispose();
+		queuedHandle.dispose();
+	});
+
 	test('does not take the queued subject or its linked identity', async () => {
 		const { queuedHandle, seed } = await queueThenClear();
 
