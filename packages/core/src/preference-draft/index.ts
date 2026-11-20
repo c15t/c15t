@@ -55,9 +55,9 @@ type Grants = Record<string, boolean>;
 export interface PreferenceDraftState {
 	/**
 	 * The value each category shows: a staged edit, else the recorded
-	 * choice, else the presentation default, else the policy default.
-	 * `necessary` is always `true`; a category outside the displayed ones is
-	 * `false`.
+	 * choice, else `false` when a restriction such as GPC denies it, else
+	 * the presentation default, else the policy default. `necessary` is
+	 * always `true`; a category outside the displayed ones is `false`.
 	 */
 	readonly values: Readonly<ConsentState>;
 	/**
@@ -209,8 +209,9 @@ const vendorSurface = function vendorSurface(
 
 /**
  * What a category shows before the visitor moves it: the recorded choice,
- * else the presentation default, else the policy default. `necessary` is
- * always on and a category outside the choice scope is off.
+ * else `false` when a restriction such as GPC denies it, else the
+ * presentation default, else the policy default. `necessary` is always on
+ * and a category outside the choice scope is off.
  */
 const recordedValues = function recordedValues(
 	snapshot: ConsentSnapshot,
@@ -228,11 +229,17 @@ const recordedValues = function recordedValues(
 	};
 	for (const category of scope) {
 		if (category !== 'necessary') {
-			values[category] =
-				recorded?.[category]?.value ??
-				defaults?.[category] ??
-				(rule.model === 'opt-out' ||
-					rule.preselectedCategories.includes(category));
+			const decision = recorded?.[category];
+			if (decision !== undefined) {
+				values[category] = decision.value;
+			} else if ((snapshot.restrictions[category]?.length ?? 0) > 0) {
+				values[category] = false;
+			} else {
+				values[category] =
+					defaults?.[category] ??
+					(rule.model === 'opt-out' ||
+						rule.preselectedCategories.includes(category));
+			}
 		}
 	}
 	return values;

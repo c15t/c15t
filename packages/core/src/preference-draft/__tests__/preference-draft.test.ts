@@ -93,6 +93,80 @@ const recorded = function recorded(kernel: ConsentKernel) {
 };
 
 describe('seeding', () => {
+	test('a category GPC denies seeds off when nothing is recorded', () => {
+		const { kernel } = setup(
+			{ initialPrivacySignals: { gpc: true } },
+			optOutRule({
+				categories: ['marketing', 'measurement'],
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			})
+		);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(createPreferenceDraft(kernel).getState().values).toMatchObject({
+			marketing: false,
+			measurement: true,
+		});
+	});
+
+	test('opt-in preselected categories and presentation defaults seed off when GPC denies them', () => {
+		const { kernel } = setup(
+			{ initialPrivacySignals: { gpc: true } },
+			optInRule({
+				categories: ['marketing', 'measurement'],
+				preselectedCategories: ['marketing'],
+				privacySignals: {
+					gpc: { denyCategories: ['marketing', 'measurement'] },
+				},
+			})
+		);
+		const draft = createPreferenceDraft(kernel, {
+			defaults: { marketing: true, measurement: true },
+		});
+		expect(draft.getState().values).toMatchObject({
+			marketing: false,
+			measurement: false,
+		});
+	});
+
+	test('a saved grant under GPC still seeds on', () => {
+		const rule = optOutRule({
+			categories: ['marketing', 'measurement'],
+			privacySignals: { gpc: { denyCategories: ['marketing'] } },
+		});
+		const resolution = matchedResolution(rule);
+		const { kernel } = setup(
+			{
+				initialPrivacySignals: { gpc: true },
+				initialRecords: choiceRecords(
+					{ marketing: true },
+					{ fingerprint: resolution.fingerprints.choice }
+				),
+			},
+			rule
+		);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(createPreferenceDraft(kernel).getState().values).toMatchObject({
+			marketing: true,
+			measurement: true,
+		});
+	});
+
+	test('saving an untouched draft under GPC records a denial for restricted categories', async () => {
+		const { kernel } = setup(
+			{ initialPrivacySignals: { gpc: true } },
+			optOutRule({
+				categories: ['marketing', 'measurement'],
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			})
+		);
+		const draft = createPreferenceDraft(kernel);
+		await draft.save();
+		expect(recorded(kernel)).toEqual({
+			marketing: false,
+			measurement: true,
+		});
+	});
+
 	test('values come from the record, then presentation defaults, then the policy', () => {
 		const { kernel } = setup(
 			{

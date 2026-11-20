@@ -103,10 +103,12 @@ group: reference
   | `save()` | `() => Promise<{ ok: boolean }>` | Records `values` and changed vendors. Resolves `{ ok: false }` without saving while `isStale` is `true`. |
   | `reset()` | `() => void` | Refills the draft from the recorded choice and the policy. |
 
-  The draft starts from the recorded choice. Before any choice, it starts
-  from the policy's defaults: on under an opt-out policy or for preselected
-  categories, otherwise off. A choice saved elsewhere updates the values the
-  visitor has not touched. `save()` does not close anything. Set `activeUI`
+  The draft starts from the recorded choice. Before any choice, a category
+  restricted by a privacy signal such as Global Privacy Control starts off so
+  saving unchanged records a denial; otherwise it starts from the policy's
+  defaults: on under an opt-out policy or for preselected categories, otherwise
+  off. A choice saved elsewhere updates the values the visitor has not touched.
+  `save()` does not close anything. Set `activeUI`
   to `null` yourself after it.
 
   ## Render the actions the policy requires

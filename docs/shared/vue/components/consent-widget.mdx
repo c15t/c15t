@@ -17,9 +17,14 @@ group: reference
 
   - Save records the switches as they are. Accept All and Reject All record a
     choice for every category the policy covers.
-  - The switches start from the visitor's recorded choice. Before any choice,
-    they start from the policy's defaults: on under an opt-out policy or for
-    preselected categories, otherwise off.
+  - The switches start from the visitor's recorded choice. Before any choice, a
+    category restricted by a privacy signal such as Global Privacy Control
+    starts off so saving unchanged records a denial; otherwise switches start
+    from the policy's defaults: on under an opt-out policy or for preselected
+    categories, otherwise off.
+  - A saved grant overridden by the current policy or Global Privacy Control
+    keeps its switch on and shows a notice below the row explaining the
+    restriction.
   - A choice saved elsewhere, such as in the banner, updates switches the
     visitor has not touched and keeps the ones they moved.
   - If the policy changes, the widget shows "Privacy choices have changed."

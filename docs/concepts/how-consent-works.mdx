@@ -94,8 +94,12 @@ refusals in place.
 
 GPC is a browser setting that asks sites not to sell or share data. c15t reads
 it live on every evaluation and applies the restrictions your policy configures
-for it. It never becomes a stored refusal: when the browser stops sending GPC,
-the restriction ends. The backend also sees the current value.
+for it. Reading GPC alone never creates a stored refusal: when the browser
+stops sending GPC, the restriction ends. In the preference dialog, a category
+restricted by GPC with no saved choice starts off, so clicking Save records a
+denial for it. If the visitor already saved a grant for that category, the
+switch stays on with a notice explaining that the current privacy settings
+restrict it. The backend also sees the current value.
 
 ## What happens when a visitor saves
 
