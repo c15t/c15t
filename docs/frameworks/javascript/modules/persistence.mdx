@@ -28,8 +28,8 @@ Every visitor gets a subject ID (`sub_…`) when the module starts. It is in
 starts.
 
 - Until the visitor acts, the ID lives in memory only. c15t stores no
-  identifier and no consent record before a choice, so a reload before the
-  first save starts with a new ID.
+  identifier and no consent record before then, so a reload before the
+  first stored record starts with a new ID.
 - The first save, whether a choice, a vendor decision or a notice
   acknowledgement, stores the ID with that record. Later page loads read it
   from there, and so does your server, from the record cookies.

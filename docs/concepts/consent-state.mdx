@@ -65,13 +65,15 @@ categories your vendor list leaves denied.
 
 ## The subject ID
 
-Every visitor gets a subject ID (`sub_…`). It is in
-`snapshot.subject.subjectId` from the first snapshot.
+Every visitor gets a subject ID (`sub_…`). In the browser it is in
+`snapshot.subject.subjectId` from the first snapshot. A server render of a
+first-time visitor has no subject.
 
 - Until the visitor acts, the ID lives in memory only. c15t stores no
-  identifier and no consent record before a choice, so a reload before the
-  first save starts with a new ID.
-- The first save stores the ID with the record it writes. From then on it
+  identifier and no consent record before then, so a reload before the
+  first stored record starts with a new ID.
+- The first record stores the ID with it, whether a choice, a vendor
+  decision or a notice acknowledgement. From then on it
   stays the same across reloads, and a server render reads it from the
   record cookies.
 - Clearing choices keeps the ID in memory for the rest of the page. Revoking

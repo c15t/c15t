@@ -57,7 +57,7 @@ middleware also keeps the values for that request, and the c15t helpers read
 them from there first, so they still see the location. Pass
 `normalizeHeaders: false` to leave the request headers untouched.
 
-## Keep visitor pages out of shared caches
+## The subject ID
 
 The middleware sets no cookie. The visitor's subject ID (`sub_…`) lives in
 the consent records their first save writes, and `resolveConsent` reads it
@@ -71,6 +71,8 @@ browser also held the visitor's records in localStorage, c15t started with
 the original ID. When the request's cookies were the only copy, such as a
 record an older or external writer left there, the browser took the changed
 ID and saved it.
+
+## Keep visitor pages out of shared caches
 
 A shared cache may keep any response whose `Cache-Control` doesn't say
 `private` or `no-store`. `private="Set-Cookie"` doesn't count: it only keeps
