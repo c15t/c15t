@@ -90,8 +90,8 @@ export const useConsentIabSelection =
  * `'all'` and `'none'` go through the mounted CMP handle's `acceptAll()` /
  * `rejectAll()`, the same blanket React and Svelte apply, so every adapter
  * records the same purposes, vendors and special features. Without a
- * mounted handle there is no CMP to encode a TC string, so a blanket
- * records nothing.
+ * mounted handle there is no CMP to encode a TC string, so nothing is
+ * recorded.
  *
  * @returns A function that waits for the vendor list, applies `input` and
  * saves. It rejects when the list fails to load or the runtime's CMP handle
@@ -113,10 +113,10 @@ export const useConsentIabSave = function useConsentIabSave() {
 			);
 		}
 
+		if (!controls) {
+			return;
+		}
 		if (input === 'all' || input === 'none') {
-			if (!controls) {
-				return;
-			}
 			if (tab) {
 				setVueRefValue(preferenceTab, tab);
 			}
@@ -136,10 +136,6 @@ export const useConsentIabSave = function useConsentIabSave() {
 			...input,
 			preferenceCenterTab: tab ?? input.preferenceCenterTab,
 		});
-		if (controls) {
-			await controls.save();
-		} else {
-			await kernel.commands.save();
-		}
+		await controls.save();
 	};
 };
