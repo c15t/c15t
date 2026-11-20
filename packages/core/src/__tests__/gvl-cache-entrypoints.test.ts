@@ -60,6 +60,60 @@ describe.each([
 		await cache.fetchCachedGvl({ fetch, language: 'en', now: 86_400_000, url });
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
+	test('serves the stale list when a refresh throws, then backs off', async () => {
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockImplementationOnce(() =>
+				Promise.resolve(response({ 'cache-control': 'max-age=60' }))
+			)
+			.mockImplementation(() => Promise.reject(new TypeError('offline')));
+		await cache.fetchCachedGvl({ fetch, language: 'en', now: 0, url });
+		await expect(
+			cache.fetchCachedGvl({ fetch, language: 'en', now: 61_000, url })
+		).resolves.toEqual({ vendorListVersion: 1 });
+		await cache.fetchCachedGvl({ fetch, language: 'en', now: 62_000, url });
+		expect(fetch).toHaveBeenCalledTimes(2);
+		await cache.fetchCachedGvl({ fetch, language: 'en', now: 121_000, url });
+		expect(fetch).toHaveBeenCalledTimes(3);
+	});
+	test('backs off after a non-2xx refresh failure while serving the stale list', async () => {
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockImplementationOnce(() =>
+				Promise.resolve(response({ 'cache-control': 'max-age=60' }))
+			)
+			.mockImplementation(() =>
+				Promise.resolve(new Response('error', { status: 500 }))
+			);
+		await cache.fetchCachedGvl({ fetch, language: 'en', now: 0, url });
+		for (const now of [61_000, 62_000, 120_999]) {
+			// oxlint-disable-next-line no-await-in-loop -- Each call reads the previous backoff.
+			await expect(
+				cache.fetchCachedGvl({ fetch, language: 'en', now, url })
+			).resolves.toEqual({ vendorListVersion: 1 });
+		}
+		expect(fetch).toHaveBeenCalledTimes(2);
+		await expect(
+			cache.fetchCachedGvl({ fetch, language: 'en', now: 121_000, url })
+		).resolves.toEqual({ vendorListVersion: 1 });
+		expect(fetch).toHaveBeenCalledTimes(3);
+	});
+	test('asks a failing endpoint with nothing cached once per backoff', async () => {
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockImplementation(() => Promise.reject(new TypeError('offline')));
+		for (const now of [0, 59_999]) {
+			// oxlint-disable-next-line no-await-in-loop -- Each call reads the previous failure.
+			await expect(
+				cache.fetchCachedGvl({ fetch, language: 'en', now, url })
+			).rejects.toThrow('offline');
+		}
+		expect(fetch).toHaveBeenCalledTimes(1);
+		await expect(
+			cache.fetchCachedGvl({ fetch, language: 'en', now: 60_000, url })
+		).rejects.toThrow('offline');
+		expect(fetch).toHaveBeenCalledTimes(2);
+	});
 	test('a pending fill cannot repopulate a cleared cache', async () => {
 		let finish!: (response: Response) => void;
 		const fetch = vi
