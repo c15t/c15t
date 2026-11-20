@@ -1347,6 +1347,40 @@ describe('a seeded page beside a queue from before a clear in another tab', () =
 		queuedHandle.dispose();
 	});
 
+	test('lets the stored record win a tie with a queued one', async () => {
+		const { queuedHandle, seed, stored } = await queueThenClear();
+		const granted = stored?.choice.categories.marketing;
+		if (!(stored && granted)) {
+			throw new Error('Expected a stored grant');
+		}
+		vi.setSystemTime(NOW + 1200);
+		queuedWrites
+			.get(STORAGE_KEY_V2)
+			?.commands.save({ marketing: true })
+			.catch(() => undefined);
+		writeStoredConsentEnvelope(
+			{
+				categories: {
+					marketing: { ...granted, confirmedAt: NOW + 1200, value: false },
+				},
+				subject: stored.subject ?? undefined,
+				version: 3,
+			},
+			{ now: NOW + 1200 }
+		);
+
+		const { handle, kernel } = mountSeeded({
+			initialRecords: seed,
+			now: Date.now(),
+		});
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+		).toBe(false);
+		handle.dispose();
+		queuedHandle.dispose();
+	});
+
 	test('does not take the queued subject or its linked identity', async () => {
 		const { queuedHandle, seed } = await queueThenClear();
 

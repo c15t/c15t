@@ -155,7 +155,10 @@ const queueMissedClear = function queueMissedClear(
 	].includes(true);
 };
 
-/** The record made later, or the one that exists. */
+/**
+ * The record made later, or the one that exists. The stored record wins a
+ * tie, as it does when the writer reconciles.
+ */
 const laterOf = function laterOf<RecordType>(
 	stored: RecordType | null,
 	queued: RecordType | null,
@@ -164,7 +167,7 @@ const laterOf = function laterOf<RecordType>(
 	if (!(stored && queued)) {
 		return queued ?? stored;
 	}
-	return madeAt(queued) >= madeAt(stored) ? queued : stored;
+	return madeAt(queued) > madeAt(stored) ? queued : stored;
 };
 
 /**
