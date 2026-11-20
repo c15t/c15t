@@ -1,21 +1,19 @@
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
 	extractConsentRequestInputs,
+	SPECULATION_HEADERS,
 } from '@c15t/schema/types';
 
 const REACT_EXTRA_HEADERS = [
 	'x-c15t-version',
 	'user-agent',
 	'x-forwarded-for',
-	'purpose',
-	'sec-purpose',
-	'next-router-prefetch',
-	'x-middleware-prefetch',
 ] as const;
 
 const FORWARDED_HEADERS = [
 	...CONSENT_REQUEST_HEADER_NAMES,
 	...REACT_EXTRA_HEADERS,
+	...SPECULATION_HEADERS,
 ] as const;
 
 /**
@@ -46,7 +44,7 @@ type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
  * - Country headers (cf-ipcountry, x-vercel-ip-country, etc.)
  * - Region headers (x-vercel-ip-country-region, x-region-code)
  * - Standard headers (accept-language, user-agent, x-forwarded-for)
- * - Prefetch headers (purpose, sec-purpose, next-router-prefetch, x-middleware-prefetch)
+ * - Prefetch headers (sec-purpose, purpose, x-purpose, x-moz, next-router-prefetch, x-middleware-prefetch)
  *
  * @param headersList - The Headers object from the incoming request
  * @param options - `trustForwardedHeaders` also copies `forwarded`,
