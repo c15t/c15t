@@ -33,6 +33,23 @@
 	const hasConsent = $derived(
 		consent.state.effectivePermissions[category] ?? false
 	);
+	// Under a strict policy that leaves the category out, no choice can
+	// allow the content, so the placeholder says so and offers no button.
+	const policyBlocked = $derived.by(() => {
+		const { scope, scopeMode } = consent.snapshot.policyRule;
+		return (
+			scopeMode === 'strict' &&
+			category !== 'necessary' &&
+			// A normalized scope lists categories; a raw wildcard covers them all.
+			!(scope as readonly string[]).includes('*') &&
+			!scope.includes(category)
+		);
+	});
+
+	// The preferences the button opens list this category.
+	$effect(() => {
+		consent.kernel.set.registerConsentCategories([category]);
+	});
 
 	const translations = $derived(
 		resolveTranslations(
@@ -48,6 +65,10 @@
 			'{category}',
 			translations.consentTypes?.[category]?.title ?? (category as string)
 		)
+	);
+	const policyBlockedMessage = $derived(
+		translations.consentGate?.policyBlocked ??
+			"This content is unavailable under your region's consent policy."
 	);
 	const gateActionButton = $derived(
 		(
@@ -133,20 +154,22 @@
 				style={toStyleAttribute(titleStyle.style)}
 				data-testid="consent-gate-title"
 			>
-				{gateTitle}
+				{policyBlocked ? policyBlockedMessage : gateTitle}
 			</div>
-			<ConsentButton
-				action="open-consent-dialog"
-				variant="primary"
-				mode="stroke"
-				size="small"
-				{noStyle}
-				class={buttonStyle.className}
-				style={buttonStyleAttribute}
-				data-testid="consent-gate-button"
-			>
-				{gateActionButton}
-			</ConsentButton>
+			{#if !policyBlocked}
+				<ConsentButton
+					action="open-consent-dialog"
+					variant="primary"
+					mode="stroke"
+					size="small"
+					{noStyle}
+					class={buttonStyle.className}
+					style={buttonStyleAttribute}
+					data-testid="consent-gate-button"
+				>
+					{gateActionButton}
+				</ConsentButton>
+			{/if}
 		</div>
 	{/if}
 </div>
