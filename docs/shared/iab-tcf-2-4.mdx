@@ -36,6 +36,14 @@ the same links from `resolveIABVendorUrls(vendor, language)` in
 vendors `processGVLForDialog` returns when you pass it `language`. Vendor lists
 older than GVL v3 have a single `policyUrl` field, which c15t still reads.
 
+c15t shows a vendor link only when it is an absolute `http:` or `https:` URL
+with a host. It drops any other link, such as another scheme, a relative path
+or a protocol-relative URL. The privacy policy then becomes `''`, the
+legitimate interest and storage disclosure links become `null`, and the stock
+vendor lists show no link. This applies to GVL links and to `privacyPolicyUrl`
+on custom vendors. A custom UI can check other links with
+`resolveIABSafeUrl(url)` from `@c15t/iab/headless`.
+
 ## Legal bases for custom vendors
 
 A custom vendor in `customVendors` declares its own legal bases: `purposes`

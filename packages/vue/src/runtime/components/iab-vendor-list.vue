@@ -2,6 +2,7 @@
 import type { AdTechProvider } from '@c15t/core';
 import {
 	permittedLegitimateInterestPurposes,
+	resolveIABSafeUrl,
 	resolveIABVendorUrls,
 } from '@c15t/iab/headless';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
@@ -68,7 +69,7 @@ const customVendorItems = computed(() =>
 		id: vendor.id,
 		isCustom: true,
 		name: vendor.name,
-		policyUrl: vendor.privacyPolicyUrl,
+		policyUrl: resolveIABSafeUrl(vendor.privacyPolicyUrl) ?? '',
 		usesConsent: (vendor.purposes?.length ?? 0) > 0,
 		usesLegitimateInterest:
 			permittedLegitimateInterestPurposes(vendor.legIntPurposes).length > 0,

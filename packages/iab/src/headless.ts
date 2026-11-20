@@ -40,6 +40,7 @@ export {
 } from './headless/dialog-data';
 export {
 	type IABVendorUrls,
+	resolveIABSafeUrl,
 	resolveIABVendorUrls,
 } from './headless/vendor-urls';
 export type {

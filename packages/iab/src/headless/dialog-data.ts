@@ -29,7 +29,7 @@ import type {
 	HeadlessIABProcessedVendor,
 	HeadlessIABStateInput,
 } from './types';
-import { resolveIABVendorUrls } from './vendor-urls';
+import { resolveIABSafeUrl, resolveIABVendorUrls } from './vendor-urls';
 
 const STANDALONE_PURPOSE_ID = 1;
 
@@ -80,7 +80,9 @@ const mapGvlVendor = function mapGvlVendor(
 		cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 		cookieRefresh: vendor.cookieRefresh,
 		dataRetention: vendor.dataRetention,
-		deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+		deviceStorageDisclosureUrl: resolveIABSafeUrl(
+			vendor.deviceStorageDisclosureUrl
+		),
 		features: vendor.features || [],
 		id: Number(vendorId),
 		isCustom: false,
@@ -114,7 +116,7 @@ const mapCustomVendor = function mapCustomVendor(
 		legIntPurposes: vendor.legIntPurposes || [],
 		legitimateInterestUrl: null,
 		name: vendor.name,
-		policyUrl: vendor.privacyPolicyUrl,
+		policyUrl: resolveIABSafeUrl(vendor.privacyPolicyUrl) ?? '',
 		purposes: vendor.purposes || [],
 		specialFeatures: vendor.specialFeatures || [],
 		specialPurposes: [],

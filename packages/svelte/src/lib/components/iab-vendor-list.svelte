@@ -2,6 +2,7 @@
 	import type { AdTechProvider, GlobalVendorList } from '@c15t/core';
 	import {
 		permittedLegitimateInterestPurposes,
+		resolveIABSafeUrl,
 		resolveIABVendorUrls,
 	} from '@c15t/iab/headless';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
@@ -85,7 +86,9 @@
 				(vendor as unknown as { dataDeclaration?: number[] }).dataDeclaration ||
 				[],
 			dataRetention: vendor.dataRetention,
-			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+			deviceStorageDisclosureUrl: resolveIABSafeUrl(
+				vendor.deviceStorageDisclosureUrl
+			),
 			features: vendor.features || [],
 			id: Number(id),
 			isCustom: false,
@@ -114,7 +117,7 @@
 			legIntPurposes: permittedLegitimateInterestPurposes(cv.legIntPurposes),
 			legitimateInterestUrl: null,
 			name: cv.name,
-			policyUrl: cv.privacyPolicyUrl,
+			policyUrl: resolveIABSafeUrl(cv.privacyPolicyUrl) ?? '',
 			purposes: cv.purposes || [],
 			specialFeatures: cv.specialFeatures || [],
 			specialPurposes: [],
@@ -454,17 +457,19 @@
 						>
 							<!-- Links -->
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
-								<a
-									href={vendor.policyUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									class={noStyle ? '' : styles.vendorLink || ''}
-								>
-									<ExternalLinkIcon
-										class={noStyle ? '' : styles.vendorLinkIcon || ''}
-									/>
-									{iabT.preferenceCenter.vendorList.privacyPolicy}
-								</a>
+								{#if vendor.policyUrl}
+									<a
+										href={vendor.policyUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class={noStyle ? '' : styles.vendorLink || ''}
+									>
+										<ExternalLinkIcon
+											class={noStyle ? '' : styles.vendorLinkIcon || ''}
+										/>
+										{iabT.preferenceCenter.vendorList.privacyPolicy}
+									</a>
+								{/if}
 								{#if vendor.legitimateInterestUrl}
 									<a
 										href={vendor.legitimateInterestUrl}
@@ -795,17 +800,19 @@
 							{noStyle}
 						>
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
-								<a
-									href={vendor.policyUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									class={noStyle ? '' : styles.vendorLink || ''}
-								>
-									<ExternalLinkIcon
-										class={noStyle ? '' : styles.vendorLinkIcon || ''}
-									/>
-									{iabT.preferenceCenter.vendorList.privacyPolicy}
-								</a>
+								{#if vendor.policyUrl}
+									<a
+										href={vendor.policyUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class={noStyle ? '' : styles.vendorLink || ''}
+									>
+										<ExternalLinkIcon
+											class={noStyle ? '' : styles.vendorLinkIcon || ''}
+										/>
+										{iabT.preferenceCenter.vendorList.privacyPolicy}
+									</a>
+								{/if}
 							</div>
 
 							<div class={noStyle ? '' : styles.vendorBadges || ''}>

@@ -298,6 +298,65 @@ describe('IAB preference item interactions', () => {
 			'https://indexexchange.com/privacy'
 		);
 	});
+
+	test('shows no link for a vendor URL that is not absolute http(s)', async () => {
+		const gvl = {
+			...mockGVL,
+			vendors: {
+				...mockGVL.vendors,
+				10: {
+					...mockGVL.vendors[10],
+					deviceStorageDisclosureUrl: 'data:text/html,hi',
+					urls: [
+						{
+							langId: 'en',
+							legIntClaim: '//evil.test',
+							// oxlint-disable-next-line no-script-url -- Unsafe vendor URLs exercise the link filter.
+							privacy: 'javascript:alert(1)',
+						},
+					],
+				},
+			},
+		};
+		render(
+			<ConsentProvider
+				options={{
+					...defaultIABOptions,
+					iab: { ...defaultIABOptions.iab, gvl },
+				}}
+			>
+				<IABConsentDialog open />
+			</ConsentProvider>
+		);
+		const vendorsTab = await vi.waitFor(() =>
+			getDefined(
+				Array.from(
+					document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+				).find((button) => button.textContent?.toLowerCase().includes('vendor'))
+			)
+		);
+		await userEvent.click(vendorsTab);
+		const vendorRow = await vi.waitFor(() =>
+			getDefined(
+				Array.from(
+					document.querySelectorAll<HTMLElement>('[id^="vendor-"]')
+				).find((element) => element.textContent?.includes('Index Exchange'))
+			)
+		);
+
+		await userEvent.click(
+			getDefined(
+				vendorRow.querySelector<HTMLElement>(
+					'[data-slot="preference-item-trigger"]'
+				)
+			)
+		);
+
+		await vi.waitFor(() =>
+			expect(vendorRow.textContent).toContain('Uses Cookies')
+		);
+		expect(vendorRow.querySelectorAll('a')).toHaveLength(0);
+	});
 });
 
 describe('IAB vendors tab with publisher restrictions', () => {

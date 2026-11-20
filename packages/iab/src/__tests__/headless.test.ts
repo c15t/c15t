@@ -65,6 +65,36 @@ describe('@c15t/iab headless dialog data', () => {
 		});
 	});
 
+	test.each([
+		// oxlint-disable-next-line no-script-url -- Unsafe vendor URLs exercise the link filter.
+		'javascript:alert(1)',
+		'data:text/html,hi',
+		'https://',
+		'/privacy',
+		'//evil.test',
+	])('omits the unsafe vendor link %s', (unsafe) => {
+		const [id, gvlVendor] = Object.entries(completeGVL.vendors)[0] ?? [];
+		if (!(id && gvlVendor)) {
+			throw new Error('fixture has no vendors');
+		}
+		const data = processGVLForDialog({
+			customVendors: [{ ...customVendor, privacyPolicyUrl: unsafe }],
+			gvl: {
+				...completeGVL,
+				vendors: {
+					[id]: { ...gvlVendor, deviceStorageDisclosureUrl: unsafe },
+				},
+			},
+		});
+		const vendors = data.purposes.flatMap((purpose) => purpose.vendors);
+
+		expect(vendors.find((vendor) => vendor.isCustom)?.policyUrl).toBe('');
+		expect(
+			vendors.find((vendor) => vendor.id === Number(id))
+				?.deviceStorageDisclosureUrl
+		).toBeNull();
+	});
+
 	test('never offers legitimate interest on consent-only purposes', () => {
 		const data = processGVLForDialog({
 			customVendors: [
