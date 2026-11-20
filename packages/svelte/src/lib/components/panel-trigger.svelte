@@ -26,8 +26,8 @@
 	import { FIRST_PAINT_SHEETS } from '../surface-styles';
 	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
-	import ConsentIconOnly from './icons/consent-icon-only.svelte';
 	import DevToolsIcon from './icons/dev-tools-icon.svelte';
+	import InthLogo from './icons/inth-logo.svelte';
 	import SurfaceStyles from './surface-styles.svelte';
 
 	type TriggerVisibility = 'always' | 'never';
@@ -408,8 +408,8 @@
 </script>
 
 {#snippet brandingIcon()}
-	{#if branding === 'consent'}
-		<ConsentIconOnly />
+	{#if branding === 'inth' || branding === 'consent'}
+		<InthLogo titleId="inth-icon" />
 	{:else}
 		<C15TIconOnly />
 	{/if}

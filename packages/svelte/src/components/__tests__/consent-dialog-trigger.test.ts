@@ -5,10 +5,14 @@
  * and aria attributes.
  */
 
+import { custom } from '@c15t/core';
+import type { KernelBranding } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
+import PanelTriggerFixture from '../../__tests__/fixtures/panel-trigger-fixture.svelte';
+import { policyFixture } from '../../__tests__/policy-fixture';
 import { testOffline } from '../../__tests__/test-offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
@@ -285,4 +289,34 @@ describe('ConsentDialogTrigger', () => {
 			expect(trigger?.getAttribute('aria-label')).toBe('Open privacy settings');
 		});
 	});
+
+	test.each([
+		['inth', '0 0 88 90'],
+		['consent', '0 0 88 90'],
+		['c15t', '0 0 446 445'],
+		['none', '0 0 446 445'],
+	] as const)(
+		'renders the expected brand mark SVG for branding "%s"',
+		async (branding, expectedViewBox) => {
+			render(PanelTriggerFixture, {
+				options: {
+					mode: custom({}),
+					persistence: false,
+					prefetch: {
+						...policyFixture(),
+						initialBranding: branding as KernelBranding,
+					},
+				} as ConsentManagerOptions,
+				showWhen: 'always',
+			});
+
+			await waitFor(() => {
+				const svg = document.querySelector(
+					'[data-testid="consent-dialog-trigger"] svg'
+				);
+				expect(svg).not.toBeNull();
+				expect(svg?.getAttribute('viewBox')).toBe(expectedViewBox);
+			});
+		}
+	);
 });
