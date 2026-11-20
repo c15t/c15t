@@ -33,7 +33,10 @@ export interface BrandingParams {
 
 const resolveBranding = function resolveBranding(
 	value: ConsentSnapshot['branding']
-): 'c15t' | 'inth' {
+): 'c15t' | 'inth' | 'none' {
+	if (value === 'none') {
+		return 'none';
+	}
 	return value === 'inth' || value === 'consent' ? 'inth' : 'c15t';
 };
 
@@ -62,10 +65,10 @@ export const createBrandMark = function createBrandMark(
 export const renderBranding = function renderBranding(
 	params: BrandingParams
 ): HTMLElement | null {
-	if (params.hide) {
+	const resolved = resolveBranding(params.branding);
+	if (params.hide || resolved === 'none') {
 		return null;
 	}
-	const resolved = resolveBranding(params.branding);
 	const styles = classes.branding;
 	const refParam =
 		typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;

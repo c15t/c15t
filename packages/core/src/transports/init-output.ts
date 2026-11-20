@@ -18,7 +18,6 @@ import type {
 import { resolveVendors, withoutManifestVendors } from '../libs/vendors';
 import type {
 	InitResponse,
-	KernelBranding,
 	KernelConfig,
 	KernelIABState,
 	KernelOverrides,
@@ -57,12 +56,6 @@ const FAILED_UNSUPPORTED_CONTRACT: PolicyResolution = {
 	policy: null,
 	reason: 'unsupported-contract',
 	status: 'failed',
-};
-
-const mapBranding = function mapBranding(
-	branding: InitOutput['branding']
-): KernelBranding | undefined {
-	return branding === 'none' ? undefined : branding;
 };
 
 const mapResolvedOverrides = function mapResolvedOverrides(
@@ -154,9 +147,8 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (privacySignals) {
 		mapped.resolvedPrivacySignals = privacySignals;
 	}
-	const branding = mapBranding(payload.branding);
-	if (branding !== undefined) {
-		mapped.branding = branding;
+	if (payload.branding !== undefined) {
+		mapped.branding = payload.branding;
 	}
 	if (payload.hosting !== undefined) {
 		mapped.hosting = payload.hosting;
@@ -244,10 +236,7 @@ export const mergeInitResponseIntoKernelConfig =
 		if (response.translations !== undefined) {
 			merged.initialTranslations = response.translations;
 		}
-		if (
-			response.branding !== undefined &&
-			(response.branding as KernelBranding | 'none') !== 'none'
-		) {
+		if (response.branding !== undefined) {
 			merged.initialBranding = response.branding;
 		}
 		if (response.hosting !== undefined) {
