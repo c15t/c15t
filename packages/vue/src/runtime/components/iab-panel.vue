@@ -26,6 +26,7 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
+import { useIabPreferenceTab } from '../composables/iab-preference-tab';
 import {
 	useConsentKernel,
 	useConsentKernelContext,
@@ -65,6 +66,7 @@ const config = useConsentConfig();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
+const preferenceTab = useIabPreferenceTab();
 const kernel = useConsentKernel();
 const saveIab = useConsentIabSave();
 // The dialog closes in the click task; see `saveIABConsentSurface`.
@@ -322,9 +324,9 @@ watch(
 );
 
 // The tabs primitive owns `activeTab`; this mirrors it back into the
-// shared selection so a reopened dialog lands where the visitor left it.
+// shared tab so a reopened dialog lands where the visitor left it.
 watch(activeTab, (tab) => {
-	iabSelection.value.preferenceCenterTab = tab;
+	preferenceTab.value = tab;
 });
 
 const closeDialog = function closeDialog() {

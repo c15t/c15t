@@ -2,8 +2,7 @@ import { getIABControls } from '@c15t/core';
 import { computed } from 'vue';
 import type { Ref } from 'vue';
 
-import { useState as createVueState } from '#imports';
-
+import { useIabPreferenceTab } from './iab-preference-tab';
 // Imported from the sibling module (not `#imports`) to avoid a circular
 // evaluation through the plain-Vue `#imports` shim, which re-exports this
 // file: `iabSelection -> #imports -> composables/index -> iabSelection`.
@@ -37,15 +36,6 @@ export const createDefaultIabSelection =
 			vendorConsents: {},
 			vendorLegitimateInterests: {},
 		};
-	};
-
-/** The preference centre tab, shared by every IAB surface on the page. */
-const useIabPreferenceTab =
-	function useIabPreferenceTab(): Ref<IabPreferenceTab> {
-		return createVueState<IabPreferenceTab>(
-			'c15t:iab-preference-tab',
-			() => 'purposes'
-		);
 	};
 
 export const useConsentIabStore = function useConsentIabStore() {
