@@ -125,7 +125,7 @@ visitor acts, and `pagehide` runs any write still waiting.
 | --- | --- | --- |
 | `storageKey` | `'c15t'` | The cookie and localStorage name. Other records use it as a prefix. |
 | `crossSubdomain` | `false` | Set the cookie on the root domain, so `www.example.com` and `shop.example.com` share it. |
-| `defaultDomain` | current host | An explicit cookie domain, such as `'.example.com'`. Wins over `crossSubdomain`. |
+| `defaultDomain` | current host | An explicit cookie domain, such as `'.example.com'`. Ignored when `crossSubdomain` is `true`. |
 | `defaultExpiryDays` | `365` | Cookie lifetime in days. The policy's own validity still decides when a choice expires. |
 
 Use the same `storageConfig` on every site that shares the cookie. Pass it to

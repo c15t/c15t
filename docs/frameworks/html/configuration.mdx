@@ -92,11 +92,11 @@ on the current host, for 365 days. To share one choice between
 </script>
 ```
 
-`crossSubdomain` sets the cookie on the root domain. `defaultDomain`, such as
-`'.example.com'`, sets it explicitly and wins over `crossSubdomain`. Use the
-same settings on every site that shares the cookie. localStorage stays per
-host, so a tab on another subdomain picks up a change when it next becomes
-visible. [Consent state](/docs/concepts/consent-state#keep-open-tabs-in-step)
+`crossSubdomain` sets the cookie on the root domain and takes precedence over
+`defaultDomain` when both are set. Set `defaultDomain` on its own, such as
+`'.example.com'`, to choose the domain explicitly. Use the same settings on
+every site that shares the cookie. localStorage stays per host, so a tab on
+another subdomain picks up a change when it next becomes visible. [Consent state](/docs/concepts/consent-state#keep-open-tabs-in-step)
 explains the rules.
 
 ## Turn consent management off
