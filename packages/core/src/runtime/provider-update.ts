@@ -173,8 +173,9 @@ type EveryOptionClassified<Missing extends never> = Missing;
 export type ProviderOptionsClassified = EveryOptionClassified<Unclassified>;
 
 /**
- * What a read-once option is compared by. Functions are not compared, so
- * a loader written inline in a render is not a change.
+ * What a read-once option is compared by. A function counts by its
+ * presence, not its identity: a loader written inline in a render is not a
+ * change, but adding or removing one is.
  */
 const readOnceValue = function readOnceValue(
 	options: ConsentRuntimeUpdate,
@@ -203,7 +204,9 @@ const readOnceValue = function readOnceValue(
 				: persistence !== false
 		);
 	}
-	return JSON.stringify(options[key]);
+	return JSON.stringify(options[key], (_name, value: unknown) =>
+		typeof value === 'function' ? 'function' : value
+	);
 };
 
 /**

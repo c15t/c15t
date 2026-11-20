@@ -641,6 +641,24 @@ describe('update()', () => {
 		}
 	);
 
+	test('a function option warns when it is added, not when it is rewritten', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			// Asserted below.
+		});
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(createTransport()),
+		};
+		const runtime = create(options);
+
+		await runtime.update({ ...options, loadGPP: () => null } as never);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('`loadGPP` is read once')
+		);
+		warn.mockClear();
+		await runtime.update({ ...options, loadGPP: () => null } as never);
+		expect(warn).not.toHaveBeenCalled();
+	});
+
 	test('storage is read once: a new storage key warns and records stay under the first', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
 			// Asserted below.
