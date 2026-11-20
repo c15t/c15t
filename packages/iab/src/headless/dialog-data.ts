@@ -16,7 +16,10 @@ import type {
 } from '@c15t/core';
 import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
 
-import { applyPublisherRestrictionsToGVL } from './effective-vendor-list';
+import {
+	applyPublisherRestrictionsToGVL,
+	permittedLegitimateInterestPurposes,
+} from './effective-vendor-list';
 import type {
 	HeadlessIABDialogData,
 	HeadlessIABProcessedFeature,
@@ -44,10 +47,23 @@ const EMPTY_DIALOG_DATA: HeadlessIABDialogData = {
 
 type GvlVendor = GlobalVendorList['vendors'][number];
 
+/**
+ * Custom vendors with only the legitimate interest purposes TCF permits,
+ * so the dialog never offers an objection on a consent-only purpose.
+ */
 const getCustomVendors = function getCustomVendors(
 	iab: HeadlessIABStateInput
 ): NonIABVendor[] {
-	return iab.nonIABVendors ?? iab.customVendors ?? [];
+	return (iab.nonIABVendors ?? iab.customVendors ?? []).map((vendor) =>
+		vendor.legIntPurposes
+			? {
+					...vendor,
+					legIntPurposes: permittedLegitimateInterestPurposes(
+						vendor.legIntPurposes
+					),
+				}
+			: vendor
+	);
 };
 
 const mapGvlVendor = function mapGvlVendor(

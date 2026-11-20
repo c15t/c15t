@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { AdTechProvider, GlobalVendorList } from '@c15t/core';
-	import { resolveIABVendorUrls } from '@c15t/iab/headless';
+	import {
+		permittedLegitimateInterestPurposes,
+		resolveIABVendorUrls,
+	} from '@c15t/iab/headless';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import switchStyles from '@c15t/ui/styles/components/switch';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
@@ -108,7 +111,7 @@
 			features: cv.features || [],
 			id: cv.id,
 			isCustom: true,
-			legIntPurposes: cv.legIntPurposes || [],
+			legIntPurposes: permittedLegitimateInterestPurposes(cv.legIntPurposes),
 			legitimateInterestUrl: null,
 			name: cv.name,
 			policyUrl: cv.privacyPolicyUrl,

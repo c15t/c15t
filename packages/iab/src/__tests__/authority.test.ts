@@ -132,6 +132,76 @@ test('validates actual TC and rejects stale, future, malformed and mismatched re
 	);
 });
 
+test('__tcfapi reports no legitimate interest for consent-only purposes after Accept All', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors: [
+			{
+				id: 'internal',
+				legIntPurposes: [1, 3, 4, 5, 6, 7],
+				name: 'Internal',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [2],
+			},
+		],
+		gvl: completeGVL,
+		kernel,
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady?.();
+	// IAB Europe's CMP Validator check 9 reads this listener's payload.
+	let reported: Record<number, boolean> | undefined;
+	window.__tcfapi?.('addEventListener', 2, (tcData) => {
+		const payload = tcData as {
+			purpose?: { legitimateInterests: Record<number, boolean> };
+			tcString?: string;
+		};
+		if (payload.tcString && payload.purpose) {
+			reported = payload.purpose.legitimateInterests;
+		}
+	});
+	addon.acceptAll();
+	await addon.save();
+	await vi.advanceTimersByTimeAsync(0);
+
+	expect(reported).toBeDefined();
+	expect([1, 3, 4, 5, 6].filter((id) => reported?.[id])).toEqual([]);
+	expect(reported?.[7]).toBe(true);
+});
+
+test('drops restored legitimate interest for a custom vendor with only consent-only purposes', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors: [
+			{
+				id: 'consent-only',
+				legIntPurposes: [1],
+				name: 'Consent only',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [2],
+			},
+		],
+		gvl: completeGVL,
+		kernel,
+	});
+	disposers.push(addon.dispose);
+	const tcString = await generateTCString(data, completeGVL, { cmpId: 28 });
+	// An earlier release saved this for such a vendor after Accept All.
+	const receipt = {
+		...createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW),
+		customLegitimateInterests: { 'consent-only': true },
+	};
+	const authority = await validateAuthority(
+		receipt,
+		kernel.getSnapshot(),
+		NOW,
+		[]
+	);
+	expect(authority?.vendorLegitimateInterests['consent-only']).toBe(false);
+});
+
 test('IAB draft changes do not grant; save records one category action and confirmed authority', async () => {
 	const kernel = makeKernel();
 	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });

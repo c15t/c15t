@@ -65,6 +65,29 @@ describe('@c15t/iab headless dialog data', () => {
 		});
 	});
 
+	test('never offers legitimate interest on consent-only purposes', () => {
+		const data = processGVLForDialog({
+			customVendors: [
+				{
+					id: 'consent-only-li',
+					legIntPurposes: [1, 7],
+					name: 'Custom',
+					privacyPolicyUrl: 'https://example.com/privacy',
+					purposes: [],
+				},
+			],
+			gvl: completeGVL,
+		});
+		const vendorFor = (purposeId: number) =>
+			data.purposes
+				.find((purpose) => purpose.id === purposeId)
+				?.vendors.find((vendor) => vendor.id === 'consent-only-li');
+
+		// TCF Policies Appendix A: purpose 1 allows consent only.
+		expect(vendorFor(1)).toBeUndefined();
+		expect(vendorFor(7)?.usesLegitimateInterest).toBe(true);
+	});
+
 	test('partitions legitimate-interest vendors by purpose', () => {
 		const data = processGVLForDialog({
 			customVendors: [customVendor],

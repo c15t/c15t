@@ -48,6 +48,7 @@ import {
 import {
 	applyPublisherRestrictionsToGVL,
 	introducedLegitimateInterest,
+	permittedLegitimateInterestPurposes,
 } from './headless/effective-vendor-list';
 import {
 	AD_TECH_PROVIDER_PURPOSES,
@@ -357,8 +358,10 @@ const applyBlanket = function applyBlanket(
 	for (const id of adTechProviderPurposes(readIAB(kernel).adTechProviders)) {
 		consentPurposes.add(id);
 	}
-	const legitimateInterestPurposes = declared(
-		(vendor) => vendor.legIntPurposes
+	// A custom vendor can declare legitimate interest for a purpose TCF
+	// allows only with consent. Those declarations never become signals.
+	const legitimateInterestPurposes = declared((vendor) =>
+		permittedLegitimateInterestPurposes(vendor.legIntPurposes)
 	);
 	const declaredSpecialFeatures = declared((vendor) => vendor.specialFeatures);
 	const vendorConsents: Record<string, boolean> = Object.fromEntries(
@@ -370,7 +373,8 @@ const applyBlanket = function applyBlanket(
 	const vendorLegitimateInterests: Record<string, boolean> = Object.fromEntries(
 		vendors.map((vendor) => [
 			String(vendor.id),
-			value && (vendor.legIntPurposes?.length ?? 0) > 0,
+			value &&
+				permittedLegitimateInterestPurposes(vendor.legIntPurposes).length > 0,
 		])
 	);
 	const purposeConsents: Record<number, boolean> = {};
@@ -2229,7 +2233,9 @@ export const createIAB = function createIAB(
 		},
 		setPurposeLegitimateInterest(id, value) {
 			const current = readIAB(kernel).purposeLegitimateInterests;
-			if (current[id] === value) {
+			// TCF allows purposes 1 and 3 to 6 only with consent.
+			const permitted = permittedLegitimateInterestPurposes([id]).length > 0;
+			if (current[id] === value || (value && !permitted)) {
 				return;
 			}
 			kernel.set.iab({
@@ -2257,8 +2263,15 @@ export const createIAB = function createIAB(
 		},
 		setVendorLegitimateInterest(id, value) {
 			const key = String(id);
-			const current = readIAB(kernel).vendorLegitimateInterests;
-			if (current[key] === value) {
+			const { customVendors, vendorLegitimateInterests: current } =
+				readIAB(kernel);
+			// A custom vendor's choice is stored beside the TC string, not in
+			// it, so the encoder cannot drop a basis TCF does not allow.
+			const custom = customVendors.find((vendor) => String(vendor.id) === key);
+			const permitted =
+				!custom ||
+				permittedLegitimateInterestPurposes(custom.legIntPurposes).length > 0;
+			if (current[key] === value || (value && !permitted)) {
 				return;
 			}
 			kernel.set.iab({

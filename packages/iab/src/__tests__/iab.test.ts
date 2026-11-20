@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createIAB, iab as createIABConfig } from '../index';
 import { setMockGVL } from '../tcf/fetch-gvl';
+import { completeGVL } from './fixtures/gvl-sample';
 
 const MOCK_GVL: GlobalVendorList = {
 	features: {},
@@ -212,6 +213,60 @@ describe('createIAB: mutations', () => {
 		// c15t categories should follow.
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.explicitChoice).toBeNull();
+
+		iab.dispose();
+	});
+
+	test('never sets legitimate interest on consent-only purposes', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({
+			cmpId: 28,
+			customVendors: [
+				{
+					id: 'internal',
+					legIntPurposes: [1, 3, 4, 5, 6, 7],
+					name: 'Internal',
+					privacyPolicyUrl: 'https://example.com/privacy',
+					purposes: [2],
+				},
+			],
+			gvl: completeGVL,
+			kernel,
+		});
+
+		iab.acceptAll();
+		const li = kernel.getSnapshot().iab?.purposeLegitimateInterests ?? {};
+		// TCF Policies Appendix A: purposes 1 and 3 to 6 allow consent only.
+		expect([1, 3, 4, 5, 6].filter((id) => li[id])).toEqual([]);
+		expect(li[7]).toBe(true);
+
+		iab.setPurposeLegitimateInterest(3, true);
+		expect(kernel.getSnapshot().iab?.purposeLegitimateInterests[3]).toBe(false);
+
+		iab.dispose();
+	});
+
+	test('never gives vendor legitimate interest to a custom vendor without a permitted purpose', () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({
+			cmpId: 28,
+			customVendors: [
+				{
+					id: 'consent-only',
+					legIntPurposes: [1],
+					name: 'Consent only',
+					privacyPolicyUrl: 'https://example.com/privacy',
+					purposes: [2],
+				},
+			],
+			gvl: completeGVL,
+			kernel,
+		});
+
+		iab.setVendorLegitimateInterest('consent-only', true);
+		expect(
+			kernel.getSnapshot().iab?.vendorLegitimateInterests['consent-only']
+		).not.toBe(true);
 
 		iab.dispose();
 	});

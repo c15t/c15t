@@ -16,6 +16,7 @@ export {
 	applyPublisherRestrictionsToGVL,
 	introducedLegitimateInterest,
 	type IntroducedLegitimateInterest,
+	permittedLegitimateInterestPurposes,
 } from './headless/effective-vendor-list';
 export {
 	type HeadlessIABDialogDisplayModel,

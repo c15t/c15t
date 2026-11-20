@@ -1,7 +1,10 @@
 'use client';
 
 import type { AdTechProvider, GlobalVendorList } from '@c15t/core';
-import { resolveIABVendorUrls } from '@c15t/iab/headless';
+import {
+	permittedLegitimateInterestPurposes,
+	resolveIABVendorUrls,
+} from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useEffect, useState } from 'react';
 import type { FC } from 'react';
@@ -119,7 +122,7 @@ export const VendorList: FC<VendorListProps> = ({
 		features: cv.features || [],
 		id: cv.id,
 		isCustom: true,
-		legIntPurposes: cv.legIntPurposes || [],
+		legIntPurposes: permittedLegitimateInterestPurposes(cv.legIntPurposes),
 		legitimateInterestUrl: null,
 		name: cv.name,
 		policyUrl: cv.privacyPolicyUrl,

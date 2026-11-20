@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { AdTechProvider } from '@c15t/core';
-import { resolveIABVendorUrls } from '@c15t/iab/headless';
+import {
+	permittedLegitimateInterestPurposes,
+	resolveIABVendorUrls,
+} from '@c15t/iab/headless';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
@@ -67,7 +70,8 @@ const customVendorItems = computed(() =>
 		name: vendor.name,
 		policyUrl: vendor.privacyPolicyUrl,
 		usesConsent: (vendor.purposes?.length ?? 0) > 0,
-		usesLegitimateInterest: (vendor.legIntPurposes?.length ?? 0) > 0,
+		usesLegitimateInterest:
+			permittedLegitimateInterestPurposes(vendor.legIntPurposes).length > 0,
 	}))
 );
 
