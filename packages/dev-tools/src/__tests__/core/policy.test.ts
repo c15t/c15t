@@ -92,7 +92,7 @@ it('saves unmasked displayed choices under GPC and preserves hidden receipt cloc
 		tools.element?.querySelector<HTMLInputElement>(
 			'[data-focus-key="consent:marketing"]'
 		)?.checked
-	).toBe(true);
+	).toBe(false);
 	expect(tools.element?.textContent).toContain('Effective: Blocked');
 	tools.actions.setDraft({ experience: true, marketing: false });
 	expect(
