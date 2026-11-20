@@ -266,11 +266,20 @@
 			capturedElement.releasePointerCapture(e.pointerId);
 			capturedElement = null;
 		}
+		hasDragged = false;
 		dragState = createInitialDragState();
 	};
 
-	const handleDevToolsClick = function handleDevToolsClick() {
-		if (hasDragged) {
+	// Swallow only the pointer click that ends a drag; keyboard clicks have
+	// detail 0 and are never part of a drag.
+	const endsDrag = function endsDrag(e: MouseEvent): boolean {
+		const ended = hasDragged && e.detail !== 0;
+		hasDragged = false;
+		return ended;
+	};
+
+	const handleDevToolsClick = function handleDevToolsClick(e: MouseEvent) {
+		if (endsDrag(e)) {
 			return;
 		}
 		devTools?.toggle();
@@ -307,7 +316,7 @@
 
 	const handleClick = function handleClick(e: MouseEvent) {
 		// Don't open dialog if this was a drag interaction
-		if (hasDragged) {
+		if (endsDrag(e)) {
 			return;
 		}
 		onclick?.(e);
