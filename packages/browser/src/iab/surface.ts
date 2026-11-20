@@ -191,29 +191,39 @@ export const createIABSurface = (
 			);
 		} else {
 			const summary = resolveIABBannerSummary(snapshot.iab);
+			const vendorCount = String(summary.vendorCount);
+			const description = (
+				bannerOptions.description ?? t.banner.description
+			).replace('{partnerCount}', vendorCount);
+			const partnersLink = t.banner.partnersLink.replace(
+				'{count}',
+				vendorCount
+			);
+			const splitAt = partnersLink ? description.indexOf(partnersLink) : -1;
+			const descriptionBefore =
+				splitAt === -1 ? description : description.slice(0, splitAt);
+			const descriptionAfter =
+				splitAt === -1 ? '' : description.slice(splitAt + partnersLink.length);
+			// The link sits inside the sentence, as in the framework banners.
 			headerCopy.append(
 				h(
 					'p',
 					{ class: css(styles.description) },
-					(bannerOptions.description ?? t.banner.description).replace(
-						'{partnerCount}',
-						String(summary.vendorCount)
-					)
-				)
-			);
-			headerCopy.append(
-				h(
-					'button',
-					{
-						class: css(classes.banner.partnersLink),
-						'data-testid': 'iab-consent-banner-partners-link',
-						onclick: () => {
-							vendorsFirst = true;
-							client.openDialog();
+					descriptionBefore,
+					h(
+						'button',
+						{
+							class: css(classes.banner.partnersLink),
+							'data-testid': 'iab-consent-banner-partners-link',
+							onclick: () => {
+								vendorsFirst = true;
+								client.openDialog();
+							},
+							type: 'button',
 						},
-						type: 'button',
-					},
-					t.banner.partnersLink.replace('{count}', String(summary.vendorCount))
+						partnersLink
+					),
+					descriptionAfter
 				)
 			);
 			headerCopy.append(

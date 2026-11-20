@@ -306,6 +306,14 @@ describe('IAB browser entry', () => {
 			'These means of processing can be used solely in pursuit of one or several purposes'
 		);
 	});
+	it('puts the partners link inside the description, once', async () => {
+		const client = await start();
+		const link = query(client, 'iab-consent-banner-partners-link');
+		const description = link.parentElement;
+		expect(description?.tagName).toBe('P');
+		const text = description?.textContent ?? '';
+		expect(text.split(link.textContent ?? '').length).toBe(2);
+	});
 	it('opens the vendors tab from the partner disclosure and shows policy URLs', async () => {
 		const client = await start();
 		query(client, 'iab-consent-banner-partners-link').click();
