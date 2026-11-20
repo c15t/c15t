@@ -39,6 +39,7 @@ import { displayedCategories as listDisplayed } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { listedVendors } from '../libs/vendors';
 import { deniedVendorIds } from '../modules/has';
+import { policyDefault } from '../policy';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -236,9 +237,7 @@ const recordedValues = function recordedValues(
 				values[category] = false;
 			} else {
 				values[category] =
-					defaults?.[category] ??
-					(rule.model === 'opt-out' ||
-						rule.preselectedCategories.includes(category));
+					defaults?.[category] ?? policyDefault(rule, category);
 			}
 		}
 	}

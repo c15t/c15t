@@ -11,6 +11,7 @@ import {
 	choiceRecords,
 	iabRule,
 	matchedResolution,
+	noneRule,
 	NOW,
 	optInRule,
 	optOutRule,
@@ -93,6 +94,21 @@ const recorded = function recorded(kernel: ConsentKernel) {
 };
 
 describe('seeding', () => {
+	test("a 'none' policy shows its categories on, as the evaluator allows them", () => {
+		const { kernel } = setup(
+			{},
+			noneRule({ categories: ['marketing', 'measurement'] })
+		);
+		expect(kernel.getSnapshot().effectivePermissions).toMatchObject({
+			marketing: true,
+			measurement: true,
+		});
+		expect(createPreferenceDraft(kernel).getState().values).toMatchObject({
+			marketing: true,
+			measurement: true,
+		});
+	});
+
 	test('a category GPC denies seeds off when nothing is recorded', () => {
 		const { kernel } = setup(
 			{ initialPrivacySignals: { gpc: true } },

@@ -43,9 +43,9 @@ group: reference
   until Save. The draft seeds each category from the recorded choice; without
   one, a category denied by a restriction such as Global Privacy Control starts
   off, else it uses `presentation.preferences.defaults` from the provider
-  options, and without that it is on under an opt-out rule and on only for the
-  rule's preselected categories under an opt-in rule. Save records the
-  displayed categories (including a denial for any unrecorded category GPC
+  options, and without that it is on under an opt-out or `none` rule and on
+  only for the rule's preselected categories under an opt-in rule. Save records
+  the displayed categories (including a denial for any unrecorded category GPC
   starts off), then reseeds the draft from the new record. Accept All and
   Reject All record immediately without a separate Save. A save answers a
   choice prompt, so an open choice banner closes; it does not dismiss a
