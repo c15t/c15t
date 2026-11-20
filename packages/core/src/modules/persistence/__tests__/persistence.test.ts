@@ -520,6 +520,36 @@ describe('persistence: a server seed that missed a clear', () => {
 		expect(categories?.measurement).toBeUndefined();
 		handle.dispose();
 	});
+	test('takes a stored grant for a seeded category the clear voided', async () => {
+		const before = await savedRecords(NOW + 100, { measurement: true });
+		clearInAnotherTab(NOW + 200);
+		const after = await savedRecords(NOW + 300, { marketing: false });
+		await savedRecords(NOW + 350, { measurement: true });
+
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...after,
+				choice: {
+					categories: {
+						...before.choice?.categories,
+						...after.choice?.categories,
+					},
+					version: 3,
+				},
+			},
+			now: NOW + 400,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		const categories = kernel.getSnapshot().explicitChoice?.categories;
+		expect(categories?.marketing?.value).toBe(false);
+		expect(categories?.measurement).toMatchObject({
+			confirmedAt: NOW + 350,
+			value: true,
+		});
+		handle.dispose();
+	});
 });
 
 describe('persistence: dispose', () => {

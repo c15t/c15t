@@ -103,7 +103,8 @@ const sameSubject = function sameSubject(
  * The choice a seeded kernel takes when it mounts, or `undefined` to keep
  * the seed. A seed the clear epoch voided whole yields to storage. Seeded
  * decisions that outlive the clear stay, and only a newer stored denial is
- * laid over them.
+ * laid over them. A seeded category the epoch voided takes what storage
+ * holds for it.
  */
 const seededChoicePatch = function seededChoicePatch(
 	seeded: ExplicitChoice | null,
@@ -121,8 +122,10 @@ const seededChoicePatch = function seededChoicePatch(
 	if (surviving === seeded && denials.length === 0) {
 		return undefined;
 	}
+	// A category the epoch voided yields to storage; one that survived wins.
+	const yielded = surviving === seeded ? {} : stored?.categories;
 	return {
-		categories: { ...kept, ...Object.fromEntries(denials) },
+		categories: { ...yielded, ...kept, ...Object.fromEntries(denials) },
 		version: 3,
 	};
 };
