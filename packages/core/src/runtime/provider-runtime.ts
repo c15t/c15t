@@ -51,7 +51,7 @@ import type {
 type Callbacks = NonNullable<ConsentRuntimeUpdate['callbacks']>;
 
 /** Options a running provider runtime follows. Everything else is read once. */
-const LIVE_OPTIONS = new Set<PropertyKey>([
+const LIVE_OPTION_NAMES = [
 	'consentCategories',
 	'iframeBlocker',
 	'networkBlocker',
@@ -62,7 +62,12 @@ const LIVE_OPTIONS = new Set<PropertyKey>([
 	'scripts',
 	'user',
 	'vendors',
-]);
+] as const satisfies readonly (keyof ConsentRuntimeUpdate)[];
+
+/** @internal */
+export type LiveOption = (typeof LIVE_OPTION_NAMES)[number];
+
+const LIVE_OPTIONS = new Set<PropertyKey>(LIVE_OPTION_NAMES);
 
 /** Overrides compared without regard to key order. */
 const overridesKey = function overridesKey(

@@ -36,7 +36,7 @@ import type {
 } from '../modules/script-loader/types';
 import type { KernelUser } from '../types';
 import type { afterModuleLoaded } from './lazy-module';
-import type { ModuleSlot } from './provider-runtime';
+import type { LiveOption, ModuleSlot } from './provider-runtime';
 import type { normalizeKernelUser } from './runtime-kernel';
 import type {
 	ConsentProviderRuntimeOptions,
@@ -133,26 +133,77 @@ const vendorsKey = function vendorsKey(options: ConsentRuntimeUpdate): string {
 };
 
 /**
- * The read-once options a warning compares. Storage is among them:
- * persistence reads and writes one location for the runtime's life, and
- * data clearing protects that same location, so neither follows a new
- * `storageConfig` or `persistence`.
+ * The options a running provider reads once. With {@link LiveOption} and
+ * the options applied elsewhere they name every provider option: a new
+ * option fails to compile until it joins one of them. Options an adapter
+ * handles itself, such as styling, are in none and never warn.
  */
-const initialOnlyKey = function initialOnlyKey(
-	options: ConsentRuntimeUpdate
-): string {
-	const { persistence, prefetch } = options;
-	return JSON.stringify([
-		options.mode?.kind,
-		options.i18n,
+const READ_ONCE_OPTIONS = [
+	'clearOnRevocation',
+	'consentSource',
+	'createIAB',
+	'experiment',
+	'gpp',
+	'i18n',
+	'iab',
+	'journey',
+	'loadGPP',
+	'mode',
+	'persistence',
+	'pkg',
+	'policyRules',
+	'storageConfig',
+	'windowDebug',
+] as const satisfies readonly (keyof ConsentRuntimeUpdate)[];
+
+type Unclassified = Exclude<
+	keyof ConsentRuntimeUpdate,
+	| LiveOption
+	| (typeof READ_ONCE_OPTIONS)[number]
+	// `update()` applies these before the comparison loads.
+	| 'callbacks'
+	| 'enabled'
+	| 'prefetch'
+	// Framework providers render these from their latest options.
+	| 'presentation'
+	| 'theme'
+>;
+/** Fails to compile while some provider option is in no list. */
+type EveryOptionClassified<Missing extends never> = Missing;
+export type ProviderOptionsClassified = EveryOptionClassified<Unclassified>;
+
+/**
+ * What a read-once option is compared by. Functions are not compared, so
+ * a loader written inline in a render is not a change.
+ */
+const readOnceValue = function readOnceValue(
+	options: ConsentRuntimeUpdate,
+	key: (typeof READ_ONCE_OPTIONS)[number]
+): string | undefined {
+	if (key === 'mode') {
+		return options.mode?.kind;
+	}
+	if (key === 'experiment') {
 		// The server's experiment wins over the configured one.
-		(isPromiseLike(prefetch) ? undefined : prefetch)?.experiment ??
-			options.experiment,
-		options.storageConfig,
-		typeof persistence === 'object'
-			? [persistence.skipHydration, persistence.storageConfig, persistence.sync]
-			: persistence !== false,
-	]);
+		const { prefetch } = options;
+		return JSON.stringify(
+			(isPromiseLike(prefetch) ? undefined : prefetch)?.experiment ??
+				options.experiment
+		);
+	}
+	if (key === 'persistence') {
+		const { persistence } = options;
+		return JSON.stringify(
+			typeof persistence === 'object'
+				? [
+						persistence.skipHydration,
+						persistence.storageConfig,
+						persistence.sync,
+					]
+				: persistence !== false
+		);
+	}
+	return JSON.stringify(options[key]);
 };
 
 /**
@@ -347,13 +398,17 @@ export const applyProviderUpdate = function applyProviderUpdate(
 ): void {
 	const { tools } = host;
 	const { normalizeKernelUser } = tools;
-	if (
-		!isProductionBuild() &&
-		initialOnlyKey(current) !== initialOnlyKey(previous)
-	) {
-		console.warn(
-			'c15t: `mode`, `i18n`, `experiment`, `persistence` and `storageConfig` are read once. Create a new runtime (remount the provider) to change them.'
+	if (!isProductionBuild()) {
+		// Storage is read once too: persistence reads and writes one location
+		// for the runtime's life, and data clearing protects that same location.
+		const readOnce = READ_ONCE_OPTIONS.filter(
+			(key) => readOnceValue(previous, key) !== readOnceValue(current, key)
 		);
+		if (readOnce.length > 0) {
+			console.warn(
+				`c15t: ${readOnce.map((key) => `\`${key}\``).join(', ')} ${readOnce.length === 1 ? 'is' : 'are'} read once. Create a new runtime (remount the provider) to change ${readOnce.length === 1 ? 'it' : 'them'}.`
+			);
+		}
 	}
 	const user = normalizeKernelUser(current.user);
 	if (userKey(user) !== userKey(normalizeKernelUser(previous.user))) {

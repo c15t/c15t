@@ -609,6 +609,38 @@ describe('update()', () => {
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
 	});
 
+	test.each([
+		['iab', { iab: { cmpId: 1 } }],
+		['gpp', { gpp: true }],
+		['clearOnRevocation', { clearOnRevocation: { marketing: {} } }],
+		['journey', { journey: false }],
+		['policyRules', { policyRules: [] }],
+		['windowDebug', { windowDebug: false }],
+		['pkg', { pkg: '@c15t/react' }],
+	] as const)(
+		'a changed `%s` warns that it is read once',
+		async (key, change) => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+				// Asserted below.
+			});
+			const options: ConsentProviderRuntimeOptions = {
+				mode: custom(createTransport()),
+			};
+			const runtime = create(options);
+
+			await runtime.update({ ...options, noStyle: true } as never);
+			expect(warn).not.toHaveBeenCalled();
+			await runtime.update({ ...options, ...change } as never);
+
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining(`\`${key}\` is read once`)
+			);
+			warn.mockClear();
+			await runtime.update({ ...options, ...change } as never);
+			expect(warn).not.toHaveBeenCalled();
+		}
+	);
+
 	test('storage is read once: a new storage key warns and records stay under the first', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
 			// Asserted below.

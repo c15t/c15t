@@ -813,8 +813,8 @@ export interface ConsentProviderRuntime extends ConsentRuntime {
 	 * user is identified, new overrides are set and `init()` runs again,
 	 * vendors are re-declared, scripts and rules go to their modules, a
 	 * module turned on or off is mounted or unmounted. Callbacks are always
-	 * read from the latest set. A change to `mode`, `i18n`, `experiment`,
-	 * `persistence` or `storageConfig` logs a warning outside production.
+	 * read from the latest set. A change to any other option logs a warning
+	 * outside production.
 	 *
 	 * New overrides, `enabled` and `consentCategories` apply at once, and
 	 * requests that new network blocker rules match are held until the
