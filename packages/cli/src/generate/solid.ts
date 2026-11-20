@@ -136,7 +136,7 @@ export function createSiteConsent() {
 		instructions: [
 			'Import { Consent } from "src/consent/Consent" in the Solid application root and wrap its existing children with <Consent>. Keep it mounted above route changes. The runtime is created onMount and disposed with its Solid owner; server rendering does not initialize browser state.',
 			'Use useSiteConsent() inside the wrapper to read snapshot()?.effectivePermissions for consent gates. The snapshot is unavailable until browser mount, so treat missing optional permissions as denied.',
-			'This is a headless Solid integration with native inline controls. The local @c15t/solid package currently exports styling primitives only. Review the copy, privacy links, category descriptions, and policy presentation for your site. The generated UI does not implement IAB TCF or modal policy presentation.',
+			'This is a headless Solid integration with native inline controls. Review the copy, privacy links, category descriptions, and policy presentation for your site. The generated UI does not implement IAB TCF or modal policy presentation.',
 			...(options.scripts.length
 				? [
 						'Replace vendor placeholders in src/consent/consent-runtime.ts. The shared runtime owns consent-gated loading, persistence, and cleanup.',

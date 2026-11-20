@@ -1,12 +1,9 @@
 /**
  * Subject ids pinned byte for byte.
  *
- * These cases are the shared contract between this function and the two native
- * cores: `native/core-android` and `native/core-swift` assert the same inputs and
- * the same strings in their own suites. The backend decides with `subjectIdSchema`
- * in `@c15t/schema`, so an encoder change that moves these outputs would have to be
- * made in all three places at once, and this test is what makes changing only one of
- * them a build failure.
+ * The backend validates ids with `subjectIdSchema` in `@c15t/schema`, and this
+ * table pins the exact Base58 encoding for negative, zero, and positive epoch
+ * offsets.
  *
  * Each case is the 12 random bytes, the wall clock in epoch milliseconds, and the id.
  * The clock is the *reading* the generator is pinned to, not the offset it encodes:

@@ -375,7 +375,7 @@ The current platform still leaves a few areas intentionally out of scope:
 - Remote CDN latency and real third-party network variance
 - Memory and retained-heap behavior after repeated mount/unmount cycles
 - Artifact file-count reporting
-- Per-framework script lifecycle hosts for Vue, Svelte, and Solid
+- Per-framework script lifecycle hosts for Vue and Svelte
 
 ## Framework Adapter Contract
 

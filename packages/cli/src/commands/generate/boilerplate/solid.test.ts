@@ -47,7 +47,7 @@ describe('Solid boilerplate', () => {
 			for (const [name, source] of Object.entries(template.files)) {
 				if (/\.tsx?$/u.test(name)) {
 					project.createSourceFile(
-						path.join(packages, 'solid/.boilerplate-test', name),
+						path.join(packages, 'cli/.boilerplate-test', name),
 						source,
 						{ overwrite: true }
 					);

@@ -129,7 +129,6 @@
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
-		"@c15t/solid": "workspace:*",
 		"@c15t/svelte": "workspace:*",
 		"@c15t/tanstack-start": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
@@ -140,6 +139,7 @@
 		"@types/prettier": "^3.0.0",
 		"@types/semver": "7.7.1",
 		"prettier": "^3.9.4",
+		"solid-js": "^1.9.14",
 		"typescript": "7.0.2"
 	}
 }

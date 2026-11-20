@@ -1,6 +1,0 @@
-.gradle/
-build/
-local.properties
-.kotlin/
-.cxx/
-*.hprof
