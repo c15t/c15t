@@ -173,6 +173,16 @@ type EveryOptionClassified<Missing extends never> = Missing;
 export type ProviderOptionsClassified = EveryOptionClassified<Unclassified>;
 
 /**
+ * Read-once options an app hands over as code or a live object. They count
+ * by presence alone: their state is not c15t's to read, and may be circular.
+ */
+const OPAQUE_READ_ONCE_OPTIONS: ReadonlySet<string> = new Set([
+	'consentSource',
+	'createIAB',
+	'loadGPP',
+]);
+
+/**
  * What a read-once option is compared by. A function counts by its
  * presence, not its identity: a loader written inline in a render is not a
  * change, but adding or removing one is.
@@ -204,9 +214,18 @@ const readOnceValue = function readOnceValue(
 				: persistence !== false
 		);
 	}
-	return JSON.stringify(options[key], (_name, value: unknown) =>
-		typeof value === 'function' ? 'function' : value
-	);
+	const value = options[key];
+	if (OPAQUE_READ_ONCE_OPTIONS.has(key)) {
+		return value === undefined ? undefined : 'set';
+	}
+	try {
+		return JSON.stringify(value, (_name, nested: unknown) =>
+			typeof nested === 'function' ? 'function' : nested
+		);
+	} catch {
+		// A value JSON cannot hold, such as a circular one, counts by presence.
+		return 'set';
+	}
 };
 
 /**

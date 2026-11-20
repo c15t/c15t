@@ -166,18 +166,20 @@ export const fetchCachedGvl = function fetchCachedGvl(
 			}
 			return gvl;
 		} catch (error) {
+			// The backoff runs from the failure, not from when the fetch began.
+			const failedAt = options.now ?? Date.now();
 			if (current()) {
 				if (hasValue) {
 					// Keep serving the last good list while backing off from the endpoint.
 					remember(cache, key, {
-						expiresAt: now + FAILURE_BACKOFF_MS,
+						expiresAt: failedAt + FAILURE_BACKOFF_MS,
 						gvl: cached.gvl,
 						loaded: true,
 					});
 				} else {
 					remember(cache, key, {
 						error,
-						expiresAt: now + FAILURE_BACKOFF_MS,
+						expiresAt: failedAt + FAILURE_BACKOFF_MS,
 						gvl: null,
 						loaded: false,
 					});

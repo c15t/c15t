@@ -659,6 +659,23 @@ describe('update()', () => {
 		expect(warn).not.toHaveBeenCalled();
 	});
 
+	test('a consent source with circular state is compared without throwing', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			// Asserted below.
+		});
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(createTransport()),
+		};
+		const runtime = create(options);
+		const source: Record<string, unknown> = { connect: () => () => undefined };
+		source.self = source;
+
+		await runtime.update({ ...options, consentSource: source } as never);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('`consentSource` is read once')
+		);
+	});
+
 	test('storage is read once: a new storage key warns and records stay under the first', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
 			// Asserted below.
