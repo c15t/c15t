@@ -17,7 +17,7 @@ The subject ID is stored with the visitor's first saved record, and a leftover
 `c15t-sid` is removed on start. `identify()` before the first save is sent
 with that save.
 
-`resolveRequestSubject()` and each adapter's `subjectCookie` option are
-deprecated and do nothing. v4 removes them.
+`resolveRequestSubject()` is deprecated and no longer returns a cookie to set.
+Each adapter's `subjectCookie` option does nothing. v4 removes both.
 
 If your cookie policy lists `c15t-sid`, remove it.
