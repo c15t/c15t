@@ -128,6 +128,23 @@ const seededChoicePatch = function seededChoicePatch(
 };
 
 /**
+ * Records that include another handle's queued ones, without those from
+ * before the clear epoch. A queue written before another tab cleared never
+ * saw that clear, so it must not bring a cleared record back.
+ */
+const queuedSinceEpoch = function queuedSinceEpoch(
+	records: HydrationRecords,
+	epoch: number
+): HydrationRecords {
+	return {
+		...records,
+		choice: choiceSinceEpoch(records.choice ?? null, epoch, false),
+		noticeDismissal: noticeSinceEpoch(records.noticeDismissal ?? null, epoch),
+		vendorChoice: vendorChoiceSinceEpoch(records.vendorChoice ?? null, epoch),
+	};
+};
+
+/**
  * A seeded subject cut to its ID, as a clear leaves it, or `undefined`
  * when it holds nothing more.
  */
@@ -494,7 +511,8 @@ export const mountPersistence = function mountPersistence(
 	 * seeded decision from the clearing millisecond is kept: the seed does
 	 * not say whether its writer had seen the clear. Seeded decisions that
 	 * outlive the clear stay the seed, so a stored grant still cannot
-	 * replace them. The seeded subject keeps its ID alone, as after any
+	 * replace them. Another handle's queued records from before the clear
+	 * are void as well. The seeded subject keeps its ID alone, as after any
 	 * clear.
 	 *
 	 * The read also becomes what the writer starts from: the kernel's
@@ -509,7 +527,9 @@ export const mountPersistence = function mountPersistence(
 			const at = now();
 			const read = readStoredRecordsForReconcile(storageConfig, at);
 			baseline = [read, false];
-			const records = withQueued(read.records);
+			const records = queuedWrites.has(consentKey)
+				? queuedSinceEpoch(withQueued(read.records), read.epoch)
+				: read.records;
 			const snapshot = kernel.getSnapshot();
 			const patch: HydrationRecords = {};
 			const choice = choiceSinceEpoch(

@@ -37,6 +37,7 @@ import { createWriterLoader } from '../writer-loader';
 import type { WriterLoader } from '../writer-loader';
 import {
 	clearStoredConsentRecords,
+	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
 } from './record-writes';
 
@@ -1219,4 +1220,37 @@ describe('once the write code has landed', () => {
 
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 	});
+});
+
+test('a seeded page does not take a queued choice from before a clear in another tab', async () => {
+	await seedChoice({ marketing: true });
+	const seed = readStoredRecordsForReconcile(undefined, Date.now()).records;
+
+	vi.setSystemTime(NOW + 10);
+	const queued = createConsentKernel({ now: Date.now() });
+	const queuedHandle = createPersistence(
+		{ kernel: queued, sync: false },
+		heldBackLoader().loader
+	);
+	// The write code never lands, so this save stays queued.
+	const saving = queued.commands.save({ marketing: true, measurement: true });
+	saving.catch(() => undefined);
+	expect(queuedWrites.get(STORAGE_KEY_V2)).toBe(queued);
+
+	// Another tab clears. It shares storage, not this page's queued writes.
+	vi.setSystemTime(NOW + 1000);
+	clearStoredConsentRecords();
+	writeStoredClearEpoch(NOW + 1000, undefined);
+
+	const kernel = createConsentKernel({ initialRecords: seed, now: Date.now() });
+	expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+	const handle = createPersistence(
+		{ kernel, skipHydration: true, sync: false },
+		heldBackLoader().loader
+	);
+
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+	handle.dispose();
+	queuedHandle.dispose();
 });
