@@ -19,12 +19,16 @@ const props = defineProps<{
 	links: ConsentLegalLinkKey[];
 }>();
 
-const resolvedLinks = computed(() =>
-	props.links.filter((link) => ALL_LEGAL_LINKS.includes(link))
-);
-
 const init = useConsentInit();
 const config = useConsentConfig();
+
+// A link the config gives no `href` is skipped, as in the other SDKs.
+const resolvedLinks = computed(() =>
+	props.links.filter(
+		(link) =>
+			ALL_LEGAL_LINKS.includes(link) && !!config.value.legalLinks?.[link]?.href
+	)
+);
 
 const label = (link: ConsentLegalLinkKey): string | undefined =>
 	config.value.legalLinks?.[link]?.label ??

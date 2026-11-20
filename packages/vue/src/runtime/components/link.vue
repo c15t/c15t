@@ -9,6 +9,8 @@ import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
 const props = defineProps<{
 	context: 'banner' | 'dialog' | 'manager';
+	/** Overrides the config's URL for this link. */
+	href?: string;
 	link: ConsentLegalLinkKey;
 }>();
 
@@ -16,8 +18,9 @@ const init = useConsentInit();
 const config = useConsentConfig();
 
 const entry = computed(() => config.value.legalLinks?.[props.link]);
-
-const resolvedHref = computed(() => entry.value?.href ?? '#');
+// A link with no `href`, passed or in the config, renders nothing, as in
+// the other SDKs.
+const href = computed(() => props.href ?? entry.value?.href);
 
 const testId = computed(() => {
 	const surface =
@@ -28,8 +31,9 @@ const testId = computed(() => {
 
 <template>
 	<a
+		v-if="href"
 		v-bind="config.components?.link?.[context]"
-		:href="resolvedHref"
+		:href="href"
 		:target="entry?.target"
 		:rel="entry?.rel"
 		:data-testid="testId"
