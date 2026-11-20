@@ -29,8 +29,8 @@ this provider and passes it server-resolved state.
 
 Keep the provider mounted across client navigation. It reads `mode`,
 `prefetch`, `persistence`, `storageConfig`, `clearOnRevocation`, `i18n` and
-`experiment` once, when it mounts. Outside production, changing any
-read-once option logs a warning. Remount the provider to change them. `scripts`, `vendors`, `networkBlocker`,
+`experiment` once, when it mounts. Outside production, changing any of
+them except `prefetch` logs a warning. Remount the provider to change them. `scripts`, `vendors`, `networkBlocker`,
 `iframeBlocker`, `consentCategories`, `overrides`, `user`, `callbacks` and
 `enabled` apply when they change.
 
