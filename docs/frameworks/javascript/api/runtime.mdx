@@ -146,8 +146,8 @@ none goes out unchecked.
 and `onRequestBlocked` are read when their module starts. Every other option is
 read once. Storage counts among them: persistence keeps reading and writing
 where it started, and data clearing keeps protecting that location. Outside
-production, a change to `mode`, `i18n`, `experiment`, `persistence` or
-`storageConfig` logs a warning; create a new runtime to change them.
+production, a change to any read-once option logs a warning; create a new
+runtime to change them.
 
 `prefetch` may also be a promise, for example the result of a server helper
 that a framework streams to the browser, when `modules` includes

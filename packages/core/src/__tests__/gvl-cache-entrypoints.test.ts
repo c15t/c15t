@@ -114,6 +114,23 @@ describe.each([
 		).rejects.toThrow('offline');
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
+	test('a fetch that throws at once is asked again after the backoff', async () => {
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockImplementationOnce(() => {
+				throw new TypeError('offline');
+			})
+			.mockImplementation(() =>
+				Promise.resolve(response({ 'cache-control': 'max-age=60' }))
+			);
+		await expect(
+			cache.fetchCachedGvl({ fetch, language: 'en', now: 0, url })
+		).rejects.toThrow('offline');
+		await expect(
+			cache.fetchCachedGvl({ fetch, language: 'en', now: 60_000, url })
+		).resolves.toEqual({ vendorListVersion: 1 });
+		expect(fetch).toHaveBeenCalledTimes(2);
+	});
 	test('a pending fill cannot repopulate a cleared cache', async () => {
 		let finish!: (response: Response) => void;
 		const fetch = vi

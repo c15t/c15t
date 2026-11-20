@@ -138,6 +138,7 @@ export const fetchCachedGvl = function fetchCachedGvl(
 
 	const label = options.label ?? 'c15t';
 	const current = () => inflightByCache.get(cache) === inflight;
+	let settled = false;
 	const run = (async () => {
 		try {
 			const response = await options.fetch(options.url, {
@@ -190,9 +191,14 @@ export const fetchCachedGvl = function fetchCachedGvl(
 			}
 			throw error;
 		} finally {
+			settled = true;
 			inflight.delete(key);
 		}
 	})();
-	inflight.set(key, run);
+	// A fetch that throws at once settles the fill before this line.
+	// Registering it then would leave a finished fill for every later call.
+	if (!settled) {
+		inflight.set(key, run);
+	}
 	return run;
 };
