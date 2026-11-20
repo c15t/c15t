@@ -98,7 +98,7 @@ The `ConsentGate` placeholder reads the `consentGate` section:
 | --- | --- |
 | `consentGate.title` | The placeholder text. `{category}` is replaced by the category's translated title. |
 | `consentGate.actionButton` | The button that opens preferences, with the same `{category}` replacement. |
-| `consentGate.policyBlocked` | React and Vue show it in place of the title, with no button, when a strict policy leaves the category out of scope. |
+| `consentGate.policyBlocked` | React, Vue and Svelte show it in place of the title, with no button, when a strict policy leaves the category out of scope. |
 
 Earlier versions called this section `frame`. Copy under `frame` in
 `i18n.messages` or custom translations still applies. c15t reads it as `consentGate`, a key set under `consentGate`
