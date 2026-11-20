@@ -314,6 +314,20 @@ describe('IAB browser entry', () => {
 		const text = description?.textContent ?? '';
 		expect(text.split(link.textContent ?? '').length).toBe(2);
 	});
+	it('keeps the partners link apart from a custom description that does not name it', async () => {
+		const client = await start({
+			ui: {
+				banner: { description: 'We work with {partnerCount} companies.' },
+				styles: false,
+			},
+		});
+		const link = query(client, 'iab-consent-banner-partners-link');
+		expect(link.parentElement?.tagName).not.toBe('P');
+		expect(link.previousElementSibling?.tagName).toBe('P');
+		expect(link.previousElementSibling?.textContent).toBe(
+			`We work with ${Object.keys(completeGVL.vendors).length} companies.`
+		);
+	});
 	it('opens the vendors tab from the partner disclosure and shows policy URLs', async () => {
 		const client = await start();
 		query(client, 'iab-consent-banner-partners-link').click();

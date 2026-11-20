@@ -200,32 +200,38 @@ export const createIABSurface = (
 				vendorCount
 			);
 			const splitAt = partnersLink ? description.indexOf(partnersLink) : -1;
-			const descriptionBefore =
-				splitAt === -1 ? description : description.slice(0, splitAt);
-			const descriptionAfter =
-				splitAt === -1 ? '' : description.slice(splitAt + partnersLink.length);
-			// The link sits inside the sentence, as in the framework banners.
-			headerCopy.append(
-				h(
-					'p',
-					{ class: css(styles.description) },
-					descriptionBefore,
-					h(
-						'button',
-						{
-							class: css(classes.banner.partnersLink),
-							'data-testid': 'iab-consent-banner-partners-link',
-							onclick: () => {
-								vendorsFirst = true;
-								client.openDialog();
-							},
-							type: 'button',
-						},
-						partnersLink
-					),
-					descriptionAfter
-				)
+			const partners = h(
+				'button',
+				{
+					class: css(classes.banner.partnersLink),
+					'data-testid': 'iab-consent-banner-partners-link',
+					onclick: () => {
+						vendorsFirst = true;
+						client.openDialog();
+					},
+					type: 'button',
+				},
+				partnersLink
 			);
+			if (splitAt === -1) {
+				// Custom copy that does not name the partners keeps the link
+				// after the sentence, on its own.
+				headerCopy.append(
+					h('p', { class: css(styles.description) }, description),
+					partners
+				);
+			} else {
+				// The link sits inside the sentence, as in the framework banners.
+				headerCopy.append(
+					h(
+						'p',
+						{ class: css(styles.description) },
+						description.slice(0, splitAt),
+						partners,
+						description.slice(splitAt + partnersLink.length)
+					)
+				);
+			}
 			headerCopy.append(
 				h(
 					'ul',
