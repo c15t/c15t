@@ -1,5 +1,5 @@
 import { saveIABConsentSurface } from '@c15t/core/surface-actions';
-import { expect, onTestFinished, test } from 'vitest';
+import { expect, onTestFinished, test, vi } from 'vitest';
 
 import { createVueConsentKernelContext } from './test-kernel';
 
@@ -13,11 +13,13 @@ test('the Vue activeUI setter is explicit navigation: it supersedes a pending IA
 	const { activeUI, kernel } = createContext();
 	kernel.set.activeUI('dialog');
 	const pending = Promise.withResolvers<undefined>();
-	const save = saveIABConsentSurface(kernel, () => pending.promise);
+	const onError = vi.fn();
+	const save = saveIABConsentSurface(kernel, () => pending.promise, onError);
 
 	activeUI.value = 'manager';
 	activeUI.value = null;
 	pending.reject(new Error('offline'));
-	await expect(save).rejects.toThrow('offline');
+	await expect(save).resolves.toEqual({ ok: false });
+	expect(onError).toHaveBeenCalledWith(new Error('offline'));
 	expect(kernel.getSnapshot().activeUI).toBe('none');
 });
