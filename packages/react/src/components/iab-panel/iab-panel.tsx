@@ -7,7 +7,7 @@ import type * as C15tCoreTypes from '@c15t/core';
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
 import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
-import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import {
@@ -310,15 +310,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			return;
 		}
 
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (isDialogDismissKey(event.key)) {
-				event.preventDefault();
-				handleClose();
-			}
-		};
-
-		document.addEventListener('keydown', handleKeyDown);
-		return () => document.removeEventListener('keydown', handleKeyDown);
+		return onDialogDismiss(document.documentElement, handleClose);
 	}, [handleClose, isOpen]);
 
 	// Mount state for portal
