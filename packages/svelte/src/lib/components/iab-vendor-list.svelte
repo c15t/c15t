@@ -371,7 +371,7 @@
 					).length}
 					{@const hasLegitimateInterest = vendor.legIntPurposes.length > 0}
 					{@const isLegitimateInterestAllowed =
-						vendorLegitimateInterests[vendorKey] ?? true}
+						vendorLegitimateInterests[vendorKey] ?? false}
 					{@const standardRetentionDays = vendor.dataRetention?.stdRetention}
 					{@const maxAgeText = getMaxAgeText(vendor)}
 
@@ -735,7 +735,7 @@
 					{@const vendorFeatures = getVendorFeatures(vendor.id)}
 					{@const hasLegitimateInterest = vendor.legIntPurposes.length > 0}
 					{@const isLegitimateInterestAllowed =
-						vendorLegitimateInterests[vendorKey] ?? true}
+						vendorLegitimateInterests[vendorKey] ?? false}
 					{@const maxAgeText = getMaxAgeText(vendor)}
 
 					<PreferenceItem.Root

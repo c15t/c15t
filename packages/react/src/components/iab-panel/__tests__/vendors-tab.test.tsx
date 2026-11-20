@@ -17,6 +17,7 @@ import { policyFixture } from '~/__tests__/policy-fixture';
 import { KernelContext } from '~/context';
 import { offline } from '~/transports/offline';
 
+import { decodeTCString } from '../../../../../iab/src/tcf/tc-string';
 import { StackItem } from '../atoms/stack-item';
 import { IABConsentDialog } from '../iab-panel';
 
@@ -469,6 +470,134 @@ describe('IAB purposes tab with publisher restrictions', () => {
 		await userEvent.click(objection);
 		await userEvent.click(button('Save Settings'));
 		await vi.waitFor(() => expect(gate()).toBe(false), { timeout: 5000 });
+	});
+
+	test('untouched legitimate interest controls match what a plain Save encodes', async () => {
+		const probe: { kernel: ConsentKernel | null } = { kernel: null };
+		const KernelProbe = () => {
+			const kernel = useContext(KernelContext);
+			useEffect(() => {
+				probe.kernel = kernel;
+			}, [kernel]);
+			return null;
+		};
+		// Vendor 10 declares purpose 2 and 7 on LI; the restriction moves
+		// vendor 755 onto LI for purpose 7. With an empty draft, Save encodes
+		// purpose 7 and vendor 755 as allowed and purpose 2 and vendor 10 as
+		// objected.
+		render(
+			<ConsentProvider
+				options={{
+					...defaultIABOptions,
+					iab: {
+						...defaultIABOptions.iab,
+						publisherRestrictions: [
+							{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+						],
+					},
+				}}
+			>
+				<KernelProbe />
+				<IABConsentDialog open />
+			</ConsentProvider>
+		);
+		const trigger = (testId: string) =>
+			vi.waitFor(
+				() =>
+					getDefined(
+						document.querySelector<HTMLElement>(
+							`[data-testid="${testId}"] [data-slot="preference-item-trigger"]`
+						),
+						`Missing ${testId} trigger`
+					),
+				{ timeout: 5000 }
+			);
+		await userEvent.click(await trigger('stack-item-1'));
+		await userEvent.click(await trigger('purpose-item-2'));
+		await userEvent.click(await trigger('purpose-item-7'));
+
+		const purpose2Pressed = await vi.waitFor(() =>
+			getDefined(
+				document
+					.querySelector('[data-testid="purpose-item-2"] button[aria-pressed]')
+					?.getAttribute('aria-pressed')
+			)
+		);
+		const purpose7Row = getDefined(
+			document.querySelector<HTMLElement>('[data-testid="purpose-item-7"]')
+		);
+		const purpose7VendorsToggle = getDefined(
+			Array.from(purpose7Row.querySelectorAll<HTMLElement>('button')).find(
+				(element) => element.textContent?.includes('Partners Using')
+			)
+		);
+		await userEvent.click(purpose7VendorsToggle);
+		const purpose7Pressed = await vi.waitFor(() => {
+			const buttons = Array.from(
+				purpose7Row.querySelectorAll<HTMLButtonElement>('button[aria-pressed]')
+			);
+			// Purpose 7 objection + vendors 1, 10, 755.
+			expect(buttons.length).toBeGreaterThanOrEqual(4);
+			return buttons.map((b) => b.getAttribute('aria-pressed'));
+		});
+
+		const vendorsTab = getDefined(
+			Array.from(
+				document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+			).find((button) => button.textContent?.toLowerCase().includes('vendor'))
+		);
+		await userEvent.click(vendorsTab);
+		const vendorPressed = async (id: number) => {
+			const row = await vi.waitFor(() =>
+				getDefined(document.querySelector<HTMLElement>(`#vendor-${id}`))
+			);
+			await userEvent.click(
+				getDefined(
+					row.querySelector<HTMLElement>(
+						'[data-slot="preference-item-trigger"]'
+					)
+				)
+			);
+			return vi.waitFor(() =>
+				getDefined(
+					row
+						.querySelector('button[aria-pressed]')
+						?.getAttribute('aria-pressed')
+				)
+			);
+		};
+		const vendor10Pressed = await vendorPressed(10);
+		const vendor755Pressed = await vendorPressed(755);
+
+		const saveButton = getDefined(
+			Array.from(document.querySelectorAll('button')).find(
+				(element) => element.textContent?.trim() === 'Save Settings'
+			)
+		);
+		await userEvent.click(saveButton);
+		const tcString = await vi.waitFor(() =>
+			getDefined(probe.kernel?.getSnapshot().iab?.authority?.tcString)
+		);
+		const decoded = await decodeTCString(tcString);
+
+		expect(purpose2Pressed).toBe(
+			String(decoded.purposeLegitimateInterests[2] !== true)
+		);
+		expect(purpose7Pressed[0]).toBe(
+			String(decoded.purposeLegitimateInterests[7] !== true)
+		);
+		expect(vendor10Pressed).toBe(
+			String(decoded.vendorLegitimateInterests[10] !== true)
+		);
+		expect(vendor755Pressed).toBe(
+			String(decoded.vendorLegitimateInterests[755] !== true)
+		);
+		// Purpose 2 and vendor 10 are objected; restriction-introduced purpose 7
+		// and vendor 755 are allowed.
+		expect(purpose2Pressed).toBe('true');
+		expect(purpose7Pressed[0]).toBe('false');
+		expect(vendor10Pressed).toBe('true');
+		expect(vendor755Pressed).toBe('false');
 	});
 });
 

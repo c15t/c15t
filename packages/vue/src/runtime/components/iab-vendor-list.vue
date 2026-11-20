@@ -142,11 +142,11 @@ const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 	return props.vendorConsents[String(vendorId)] ?? false;
 };
 
-/** Legitimate interest is allowed until the visitor objects. */
+/** Follows the effective draft/restriction state that Save encodes. */
 const isLegitimateInterestAllowed = function isLegitimateInterestAllowed(
 	vendorId: IabVendorId
 ) {
-	return props.vendorLegitimateInterests?.[String(vendorId)] ?? true;
+	return props.vendorLegitimateInterests?.[String(vendorId)] ?? false;
 };
 
 watch(

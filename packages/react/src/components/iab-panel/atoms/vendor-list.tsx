@@ -287,7 +287,7 @@ export const VendorList: FC<VendorListProps> = ({
 		).length;
 		const hasLegitimateInterest = vendor.legIntPurposes.length > 0;
 		const isLegitimateInterestAllowed =
-			vendorLegitimateInterests[vendorKey] ?? true;
+			vendorLegitimateInterests[vendorKey] ?? false;
 		const standardRetentionDays = vendor.dataRetention?.stdRetention;
 		let maxAgeText: string | null = null;
 

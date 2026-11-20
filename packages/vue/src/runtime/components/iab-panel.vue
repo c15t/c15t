@@ -3,6 +3,7 @@ import type { PresentationAction } from '@c15t/core';
 import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 import {
 	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
 	resolveIABBannerSummary,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
@@ -170,6 +171,21 @@ const vendorData = computed(() =>
 		? applyPublisherRestrictionsToGVL(gvl.value, publisherRestrictions.value)
 		: null
 );
+const introduced = computed(() =>
+	gvl.value
+		? introducedLegitimateInterest(gvl.value, publisherRestrictions.value)
+		: { purposes: [], vendors: [] }
+);
+const purposeLegitimateInterests = computed(() => ({
+	...Object.fromEntries(introduced.value.purposes.map((id) => [id, true])),
+	...iabSelection.value.purposeLegitimateInterests,
+}));
+const vendorLegitimateInterests = computed(() => ({
+	...Object.fromEntries(
+		introduced.value.vendors.map((id) => [String(id), true])
+	),
+	...iabSelection.value.vendorLegitimateInterests,
+}));
 
 const isStackRow = function isStackRow(
 	row: HeadlessIABDisplayRow | HeadlessIABDisplayStackRow
@@ -579,11 +595,9 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 												:stack="row"
 												:consents="iabSelection.purposeConsents"
 												:vendor-consents="iabSelection.vendorConsents"
-												:vendor-legitimate-interests="
-													iabSelection.vendorLegitimateInterests
-												"
+												:vendor-legitimate-interests="vendorLegitimateInterests"
 												:purpose-legitimate-interests="
-													iabSelection.purposeLegitimateInterests
+													purposeLegitimateInterests
 												"
 												@toggle="
 													(purposeId, value) =>
@@ -610,9 +624,7 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 													iabSelection.specialFeatureOptIns[row.id] ?? false
 												"
 												:vendor-consents="iabSelection.vendorConsents"
-												:vendor-legitimate-interests="
-													iabSelection.vendorLegitimateInterests
-												"
+												:vendor-legitimate-interests="vendorLegitimateInterests"
 												@toggle="
 													(value) => setSpecialFeatureOptIn(row.id, value)
 												"
@@ -633,11 +645,9 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 													iabSelection.purposeConsents[row.id] ?? false
 												"
 												:vendor-consents="iabSelection.vendorConsents"
-												:vendor-legitimate-interests="
-													iabSelection.vendorLegitimateInterests
-												"
+												:vendor-legitimate-interests="vendorLegitimateInterests"
 												:purpose-legitimate-interests="
-													iabSelection.purposeLegitimateInterests
+													purposeLegitimateInterests
 												"
 												@toggle="(value) => setPurposeConsent(row.id, value)"
 												@vendor-toggle="
@@ -829,9 +839,7 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 											:vendor-consents="iabSelection.vendorConsents"
 											:selected-vendor-id="selectedVendorId"
 											:custom-vendors="customVendors"
-											:vendor-legitimate-interests="
-												iabSelection.vendorLegitimateInterests
-											"
+											:vendor-legitimate-interests="vendorLegitimateInterests"
 											@vendor-toggle="
 												(vendorId, value) => setVendorConsent(vendorId, value)
 											"
