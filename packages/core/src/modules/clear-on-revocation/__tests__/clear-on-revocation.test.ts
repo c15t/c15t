@@ -12,6 +12,7 @@ import {
 import { createKernel as createConsentKernel } from '../../../kernel';
 import type { InternalKernel } from '../../../kernel/internals';
 import {
+	JOURNEY_STORAGE_KEY,
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
@@ -176,6 +177,18 @@ describe('web storage cleanup', () => {
 			expect(sessionStorage.getItem(key)).toBeNull();
 		}
 		expect(sessionStorage.getItem('unrelated')).toBe('keep');
+	});
+
+	test("keeps a 'tab' journey's id in sessionStorage", () => {
+		sessionStorage.setItem(JOURNEY_STORAGE_KEY, 'journey');
+		sessionStorage.setItem('c15t-tracking', 'tracking');
+		attach(
+			{ measurement: { sessionStorage: ['c15t*'] } },
+			createConsentKernel(),
+			'custom'
+		);
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBe('journey');
+		expect(sessionStorage.getItem('c15t-tracking')).toBeNull();
 	});
 
 	test('matches exact and prefix names without skipping keys as indexes shift', () => {
