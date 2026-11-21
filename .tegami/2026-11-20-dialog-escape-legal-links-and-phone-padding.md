@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/ui': patch
-  '@c15t/react': patch
-  '@c15t/svelte': patch
-  '@c15t/vue': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Fix Escape with stacked dialogs, legal links and phone padding

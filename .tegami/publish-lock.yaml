@@ -1,168 +1,240 @@
 c15t:release:
-  - branch: main
-    id: npm:@c15t/cli
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/integrations
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/node-sdk
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/dev-tools
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/vue
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/react
-    version: 3.2.2
-  - branch: main
-    id: npm:c15t
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/astro
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/ui
-    version: 3.1.2
-  - branch: main
-    id: npm:@c15t/iab
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/core
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/svelte
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/nextjs
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/translations
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/browser
-    version: 3.2.2
-  - branch: main
-    id: npm:@c15t/schema
-    version: 3.1.3
-  - branch: main
-    id: npm:@c15t/scripts
-    version: 3.1.2
-  - branch: main
+  - branch: canary
     id: npm:@c15t/backend
-    version: 3.2.2
-  - branch: main
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/browser
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/schema
+    version: 3.1.4-canary.0
+  - branch: canary
+    id: npm:@c15t/ui
+    version: 3.1.3-canary.0
+  - branch: canary
+    id: npm:@c15t/integrations
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/vue
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/nextjs
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/translations
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/dev-tools
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/svelte
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/node-sdk
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/react
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/cli
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:c15t
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/core
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/iab
+    version: 3.3.0-canary.0
+  - branch: canary
     id: npm:@c15t/tanstack-start
-    version: 3.2.2
+    version: 3.3.0-canary.0
+  - branch: canary
+    id: npm:@c15t/scripts
+    version: 3.1.3-canary.0
+  - branch: canary
+    id: npm:@c15t/astro
+    version: 3.3.0-canary.0
 core:changelogs:
+  - content: "---\npackages:\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n---\n\n### Hide the \"Secured by\" tag when branding is `none`\n\nA backend that sets `branding: 'none'` now hides the \"Secured by\" tag in every\nstock UI, including the IAB banner. `KernelBranding` gains `'none'`.\n"
+    filename: 2026-11-20-branding-none-hides-tag.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/iab\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n---\n\n### Fix IAB TCF signals and vendor disclosures\n\n- Restricting two vendors no longer restricts the vendors between them.\n- Purposes that allow consent only (1, 3, 4, 5 and 6) no longer get a\n  legitimate interest signal from a custom vendor.\n- Legitimate interest switches show what Save records.\n- Vendor links render only for absolute `http` and `https` URLs.\n- Vendor disclosures show the standard TCF Features text.\n"
+    filename: 2026-11-20-iab-signals-and-vendor-list.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Preference switches match what is in effect\n\n- A category that Global Privacy Control denies starts off when the visitor has\n  no saved choice, and saving records it as denied.\n- Vue and the script-tag UI show the restriction notice on a saved grant.\n- Categories start on under a `none` policy.\n"
+    filename: 2026-11-20-preference-toggles-match-effect.md
+    v: 0.0.0
+  - content: "---\npackages:\n  c15t:\n    type: minor\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/browser\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  \"@c15t/astro\":\n    type: minor\n  \"@c15t/svelte\":\n    type: minor\n  \"@c15t/vue\":\n    type: minor\n---\n\n### Stop storing `c15t-sid` before a choice\n\nc15t no longer writes the `c15t-sid` cookie or localStorage key on first load.\nThe subject ID is stored with the visitor's first saved record, and a leftover\n`c15t-sid` is removed on start. `identify()` before the first save is sent\nwith that save.\n\n`resolveRequestSubject()` is deprecated and no longer returns a cookie to set.\nEach adapter's `subjectCookie` option does nothing. v4 removes both.\n\nIf your cookie policy lists `c15t-sid`, remove it.\n"
+    filename: 2026-11-20-no-subject-id-before-choice.md
+    v: 0.0.0
   - content: "---\npackages:\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/dev-tools\":\n    type: patch\n  \"@c15t/iab\":\n    type: patch\n  \"@c15t/integrations\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/translations\":\n    type: patch\n  \"@c15t/ui\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Consent provider works again in browsers before Safari 15.4\n\nSince 3.0, the consent provider has used `structuredClone`, `Object.hasOwn`,\n`Array.prototype.at` and `Array.prototype.findLast`. Safari 15.4 was the first\nSafari to ship them, and Chrome added them between 92 and 98. Without them, the\nprovider failed to mount or the banner did not render: Chrome and Android\nWebView before 98, Firefox before 104, Safari and iOS Safari before 15.4, and\nSamsung Internet before 18.\n\nc15t no longer calls these built-ins in browser code. You can remove a polyfill\nyou added only for c15t.\n"
     filename: 2026-10-30-no-structured-clone.md
     v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Fix `/init` query parameters in Next.js route handlers\n\n`createConsentRoute` handlers in the Next.js App Router now read `/init`\nquery parameters on Node 24 and later.\n"
-    filename: 2026-11-01-next-init-query-params.md
+  - content: "---\npackages:\n  \"@c15t/browser\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  c15t:\n    type: patch\n---\n\n### Fix the IAB banner and dialog\n\n- The script-tag UI shows a registered vendor's data categories.\n- The script-tag IAB banner shows the partner count once.\n- In Vue, the partners link opens the dialog on the vendor list.\n- A failed IAB save is reported once. `saveIABConsentSurface` resolves\n  `{ ok: false }` instead of rejecting.\n- Vue records no IAB choice when no CMP is mounted.\n"
+    filename: 2026-11-20-iab-dialog-fixes.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/schema\":\n    type: patch\n---\n\n### Fix the vendor list fallback, prefetch detection and option warnings\n\n- A cached Global Vendor List is served when a refresh fails, and a failed\n  fetch is retried after 60 seconds.\n- Prefetch requests are detected from more headers, so they no longer count as\n  visits in session reports.\n- Changing any read-once provider option after mount warns in development.\n"
+    filename: 2026-11-20-vendor-list-cache-and-reporting.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: patch\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Fix Escape with stacked dialogs, legal links and phone padding\n\n- Escape closes only the top dialog.\n- Vue leaves out a legal link that has no URL instead of linking to `#`.\n- Legal links that open in a new tab get `rel=\"noopener noreferrer\"` by\n  default.\n- The banner and preferences dialog use even padding on phones.\n"
+    filename: 2026-11-20-dialog-escape-legal-links-and-phone-padding.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: patch\n---\n\n### Add Capless analytics integration\n\n`caplessAnalytics` from `@c15t/integrations/capless-analytics` loads Capless\nanalytics and session replay after `measurement` consent. Capless cannot stop a\nrunning replay, so keep the default page reload when consent is withdrawn. The\nCLI can add it during setup.\n"
+    filename: 2026-11-06-capless-analytics.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/svelte\":\n    type: patch\n---\n\n### Fix Svelte `ConsentGate` and `ConsentDialogTrigger`\n\n- `ConsentGate` shows the blocked message with no button when a strict policy\n  leaves its category out. It also registers its category so preferences list\n  it, which can ask a returning visitor about that category again.\n- `ConsentDialogTrigger` answers Enter and Space after a drag.\n- `ConsentDialogTrigger` shows the same brand mark as the branding tag.\n"
+    filename: 2026-11-20-svelte-gate-and-trigger.md
+    v: 0.0.0
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Fix clearing, revocation cleanup and early script mounting\n\n- `clear()` also removes the `addtl_consent` cookie and localStorage entry.\n- A server-rendered page drops a choice that another tab cleared.\n- Revocation cleanup keeps the tab journey ID and `addtl_consent`.\n- A `target: 'body'` script mounted before `<body>` exists goes to `<head>`\n  instead of throwing.\n"
+    filename: 2026-11-20-core-clear-and-storage.md
     v: 0.0.0
 core:packages:
-  - id: npm:@c15t/cli
+  - id: npm:@c15t/backend
+    updated: true
+  - changelogIds:
+      - 2026-11-20-branding-none-hides-tag.md
+      - 2026-11-20-iab-signals-and-vendor-list.md
+      - 2026-11-20-preference-toggles-match-effect.md
+      - 2026-11-20-no-subject-id-before-choice.md
+      - 2026-10-30-no-structured-clone.md
+      - 2026-11-20-iab-dialog-fixes.md
+    id: npm:@c15t/browser
+    updated: true
+  - id: npm:@c15t/logger
+    updated: false
+  - changelogIds:
+      - 2026-11-20-iab-signals-and-vendor-list.md
+      - 2026-11-20-vendor-list-cache-and-reporting.md
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/schema
+    updated: true
+  - changelogIds:
+      - 2026-11-20-dialog-escape-legal-links-and-phone-padding.md
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/ui
     updated: true
   - changelogIds:
       - 2026-10-30-no-structured-clone.md
+      - 2026-11-06-capless-analytics.md
     id: npm:@c15t/integrations
+    updated: true
+  - changelogIds:
+      - 2026-11-20-iab-signals-and-vendor-list.md
+      - 2026-11-20-preference-toggles-match-effect.md
+      - 2026-11-20-no-subject-id-before-choice.md
+      - 2026-11-20-dialog-escape-legal-links-and-phone-padding.md
+      - 2026-10-30-no-structured-clone.md
+      - 2026-11-20-iab-dialog-fixes.md
+    id: npm:@c15t/vue
+    updated: true
+  - changelogIds:
+      - 2026-11-20-no-subject-id-before-choice.md
+    id: npm:@c15t/nextjs
+    updated: true
+  - changelogIds:
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/translations
+    updated: true
+  - changelogIds:
+      - 2026-11-20-iab-signals-and-vendor-list.md
+      - 2026-11-20-preference-toggles-match-effect.md
+      - 2026-10-30-no-structured-clone.md
+    id: npm:@c15t/dev-tools
+    updated: true
+  - changelogIds:
+      - 2026-11-20-svelte-gate-and-trigger.md
+      - 2026-11-20-iab-signals-and-vendor-list.md
+      - 2026-11-20-no-subject-id-before-choice.md
+      - 2026-11-20-dialog-escape-legal-links-and-phone-padding.md
+      - 2026-10-30-no-structured-clone.md
+      - 2026-11-20-iab-dialog-fixes.md
+    id: npm:@c15t/svelte
     updated: true
   - id: npm:@c15t/node-sdk
     updated: true
   - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/dev-tools
+      - 2026-11-20-iab-signals-and-vendor-list.md
+      - 2026-11-20-vendor-list-cache-and-reporting.md
+      - 2026-11-20-dialog-escape-legal-links-and-phone-padding.md
+      - 2026-11-20-iab-dialog-fixes.md
+    id: npm:@c15t/react
     updated: true
   - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/vue
-    updated: true
-  - id: npm:@c15t/react
-    updated: true
-  - id: npm:c15t
-    updated: true
-  - id: npm:@c15t/astro
+      - 2026-11-06-capless-analytics.md
+    id: npm:@c15t/cli
     updated: true
   - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/ui
+      - 2026-11-20-no-subject-id-before-choice.md
+      - 2026-11-20-iab-dialog-fixes.md
+    id: npm:c15t
     updated: true
   - changelogIds:
+      - 2026-11-20-core-clear-and-storage.md
+      - 2026-11-20-branding-none-hides-tag.md
+      - 2026-11-20-vendor-list-cache-and-reporting.md
+      - 2026-11-20-preference-toggles-match-effect.md
+      - 2026-11-20-no-subject-id-before-choice.md
+      - 2026-10-30-no-structured-clone.md
+      - 2026-11-20-iab-dialog-fixes.md
+    id: npm:@c15t/core
+    updated: true
+  - changelogIds:
+      - 2026-11-20-iab-signals-and-vendor-list.md
       - 2026-10-30-no-structured-clone.md
     id: npm:@c15t/iab
     updated: true
   - changelogIds:
-      - 2026-11-01-next-init-query-params.md
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/core
+      - 2026-11-20-no-subject-id-before-choice.md
+    id: npm:@c15t/tanstack-start
     updated: true
   - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/svelte
-    updated: true
-  - id: npm:@c15t/nextjs
+      - 2026-11-06-capless-analytics.md
+    id: npm:@c15t/scripts
     updated: true
   - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/translations
-    updated: true
-  - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/browser
-    updated: true
-  - changelogIds:
-      - 2026-10-30-no-structured-clone.md
-    id: npm:@c15t/schema
-    updated: true
-  - id: npm:@c15t/scripts
-    updated: true
-  - id: npm:@c15t/backend
-    updated: true
-  - id: npm:@c15t/logger
-    updated: false
-  - id: npm:@c15t/tanstack-start
+      - 2026-11-20-no-subject-id-before-choice.md
+    id: npm:@c15t/astro
     updated: true
 npm:packages:
-  - distTag: latest
-    id: npm:@c15t/cli
-  - distTag: latest
-    id: npm:@c15t/integrations
-  - distTag: latest
-    id: npm:@c15t/node-sdk
-  - distTag: latest
-    id: npm:@c15t/dev-tools
-  - distTag: latest
-    id: npm:@c15t/vue
-  - distTag: latest
-    id: npm:@c15t/react
-  - distTag: latest
-    id: npm:c15t
-  - distTag: latest
-    id: npm:@c15t/astro
-  - distTag: latest
-    id: npm:@c15t/ui
-  - distTag: latest
-    id: npm:@c15t/iab
-  - distTag: latest
-    id: npm:@c15t/core
-  - distTag: latest
-    id: npm:@c15t/svelte
-  - distTag: latest
-    id: npm:@c15t/nextjs
-  - distTag: latest
-    id: npm:@c15t/translations
-  - distTag: latest
-    id: npm:@c15t/browser
-  - distTag: latest
-    id: npm:@c15t/schema
-  - distTag: latest
-    id: npm:@c15t/scripts
-  - distTag: latest
+  - distTag: canary
     id: npm:@c15t/backend
-  - distTag: latest
+  - distTag: canary
+    id: npm:@c15t/browser
+  - distTag: canary
     id: npm:@c15t/logger
-  - distTag: latest
+  - distTag: canary
+    id: npm:@c15t/schema
+  - distTag: canary
+    id: npm:@c15t/ui
+  - distTag: canary
+    id: npm:@c15t/integrations
+  - distTag: canary
+    id: npm:@c15t/vue
+  - distTag: canary
+    id: npm:@c15t/nextjs
+  - distTag: canary
+    id: npm:@c15t/translations
+  - distTag: canary
+    id: npm:@c15t/dev-tools
+  - distTag: canary
+    id: npm:@c15t/svelte
+  - distTag: canary
+    id: npm:@c15t/node-sdk
+  - distTag: canary
+    id: npm:@c15t/react
+  - distTag: canary
+    id: npm:@c15t/cli
+  - distTag: canary
+    id: npm:c15t
+  - distTag: canary
+    id: npm:@c15t/core
+  - distTag: canary
+    id: npm:@c15t/iab
+  - distTag: canary
     id: npm:@c15t/tanstack-start
+  - distTag: canary
+    id: npm:@c15t/scripts
+  - distTag: canary
+    id: npm:@c15t/astro

@@ -1,3 +1,17 @@
+## @c15t/astro@3.3.0-canary.0 (canary)
+
+### Stop storing `c15t-sid` before a choice
+
+c15t no longer writes the `c15t-sid` cookie or localStorage key on first load.
+The subject ID is stored with the visitor's first saved record, and a leftover
+`c15t-sid` is removed on start. `identify()` before the first save is sent
+with that save.
+
+`resolveRequestSubject()` is deprecated and no longer returns a cookie to set.
+Each adapter's `subjectCookie` option does nothing. v4 removes both.
+
+If your cookie policy lists `c15t-sid`, remove it.
+
 ## @c15t/astro@3.2.0
 
 ### Diagnose slow Astro consent setup

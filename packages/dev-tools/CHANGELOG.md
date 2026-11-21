@@ -1,3 +1,33 @@
+## @c15t/dev-tools@3.3.0-canary.0 (canary)
+
+### Fix IAB TCF signals and vendor disclosures
+
+- Restricting two vendors no longer restricts the vendors between them.
+- Purposes that allow consent only (1, 3, 4, 5 and 6) no longer get a
+  legitimate interest signal from a custom vendor.
+- Legitimate interest switches show what Save records.
+- Vendor links render only for absolute `http` and `https` URLs.
+- Vendor disclosures show the standard TCF Features text.
+
+### Preference switches match what is in effect
+
+- A category that Global Privacy Control denies starts off when the visitor has
+  no saved choice, and saving records it as denied.
+- Vue and the script-tag UI show the restriction notice on a saved grant.
+- Categories start on under a `none` policy.
+
+### Consent provider works again in browsers before Safari 15.4
+
+Since 3.0, the consent provider has used `structuredClone`, `Object.hasOwn`,
+`Array.prototype.at` and `Array.prototype.findLast`. Safari 15.4 was the first
+Safari to ship them, and Chrome added them between 92 and 98. Without them, the
+provider failed to mount or the banner did not render: Chrome and Android
+WebView before 98, Firefox before 104, Safari and iOS Safari before 15.4, and
+Samsung Internet before 18.
+
+c15t no longer calls these built-ins in browser code. You can remove a polyfill
+you added only for c15t.
+
 ## @c15t/dev-tools@3.2.2
 
 ### Consent provider works again in browsers before Safari 15.4
