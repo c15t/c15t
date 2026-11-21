@@ -1,7 +1,11 @@
 'use client';
 
 import type { AdTechProvider, GlobalVendorList } from '@c15t/core';
-import { resolveIABVendorUrls } from '@c15t/iab/headless';
+import {
+	permittedLegitimateInterestPurposes,
+	resolveIABSafeUrl,
+	resolveIABVendorUrls,
+} from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useEffect, useState } from 'react';
 import type { FC } from 'react';
@@ -39,6 +43,58 @@ interface CustomVendor {
 	cookieMaxAgeSeconds?: number;
 }
 
+interface VendorFeaturesProps {
+	features: { description: string; id: number; name: string }[];
+	heading: string;
+	standardText: string;
+	testId: string;
+}
+
+/**
+ * A vendor's Features: each with its description, then the standard Features
+ * explanation, which TCF policy check 14 requires wherever Features are
+ * shown. Features never get a control.
+ */
+const VendorFeatures: FC<VendorFeaturesProps> = ({
+	features,
+	heading,
+	standardText,
+	testId,
+}) => {
+	if (features.length === 0) {
+		return null;
+	}
+	return (
+		<div className={styles.vendorPurposesList}>
+			<h4 className={styles.vendorPurposesTitle}>
+				{heading} ({features.length})
+			</h4>
+			<ul className={styles.vendorPurposesItems}>
+				{features.map((feature) => (
+					<li
+						key={feature.id}
+						className={styles.vendorPurposeItem}
+					>
+						{feature.name}
+						{feature.description ? (
+							<span className={styles.vendorListMetaText}>
+								{' '}
+								{feature.description}
+							</span>
+						) : null}
+					</li>
+				))}
+			</ul>
+			<p
+				className={styles.vendorListMetaText}
+				data-testid={testId}
+			>
+				{standardText}
+			</p>
+		</div>
+	);
+};
+
 interface VendorListProps {
 	vendorData: GlobalVendorList | null;
 	purposes: ProcessedPurpose[];
@@ -61,6 +117,38 @@ interface VendorListProps {
 	/** Handler for an ad tech provider consent switch. */
 	onAdTechProviderToggle?: (providerId: number, value: boolean) => void;
 }
+
+/** An external vendor link, or nothing when the vendor has no safe URL. */
+const VendorLink: FC<{ href: string | null | undefined; label: string }> = ({
+	href,
+	label,
+}) =>
+	href ? (
+		<a
+			href={href}
+			target="_blank"
+			rel="noopener noreferrer"
+			className={styles.vendorLink}
+		>
+			<svg
+				className={styles.vendorLinkIcon}
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+			>
+				<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+				<polyline points="15 3 21 3 21 9" />
+				<line
+					x1="10"
+					y1="14"
+					x2="21"
+					y2="3"
+				/>
+			</svg>
+			{label}
+		</a>
+	) : null;
 
 export const VendorList: FC<VendorListProps> = ({
 	vendorData,
@@ -94,7 +182,9 @@ export const VendorList: FC<VendorListProps> = ({
 					(vendor as unknown as { dataDeclaration?: number[] })
 						.dataDeclaration || [],
 				dataRetention: vendor.dataRetention,
-				deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+				deviceStorageDisclosureUrl: resolveIABSafeUrl(
+					vendor.deviceStorageDisclosureUrl
+				),
 				features: vendor.features || [],
 				id: Number(id),
 				isCustom: false,
@@ -119,10 +209,10 @@ export const VendorList: FC<VendorListProps> = ({
 		features: cv.features || [],
 		id: cv.id,
 		isCustom: true,
-		legIntPurposes: cv.legIntPurposes || [],
+		legIntPurposes: permittedLegitimateInterestPurposes(cv.legIntPurposes),
 		legitimateInterestUrl: null,
 		name: cv.name,
-		policyUrl: cv.privacyPolicyUrl,
+		policyUrl: resolveIABSafeUrl(cv.privacyPolicyUrl) ?? '',
 		purposes: cv.purposes || [],
 		specialFeatures: cv.specialFeatures || [],
 		specialPurposes: [],
@@ -284,7 +374,7 @@ export const VendorList: FC<VendorListProps> = ({
 		).length;
 		const hasLegitimateInterest = vendor.legIntPurposes.length > 0;
 		const isLegitimateInterestAllowed =
-			vendorLegitimateInterests[vendorKey] ?? true;
+			vendorLegitimateInterests[vendorKey] ?? false;
 		const standardRetentionDays = vendor.dataRetention?.stdRetention;
 		let maxAgeText: string | null = null;
 
@@ -312,82 +402,18 @@ export const VendorList: FC<VendorListProps> = ({
 				noStyle={noStyle}
 			>
 				<div className={styles.vendorLinks}>
-					<a
+					<VendorLink
 						href={vendor.policyUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						className={styles.vendorLink}
-					>
-						<svg
-							className={styles.vendorLinkIcon}
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-						>
-							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-							<polyline points="15 3 21 3 21 9" />
-							<line
-								x1="10"
-								y1="14"
-								x2="21"
-								y2="3"
-							/>
-						</svg>
-						{iab.preferenceCenter.vendorList.privacyPolicy}
-					</a>
-					{vendor.legitimateInterestUrl && (
-						<a
-							href={vendor.legitimateInterestUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={styles.vendorLink}
-						>
-							<svg
-								className={styles.vendorLinkIcon}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-								<polyline points="15 3 21 3 21 9" />
-								<line
-									x1="10"
-									y1="14"
-									x2="21"
-									y2="3"
-								/>
-							</svg>
-							{iab.preferenceCenter.purposeItem.legitimateInterest}
-						</a>
-					)}
-					{vendor.deviceStorageDisclosureUrl && (
-						<a
-							href={vendor.deviceStorageDisclosureUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={styles.vendorLink}
-						>
-							<svg
-								className={styles.vendorLinkIcon}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-								<polyline points="15 3 21 3 21 9" />
-								<line
-									x1="10"
-									y1="14"
-									x2="21"
-									y2="3"
-								/>
-							</svg>
-							{iab.preferenceCenter.vendorList.storageDisclosure}
-						</a>
-					)}
+						label={iab.preferenceCenter.vendorList.privacyPolicy}
+					/>
+					<VendorLink
+						href={vendor.legitimateInterestUrl}
+						label={iab.preferenceCenter.purposeItem.legitimateInterest}
+					/>
+					<VendorLink
+						href={vendor.deviceStorageDisclosureUrl}
+						label={iab.preferenceCenter.vendorList.storageDisclosure}
+					/>
 				</div>
 
 				<div className={styles.vendorBadges}>
@@ -616,24 +642,15 @@ export const VendorList: FC<VendorListProps> = ({
 					</div>
 				)}
 
-				{vendorFeatures.length > 0 && (
-					<div className={styles.vendorPurposesList}>
-						<h4 className={styles.vendorPurposesTitle}>
-							{iab.preferenceCenter.vendorList.features} (
-							{vendorFeatures.length})
-						</h4>
-						<ul className={styles.vendorPurposesItems}>
-							{vendorFeatures.map((f) => (
-								<li
-									key={f.id}
-									className={styles.vendorPurposeItem}
-								>
-									{f.name}
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
+				<VendorFeatures
+					features={vendorFeatures}
+					heading={iab.preferenceCenter.vendorList.features}
+					standardText={
+						vendorData?.standardTexts?.features ||
+						iab.preferenceCenter.features.description
+					}
+					testId={`vendor-${vendorKey}-features-standard-text`}
+				/>
 			</PreferenceItem.Content>
 		);
 		return (

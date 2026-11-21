@@ -57,6 +57,10 @@ export const nonIABVendorSchema = v.object({
 	/**
 	 * IAB purposes this vendor claims legitimate interest for.
 	 * Users can object to these purposes.
+	 *
+	 * TCF allows purposes 1, 3, 4, 5 and 6 only with consent, so the CMP
+	 * ignores them here: it neither signals legitimate interest for them nor
+	 * offers an objection. List those purposes in `purposes` instead.
 	 */
 	legIntPurposes: v.optional(
 		v.array(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(11)))

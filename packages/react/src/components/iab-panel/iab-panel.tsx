@@ -6,7 +6,10 @@ import type * as C15tCoreTypes from '@c15t/core';
  * Provides the IAB TCF 2.4 compliant consent dialog component.
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
-import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
+import {
+	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
+} from '@c15t/iab/headless';
 import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
@@ -216,6 +219,27 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		() =>
 			gvl ? applyPublisherRestrictionsToGVL(gvl, publisherRestrictions) : null,
 		[gvl, publisherRestrictions]
+	);
+	const introduced = useMemo(
+		() =>
+			gvl
+				? introducedLegitimateInterest(gvl, publisherRestrictions)
+				: { purposes: [], vendors: [] },
+		[gvl, publisherRestrictions]
+	);
+	const purposeLegitimateInterests = useMemo(
+		() => ({
+			...Object.fromEntries(introduced.purposes.map((id) => [id, true])),
+			...iabState?.purposeLegitimateInterests,
+		}),
+		[introduced.purposes, iabState?.purposeLegitimateInterests]
+	);
+	const vendorLegitimateInterests = useMemo(
+		() => ({
+			...Object.fromEntries(introduced.vendors.map((id) => [String(id), true])),
+			...iabState?.vendorLegitimateInterests,
+		}),
+		[introduced.vendors, iabState?.vendorLegitimateInterests]
 	);
 
 	// Handlers
@@ -692,13 +716,13 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 														onVendorToggle={handleVendorToggle}
 														onVendorClick={handleVendorClick}
 														vendorLegitimateInterests={
-															iabState.vendorLegitimateInterests
+															vendorLegitimateInterests
 														}
 														onVendorLegitimateInterestToggle={
 															handleVendorLegitimateInterestToggle
 														}
 														purposeLegitimateInterests={
-															iabState.purposeLegitimateInterests
+															purposeLegitimateInterests
 														}
 														onPurposeLegitimateInterestToggle={
 															handlePurposeLegitimateInterestToggle
@@ -726,14 +750,14 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 														onVendorToggle={handleVendorToggle}
 														onVendorClick={handleVendorClick}
 														vendorLegitimateInterests={
-															iabState.vendorLegitimateInterests
+															vendorLegitimateInterests
 														}
 														onVendorLegitimateInterestToggle={
 															handleVendorLegitimateInterestToggle
 														}
 														purposeLegitimateInterests={
 															row.kind === 'purpose'
-																? iabState.purposeLegitimateInterests
+																? purposeLegitimateInterests
 																: undefined
 														}
 														onPurposeLegitimateInterestToggle={
@@ -940,9 +964,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												selectedVendorId={selectedVendorId}
 												onClearSelection={() => setSelectedVendorId(null)}
 												customVendors={iabState.nonIABVendors}
-												vendorLegitimateInterests={
-													iabState.vendorLegitimateInterests
-												}
+												vendorLegitimateInterests={vendorLegitimateInterests}
 												onVendorLegitimateInterestToggle={
 													handleVendorLegitimateInterestToggle
 												}

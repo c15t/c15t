@@ -38,6 +38,53 @@ export const getDisclosedVendorIds = function getDisclosedVendorIds(
 		.map(([vendorId]) => Number(vendorId));
 };
 
+/**
+ * Adds a stub vendor after each restricted vendor the list does not follow
+ * with a vendor of its own.
+ *
+ * The encoder joins two restricted vendors into one range when the list has
+ * no vendor between them, and a range covers every ID in it. The list can
+ * leave out registered vendors (a `vendors` scope, an inline `gvl` or the
+ * backend's `gvl.vendorIds`), so that gap can hold vendors the publisher
+ * never restricted. Add the stubs for every list, scoped or not. They keep
+ * each range to adjacent IDs and declare nothing, so the encoder gives them
+ * no signal.
+ *
+ * @param gvl - The vendor list the string is encoded against.
+ * @param restrictions - Validated publisher restrictions.
+ * @returns `gvl`, or a copy with the stubs added.
+ */
+const withRestrictionGapStubs = function withRestrictionGapStubs(
+	gvl: GlobalVendorList,
+	restrictions: readonly PublisherRestriction[]
+): GlobalVendorList {
+	if (restrictions.length === 0) {
+		return gvl;
+	}
+	const vendors = { ...gvl.vendors };
+	for (const { vendorIds } of restrictions) {
+		for (const vendorId of vendorIds) {
+			const id = vendorId + 1;
+			vendors[id] ??= {
+				cookieMaxAgeSeconds: null,
+				cookieRefresh: false,
+				features: [],
+				flexiblePurposes: [],
+				id,
+				legIntPurposes: [],
+				name: '',
+				purposes: [],
+				specialFeatures: [],
+				specialPurposes: [],
+				urls: [],
+				usesCookies: false,
+				usesNonCookieAccess: false,
+			};
+		}
+	}
+	return { ...gvl, vendors };
+};
+
 let warnedServiceSpecific = false;
 
 /**
@@ -150,8 +197,9 @@ export const generateTCString = async function generateTCString(
 	const { TCModel, TCString, GVL, PurposeRestriction } = await getTCFCore();
 
 	// Create GVL instance
+	const listData = withRestrictionGapStubs(gvlData, publisherRestrictions);
 	// oxlint-disable-next-line typescript/no-explicit-any -- GVL library types don't match our domain types
-	const gvl = new GVL(gvlData as any);
+	const gvl = new GVL(listData as any);
 
 	// Create TC Model
 	const tcModel = new TCModel(gvl);

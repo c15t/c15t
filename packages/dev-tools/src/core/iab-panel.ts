@@ -29,6 +29,18 @@ interface Choice {
 
 const PAGE_SIZE = 20;
 
+/**
+ * Purposes TCF Policies Appendix A allows only with consent. A custom vendor
+ * may still declare them for legitimate interest, so the panel must not
+ * offer that switch. Mirrors `CONSENT_ONLY_PURPOSES` in `@c15t/iab`.
+ */
+const CONSENT_ONLY_PURPOSES: readonly number[] = [1, 3, 4, 5, 6];
+
+const permittedLegitimateInterest = (
+	purposeIds: readonly number[] | undefined
+): number[] =>
+	(purposeIds ?? []).filter((id) => !CONSENT_ONLY_PURPOSES.includes(id));
+
 const createSwitch = (
 	document: Document,
 	label: string,
@@ -157,7 +169,8 @@ export const renderIABPanel = (
 					: undefined,
 				custom: vendor.custom,
 				id: vendor.id,
-				legitimateInterest: vendor.legIntPurposes?.length
+				legitimateInterest: permittedLegitimateInterest(vendor.legIntPurposes)
+					.length
 					? (iab.vendorLegitimateInterests[String(vendor.id)] ?? false)
 					: undefined,
 				name: vendor.name,
@@ -179,7 +192,7 @@ export const renderIABPanel = (
 			consent: iab.purposeConsents[purpose.id] ?? false,
 			id: purpose.id,
 			legitimateInterest: vendors.some((vendor) =>
-				vendor.legIntPurposes?.includes(purpose.id)
+				permittedLegitimateInterest(vendor.legIntPurposes).includes(purpose.id)
 			)
 				? (iab.purposeLegitimateInterests[purpose.id] ?? false)
 				: undefined,

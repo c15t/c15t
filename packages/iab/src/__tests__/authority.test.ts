@@ -132,6 +132,76 @@ test('validates actual TC and rejects stale, future, malformed and mismatched re
 	);
 });
 
+test('__tcfapi reports no legitimate interest for consent-only purposes after Accept All', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors: [
+			{
+				id: 'internal',
+				legIntPurposes: [1, 3, 4, 5, 6, 7],
+				name: 'Internal',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [2],
+			},
+		],
+		gvl: completeGVL,
+		kernel,
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady?.();
+	// IAB Europe's CMP Validator check 9 reads this listener's payload.
+	let reported: Record<number, boolean> | undefined;
+	window.__tcfapi?.('addEventListener', 2, (tcData) => {
+		const payload = tcData as {
+			purpose?: { legitimateInterests: Record<number, boolean> };
+			tcString?: string;
+		};
+		if (payload.tcString && payload.purpose) {
+			reported = payload.purpose.legitimateInterests;
+		}
+	});
+	addon.acceptAll();
+	await addon.save();
+	await vi.advanceTimersByTimeAsync(0);
+
+	expect(reported).toBeDefined();
+	expect([1, 3, 4, 5, 6].filter((id) => reported?.[id])).toEqual([]);
+	expect(reported?.[7]).toBe(true);
+});
+
+test('drops restored legitimate interest for a custom vendor with only consent-only purposes', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors: [
+			{
+				id: 'consent-only',
+				legIntPurposes: [1],
+				name: 'Consent only',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [2],
+			},
+		],
+		gvl: completeGVL,
+		kernel,
+	});
+	disposers.push(addon.dispose);
+	const tcString = await generateTCString(data, completeGVL, { cmpId: 28 });
+	// An earlier release saved this for such a vendor after Accept All.
+	const receipt = {
+		...createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW),
+		customLegitimateInterests: { 'consent-only': true },
+	};
+	const authority = await validateAuthority(
+		receipt,
+		kernel.getSnapshot(),
+		NOW,
+		[]
+	);
+	expect(authority?.vendorLegitimateInterests['consent-only']).toBe(false);
+});
+
 test('IAB draft changes do not grant; save records one category action and confirmed authority', async () => {
 	const kernel = makeKernel();
 	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
@@ -2016,10 +2086,10 @@ test('a list that accepts the restrictions after a rejected one restores stored 
 	);
 });
 
-test('restrictions decoded from a range never reach an unlisted custom vendor', async () => {
+test('restrictions on vendors with a gap between them skip the gap', async () => {
 	const kernel = makeKernel();
-	// No listed vendor sits between 2 and 10, so the encoder writes one
-	// range 2-10, which decodes to IDs 3 to 9 as well.
+	// No listed vendor sits between 2 and 10. A range 2-10 would also
+	// restrict IDs 3 to 9.
 	const addon = createIAB({
 		cmpId: 28,
 		customVendors: [
@@ -2041,16 +2111,9 @@ test('restrictions decoded from a range never reach an unlisted custom vendor', 
 	addon.acceptAll();
 	await addon.save();
 	const authority = kernel.getSnapshot().iab?.authority;
-	// The TC string still carries the range as encoded.
 	expect(
 		(await decodeTCString(authority?.tcString ?? '')).publisherRestrictions
-	).toEqual([
-		{
-			purposeId: 2,
-			restrictionType: 0,
-			vendorIds: [2, 3, 4, 5, 6, 7, 8, 9, 10],
-		},
-	]);
+	).toEqual([{ purposeId: 2, restrictionType: 0, vendorIds: [2, 10] }]);
 	expect(authority?.publisherRestrictions).toEqual([
 		{ purposeId: 2, restrictionType: 0, vendorIds: [2, 10] },
 	]);
@@ -2061,6 +2124,43 @@ test('restrictions decoded from a range never reach an unlisted custom vendor', 
 		);
 	expect(gate(3)).toBe(true);
 	expect(gate(2)).toBe(false);
+});
+
+test('a stored range never reaches an unlisted custom vendor', async () => {
+	const kernel = makeKernel();
+	// Earlier versions encoded vendors 2 and 10 as one range 2-10, the way
+	// the IAB library does against a list without vendors 3 to 9.
+	const { GVL, PurposeRestriction, TCModel, TCString } =
+		await import('@iabtechlabtcf/core');
+	// oxlint-disable-next-line typescript/no-explicit-any -- GVL library types don't match our domain types
+	const model = new TCModel(new GVL(completeGVL as any));
+	const day = new Date(Math.floor(NOW / DAY) * DAY);
+	model.created = day;
+	model.lastUpdated = day;
+	model.cmpId = 28;
+	model.cmpVersion = 1;
+	model.isServiceSpecific = true;
+	model.purposeConsents.set([1, 2]);
+	model.vendorConsents.set([2, 10]);
+	model.vendorsDisclosed.set([2, 10]);
+	const prohibited = new PurposeRestriction(2, 0);
+	model.publisherRestrictions.add(2, prohibited);
+	model.publisherRestrictions.add(10, prohibited);
+	const tcString = TCString.encode(model);
+	expect(
+		(await decodeTCString(tcString)).publisherRestrictions[0]?.vendorIds
+	).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+	const publisherRestrictions = [
+		{ purposeId: 2, restrictionType: 0 as const, vendorIds: [2, 10] },
+	];
+	const authority = await validateAuthority(
+		createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW),
+		kernel.getSnapshot(),
+		NOW,
+		publisherRestrictions
+	);
+	expect(authority?.publisherRestrictions).toEqual(publisherRestrictions);
 });
 
 test('a receipt arriving while a replacement list loads is not checked against the old list', async () => {
@@ -2197,6 +2297,30 @@ describe('returning visitors and changed publisher restrictions', () => {
 	const prohibit7 = [
 		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
 	];
+
+	test('adding a vendor between restricted vendors asks nothing', async () => {
+		const restricted = [
+			{ purposeId: 2, restrictionType: 0 as const, vendorIds: [2, 10] },
+		];
+		await savedWith(restricted);
+		const { 2: vendor2 } = completeGVL.vendors;
+		if (!vendor2) {
+			throw new Error('Missing vendor 2 fixture');
+		}
+		// The publisher adds vendor 5, which sits between 2 and 10.
+		const { addon, kernel } = returning(restricted, {
+			...completeGVL,
+			vendors: {
+				...completeGVL.vendors,
+				5: { ...vendor2, id: 5, name: 'Vendor 5' },
+			},
+		});
+		await addon.whenReady();
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
+		);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+	});
 
 	test('a restriction change is caught when the policy version changed too', async () => {
 		await savedWith([]);

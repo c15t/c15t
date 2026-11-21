@@ -122,6 +122,31 @@ const createPolicyLinks = (
 };
 
 /**
+ * The standard Features explanation, which TCF policy check 14 requires
+ * wherever Features are shown. Falls back to the translated text when the
+ * vendor list has none.
+ */
+const appendFeaturesStandardText = (
+	content: DocumentFragment,
+	snapshot: ConsentSnapshot,
+	vendor: Vendor,
+	copy: SurfaceCopy
+): void => {
+	if (!vendor.features?.length) {
+		return;
+	}
+	content.append(
+		h(
+			'p',
+			{ 'data-testid': 'iab-vendor-features-standard-text' },
+			snapshot.iab?.gvl?.standardTexts?.features ||
+				copy.t.iab.preferenceCenter.features?.description ||
+				''
+		)
+	);
+};
+
+/**
  * Render the vendor's declared policies, data use, storage, and retention.
  * Missing durations remain undisclosed rather than becoming zero days.
  *
@@ -207,6 +232,7 @@ export const createVendorDisclosures = (
 		standardRetention
 	);
 	appendGroup(t.features, vendor.features ?? [], gvl?.features);
+	appendFeaturesStandardText(content, snapshot, vendor, copy);
 	appendGroup(
 		t.specialFeatures,
 		vendor.specialFeatures ?? [],
