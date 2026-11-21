@@ -1,3 +1,39 @@
+## @c15t/react@3.3.0-canary.0 (canary)
+
+### Fix IAB TCF signals and vendor disclosures
+
+- Restricting two vendors no longer restricts the vendors between them.
+- Purposes that allow consent only (1, 3, 4, 5 and 6) no longer get a
+  legitimate interest signal from a custom vendor.
+- Legitimate interest switches show what Save records.
+- Vendor links render only for absolute `http` and `https` URLs.
+- Vendor disclosures show the standard TCF Features text.
+
+### Fix the vendor list fallback, prefetch detection and option warnings
+
+- A cached Global Vendor List is served when a refresh fails, and a failed
+  fetch is retried after 60 seconds.
+- Prefetch requests are detected from more headers, so they no longer count as
+  visits in session reports.
+- Changing any read-once provider option after mount warns in development.
+
+### Fix Escape with stacked dialogs, legal links and phone padding
+
+- Escape closes only the top dialog.
+- Vue leaves out a legal link that has no URL instead of linking to `#`.
+- Legal links that open in a new tab get `rel="noopener noreferrer"` by
+  default.
+- The banner and preferences dialog use even padding on phones.
+
+### Fix the IAB banner and dialog
+
+- The script-tag UI shows a registered vendor's data categories.
+- The script-tag IAB banner shows the partner count once.
+- In Vue, the partners link opens the dialog on the vendor list.
+- A failed IAB save is reported once. `saveIABConsentSurface` resolves
+  `{ ok: false }` instead of rejecting.
+- Vue records no IAB choice when no CMP is mounted.
+
 ## @c15t/react@3.2.0
 
 ### Match the stock surfaces' text direction and IAB handling in headless UI

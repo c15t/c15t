@@ -1,3 +1,25 @@
+## @c15t/ui@3.1.3-canary.0 (canary)
+
+### Fix Escape with stacked dialogs, legal links and phone padding
+
+- Escape closes only the top dialog.
+- Vue leaves out a legal link that has no URL instead of linking to `#`.
+- Legal links that open in a new tab get `rel="noopener noreferrer"` by
+  default.
+- The banner and preferences dialog use even padding on phones.
+
+### Consent provider works again in browsers before Safari 15.4
+
+Since 3.0, the consent provider has used `structuredClone`, `Object.hasOwn`,
+`Array.prototype.at` and `Array.prototype.findLast`. Safari 15.4 was the first
+Safari to ship them, and Chrome added them between 92 and 98. Without them, the
+provider failed to mount or the banner did not render: Chrome and Android
+WebView before 98, Firefox before 104, Safari and iOS Safari before 15.4, and
+Samsung Internet before 18.
+
+c15t no longer calls these built-ins in browser code. You can remove a polyfill
+you added only for c15t.
+
 ## @c15t/ui@3.1.2
 
 ### Consent provider works again in browsers before Safari 15.4

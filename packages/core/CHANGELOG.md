@@ -1,3 +1,66 @@
+## @c15t/core@3.3.0-canary.0 (canary)
+
+### Fix clearing, revocation cleanup and early script mounting
+
+- `clear()` also removes the `addtl_consent` cookie and localStorage entry.
+- A server-rendered page drops a choice that another tab cleared.
+- Revocation cleanup keeps the tab journey ID and `addtl_consent`.
+- A `target: 'body'` script mounted before `<body>` exists goes to `<head>`
+  instead of throwing.
+
+### Hide the "Secured by" tag when branding is `none`
+
+A backend that sets `branding: 'none'` now hides the "Secured by" tag in every
+stock UI, including the IAB banner. `KernelBranding` gains `'none'`.
+
+### Fix the vendor list fallback, prefetch detection and option warnings
+
+- A cached Global Vendor List is served when a refresh fails, and a failed
+  fetch is retried after 60 seconds.
+- Prefetch requests are detected from more headers, so they no longer count as
+  visits in session reports.
+- Changing any read-once provider option after mount warns in development.
+
+### Preference switches match what is in effect
+
+- A category that Global Privacy Control denies starts off when the visitor has
+  no saved choice, and saving records it as denied.
+- Vue and the script-tag UI show the restriction notice on a saved grant.
+- Categories start on under a `none` policy.
+
+### Stop storing `c15t-sid` before a choice
+
+c15t no longer writes the `c15t-sid` cookie or localStorage key on first load.
+The subject ID is stored with the visitor's first saved record, and a leftover
+`c15t-sid` is removed on start. `identify()` before the first save is sent
+with that save.
+
+`resolveRequestSubject()` is deprecated and no longer returns a cookie to set.
+Each adapter's `subjectCookie` option does nothing. v4 removes both.
+
+If your cookie policy lists `c15t-sid`, remove it.
+
+### Consent provider works again in browsers before Safari 15.4
+
+Since 3.0, the consent provider has used `structuredClone`, `Object.hasOwn`,
+`Array.prototype.at` and `Array.prototype.findLast`. Safari 15.4 was the first
+Safari to ship them, and Chrome added them between 92 and 98. Without them, the
+provider failed to mount or the banner did not render: Chrome and Android
+WebView before 98, Firefox before 104, Safari and iOS Safari before 15.4, and
+Samsung Internet before 18.
+
+c15t no longer calls these built-ins in browser code. You can remove a polyfill
+you added only for c15t.
+
+### Fix the IAB banner and dialog
+
+- The script-tag UI shows a registered vendor's data categories.
+- The script-tag IAB banner shows the partner count once.
+- In Vue, the partners link opens the dialog on the vendor list.
+- A failed IAB save is reported once. `saveIABConsentSurface` resolves
+  `{ ok: false }` instead of rejecting.
+- Vue records no IAB choice when no CMP is mounted.
+
 ## @c15t/core@3.2.2
 
 ### Fix `/init` query parameters in Next.js route handlers
