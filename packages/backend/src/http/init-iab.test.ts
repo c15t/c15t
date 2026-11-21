@@ -5,10 +5,8 @@
  * vendors. `/init` resolved the IAB rule correctly and then embedded nothing,
  * because the gate also wanted `gvl.enabled === true` and a deployment that
  * configured a cache and a vendor scope had no reason to suspect a second
- * switch was pending. Every disclosure surface sits behind that field, and on a
- * device it is the only surface there is: a phone never fetches a list, it reads
- * the one `/init` brought. See `native/core-swift` and the Android core, which
- * store and serve exactly what the response carried.
+ * switch was pending. Every disclosure surface sits behind that field when a
+ * client reads the vendor list embedded in `/init`.
  *
  * These run against the shipped `europeIab()` preset rather than a hand-written
  * rule. The half-configured deployment is a configuration story, and the preset

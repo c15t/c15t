@@ -1578,12 +1578,12 @@ const path = require.resolve('@c15t/react/iab/styles.tw3.css');
 			{ c15t: '^3.0.0' },
 			{
 				'src/consent.tsx': `import { ConsentProvider } from 'c15t/react';
-import { Banner } from '@c15t/react-native';
+import { DevTools } from '@c15t/dev-tools';
 import { posthog } from '@c15t/integrations/posthog';
 import { createC15tClient } from '@c15t/node-sdk';
 `,
 				'src/index.css': `@import 'c15t/react/styles.css';
-@import '@c15t/react-native/styles.css';
+@import '@c15t/dev-tools/styles.css';
 `,
 			}
 		);

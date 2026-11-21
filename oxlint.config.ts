@@ -25,19 +25,17 @@ const nextAppFiles = nextAppDirectories.map(
 );
 
 const nonReactFrameworkFiles = [
-	'apps/storybook-solid/**/*.{js,jsx,ts,tsx}',
 	'apps/storybook-svelte/**/*.{js,jsx,ts,tsx}',
 	'apps/storybook-vue/**/*.{js,jsx,ts,tsx}',
 	'benchmarks/nuxt-browser-bench/**/*.{js,jsx,ts,tsx}',
 	'internals/fixtures/nuxt/**/*.{js,jsx,ts,tsx}',
 	'internals/fixtures/nuxt-vapor/**/*.{js,jsx,ts,tsx}',
-	'packages/solid/**/*.{js,jsx,ts,tsx}',
 	'packages/svelte/**/*.{js,jsx,ts,tsx}',
 	'packages/vue/**/*.{js,jsx,ts,tsx}',
 ] as const;
 
-// Source that runs in browsers or React Native, where newer globals are not
-// guaranteed. Server-only packages (backend, cli, node-sdk) are left out.
+// Source that runs in browsers, where newer globals are not guaranteed.
+// Server-only packages (backend, cli, node-sdk) are left out.
 const browserPackageFiles = [
 	'astro',
 	'browser',
@@ -49,10 +47,8 @@ const browserPackageFiles = [
 	'logger',
 	'nextjs',
 	'react',
-	'react-native',
 	'schema',
 	'scripts',
-	'solid',
 	'svelte',
 	'tanstack-start',
 	'translations',

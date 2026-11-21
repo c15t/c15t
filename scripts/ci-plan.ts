@@ -67,54 +67,6 @@ export const isStarterPath = function isStarterPath(path: string): boolean {
 	return /^examples\/(?!showcase-)[^/]+\//u.test(path);
 };
 
-/**
- * The native kernels, protocol fixtures, and contract live outside the workspace
- * graph, so a change there owns no package and needs an explicit filter.
- */
-export const isMobileNativePath = function isMobileNativePath(
-	path: string
-): boolean {
-	return path.startsWith('native/');
-};
-
-/**
- * Files a phone actually compiles, as opposed to files that only reach the SDK's
- * JavaScript.
- *
- * The device group pays for `expo prebuild`, `pod install`, and two app builds, so
- * it keys on the native kernels, the binding's iOS and Android halves, and the two
- * example apps. JavaScript-only SDK changes run in the package test job.
- */
-export const isMobileDevicePath = function isMobileDevicePath(
-	path: string
-): boolean {
-	return (
-		/^internals\/fixtures\/(?:expo-dev|react-native-bare)\//u.test(path) ||
-		isMobileNativePath(path) ||
-		/^packages\/react-native\/(?:ios|android)\//u.test(path) ||
-		/^packages\/react-native\/(?:Package\.swift|C15tReactNative\.podspec|react-native\.config\.(?:js|cjs|mjs|ts))$/u.test(
-			path
-		)
-	);
-};
-
-// The autolink config is matched under every extension a linker might be told to read.
-// It has already been renamed once, from `.cjs` to `.js`, and the rename is what let Expo
-// drop the library silently; a selector naming one literal rots the next time it moves.
-
-/**
- * The mobile budget harness, as a path rather than a workspace.
- *
- * `@c15t/benchmarking` is a dependency of the mobile bench and of the backend, so a
- * selected workspace would drag mobile macOS minutes into any backend pull request.
- * Editing the harness itself is the signal that its measurement contracts changed.
- */
-export const isMobileBenchmarkPath = function isMobileBenchmarkPath(
-	path: string
-): boolean {
-	return path.startsWith('benchmarks/mobile/');
-};
-
 /** Build only the selected packages and their forward dependencies. */
 export const packageBuildClosure = function packageBuildClosure(
 	names: Iterable<string>,
@@ -326,22 +278,6 @@ export const createCiPlan = function createCiPlan(
 			workspace.directory
 		)
 	);
-	// The package job owns affected JavaScript and protocol tests. Native toolchains
-	// only run when their inputs change, or during full validation.
-	const mobile =
-		full ||
-		runtime.some(
-			(path) =>
-				isMobileDevicePath(path) ||
-				isMobileBenchmarkPath(path) ||
-				/^packages\/react-native\/(?:src\/specs\/|scripts\/|package\.json$)/u.test(
-					path
-				)
-		);
-	// Advisory, and expensive: app builds run on a macOS runner and a full Android
-	// build, so only files an app compiles select it, plus the runs that select
-	// everything.
-	const mobileBrowserOrDevice = full || runtime.some(isMobileDevicePath);
 	const integrations = [
 		{ kind: 'examples', targets: examples.join(',') },
 		{ kind: 'starters', targets: starters.join(',') },
@@ -368,8 +304,6 @@ export const createCiPlan = function createCiPlan(
 		full,
 		integrations,
 		journeys,
-		mobile,
-		mobileBrowserOrDevice,
 		parity,
 		performance: selected.some(
 			(workspace) =>
@@ -405,8 +339,6 @@ export const ciSchedulingOutputs = (plan: CiPlan) => ({
 	bundle: plan.bundle,
 	docs: plan.docs,
 	integrations: plan.integrations,
-	mobile: plan.mobile,
-	mobileBrowserOrDevice: plan.mobileBrowserOrDevice,
 	packageChecks:
 		plan.tests.length + plan.types.length + plan.testTypes.length > 0,
 	performance: plan.performance,

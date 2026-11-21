@@ -196,7 +196,7 @@ describe('release validation', () => {
 	it('skips runtime comparisons in releases while keeping other checks required', () => {
 		expect(readWorkflow('release')).toMatchObject({
 			jobs: {
-				checks: { with: { skip_mobile_device: true, skip_performance: true } },
+				checks: { with: { skip_performance: true } },
 				publish: { needs: 'checks' },
 			},
 		});
@@ -213,17 +213,9 @@ describe('release validation', () => {
 						'packages',
 						'backend',
 						'browser',
-						'mobile',
 						'bundle',
 						'performance',
 					],
-				},
-				// The device builds are a build report, not a gate: a pod fetch that
-				// breaks must not turn `CI complete` red.
-				mobileBrowserOrDevice: {
-					if: "needs.repository.outputs.mobileBrowserOrDevice == 'true' && !inputs.skip_mobile_device",
-					needs: ['repository', 'build'],
-					uses: './.github/workflows/mobile-device.yml',
 				},
 				performance: {
 					if: "needs.repository.outputs.performance == 'true' && !inputs.skip_performance",
@@ -298,27 +290,6 @@ describe('release validation', () => {
 		expect(readWorkflow('validation')).not.toHaveProperty(
 			'jobs.checks.with.release_affected'
 		);
-	});
-
-	it('runs advisory app builds independently on release pushes', () => {
-		expect(readWorkflow('mobile-device')).toMatchObject({
-			jobs: {
-				plan: {
-					steps: expect.arrayContaining([
-						expect.objectContaining({
-							env: expect.objectContaining({
-								CI_RELEASE_WORKFLOW: 'mobile-device.yml',
-							}),
-							run: 'bun scripts/ci-release-base.ts',
-						}),
-					]),
-				},
-			},
-			on: { push: { branches: ['main', 'canary'] } },
-		});
-		expect(readWorkflow('release')).toMatchObject({
-			jobs: { checks: { with: { skip_mobile_device: true } } },
-		});
 	});
 
 	it('runs full canary comparisons separately on push, nightly, and manually', () => {

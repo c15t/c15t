@@ -4,7 +4,7 @@
  * Processes GVL data into UI-ready structures for the consent dialog.
  * This keeps the O(purposes x vendors) derivation out of framework
  * components and makes the same result consumable by React, Vue, Svelte,
- * Solid, and Astro wrappers.
+ * and Astro wrappers.
  *
  * @packageDocumentation
  */

@@ -83,7 +83,6 @@ describe('CI remote cache authentication', () => {
 		for (const name of [
 			'ci',
 			'release',
-			'mobile-device',
 			'bundle-analysis',
 			'benchmark-regression',
 		]) {
@@ -103,7 +102,6 @@ describe('CI remote cache authentication', () => {
 		for (const name of [
 			'ci',
 			'release',
-			'mobile-device',
 			'validation',
 			'bundle-analysis',
 			'benchmark-regression',
@@ -130,7 +128,7 @@ describe('CI remote cache authentication', () => {
 	});
 
 	it('does not inject or forward stored Vercel API secrets', () => {
-		for (const name of ['ci', 'release', 'mobile-device']) {
+		for (const name of ['ci', 'release']) {
 			const workflow = JSON.stringify(read(`.github/workflows/${name}.yml`));
 			expect(workflow).not.toContain('secrets.TURBO_TOKEN');
 			expect(workflow).not.toContain('secrets.TURBO_TEAM');
