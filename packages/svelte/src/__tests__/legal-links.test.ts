@@ -32,3 +32,42 @@ test('legal links read as a list after the description, as in React', async () =
 		'Copy. Cookies, Privacy'
 	);
 });
+
+test('sets rel="noopener noreferrer" on default new-tab links and respects overrides', async () => {
+	render(Fixture, {
+		legalLinks: ['privacyPolicy', 'cookiePolicy', 'termsOfService'],
+		options: {
+			legalLinks: {
+				cookiePolicy: { href: '/cookies', label: 'Cookies', target: '_self' },
+				privacyPolicy: { href: '/privacy', label: 'Privacy' },
+				termsOfService: { href: '/terms', label: 'Terms', rel: 'noopener' },
+			},
+			mode: custom({}),
+			persistence: false,
+			prefetch: policyFixture(),
+		} as ConsentManagerOptions,
+	});
+
+	const privacy = await waitFor(() => {
+		const found = document.querySelector<HTMLAnchorElement>(
+			'[data-testid="consent-banner-legal-link-privacyPolicy"]'
+		);
+		expect(found).not.toBeNull();
+		return found as HTMLAnchorElement;
+	});
+	const cookies = document.querySelector<HTMLAnchorElement>(
+		'[data-testid="consent-banner-legal-link-cookiePolicy"]'
+	);
+	const terms = document.querySelector<HTMLAnchorElement>(
+		'[data-testid="consent-banner-legal-link-termsOfService"]'
+	);
+
+	expect(privacy.getAttribute('target')).toBe('_blank');
+	expect(privacy.getAttribute('rel')).toBe('noopener noreferrer');
+
+	expect(cookies?.getAttribute('target')).toBe('_self');
+	expect(cookies?.getAttribute('rel')).toBeNull();
+
+	expect(terms?.getAttribute('target')).toBe('_blank');
+	expect(terms?.getAttribute('rel')).toBe('noopener');
+});

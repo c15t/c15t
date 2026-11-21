@@ -55,3 +55,9 @@ The stock surfaces are built from smaller components that
 `c15t/vue/runtime/components/consent-legal-links.vue`. For consent UI in your own markup, use the
 [headless composables](/docs/frameworks/vue/headless) instead. They give you
 the policy's actions and the draft state without the stock markup.
+
+`ConsentLink` renders one legal link, such as
+`<ConsentLink context="banner" link="privacyPolicy" />`, with the URL from
+`legalLinks`. Pass `href` to use a different URL. With no URL from either, it
+renders nothing. `ConsentLegalLinks` skips the same links, so a key listed in
+`bannerLegalLinks` or `dialogLegalLinks` without a URL leaves no empty link.
