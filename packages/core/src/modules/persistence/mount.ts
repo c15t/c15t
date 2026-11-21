@@ -4,15 +4,24 @@
  *
  * @internal
  */
-import { clearKernelRecords } from '../../kernel/clear-records';
+import {
+	clearKernelRecords,
+	subjectAfterClear,
+} from '../../kernel/clear-records';
 import type { InternalKernel } from '../../kernel/internals';
 import { generateSubjectId } from '../../libs/generate-subject-id';
 import type {
 	ConsentSnapshot,
 	ConsentSubject,
+	ExplicitChoice,
 	HydrationRecords,
 } from '../../types';
 import { clearStoredRecords, writeStoredSubjectId } from './clear';
+import {
+	choiceSinceEpoch,
+	noticeSinceEpoch,
+	vendorChoiceSinceEpoch,
+} from './epoch';
 import {
 	hydrateFromStorage,
 	readRecordedSubjectIdFromCookieHeader,
@@ -88,6 +97,127 @@ const sameSubject = function sameSubject(
 		left?.externalId === right?.externalId &&
 		left?.identityProvider === right?.identityProvider
 	);
+};
+
+/**
+ * The choice a seeded kernel takes when it mounts, or `undefined` to keep
+ * the seed. A seed the clear epoch voided whole yields to storage. Seeded
+ * decisions that outlive the clear stay, and only a newer stored denial is
+ * laid over them. A seeded category the epoch voided takes what storage
+ * holds for it.
+ */
+const seededChoicePatch = function seededChoicePatch(
+	seeded: ExplicitChoice | null,
+	surviving: ExplicitChoice | null,
+	stored: ExplicitChoice | null | undefined
+): ExplicitChoice | null | undefined {
+	if (seeded && !surviving) {
+		return stored ?? null;
+	}
+	const kept = surviving?.categories ?? {};
+	const denials = Object.entries(stored?.categories ?? {}).filter(
+		([category, decision]) =>
+			isNewerDenial(decision, kept[category as keyof typeof kept])
+	);
+	if (surviving === seeded && denials.length === 0) {
+		return undefined;
+	}
+	// Only a category the epoch voided yields to storage. One that survived
+	// wins, and one the seed never held takes no stored grant.
+	const yielded = Object.entries(stored?.categories ?? {}).filter(
+		([category]) =>
+			seeded !== null && category in seeded.categories && !(category in kept)
+	);
+	return {
+		categories: {
+			...Object.fromEntries(yielded),
+			...kept,
+			...Object.fromEntries(denials),
+		},
+		version: 3,
+	};
+};
+
+/**
+ * Whether another handle's queued records include one from before the clear
+ * epoch. Such a queue never saw that clear, so a seeded page takes from it
+ * only what was recorded since.
+ */
+const queueMissedClear = function queueMissedClear(
+	queued: ConsentSnapshot,
+	epoch: number
+): boolean {
+	return [
+		choiceSinceEpoch(queued.explicitChoice, epoch, false) !==
+			queued.explicitChoice,
+		noticeSinceEpoch(queued.noticeDismissal, epoch) !== queued.noticeDismissal,
+		vendorChoiceSinceEpoch(queued.vendorChoice, epoch) !== queued.vendorChoice,
+	].includes(true);
+};
+
+/**
+ * The record made later, or the one that exists. The stored record wins a
+ * tie, as it does when the writer reconciles.
+ */
+const laterOf = function laterOf<RecordType>(
+	stored: RecordType | null,
+	queued: RecordType | null,
+	madeAt: (record: RecordType) => number
+): RecordType | null {
+	if (!(stored && queued)) {
+		return queued ?? stored;
+	}
+	return madeAt(queued) > madeAt(stored) ? queued : stored;
+};
+
+/**
+ * Storage's records with another handle's queued ones laid over them, for a
+ * queue that missed the clear `epoch` marks. A queued record from before
+ * that clear is void. Of the rest, the later of the queued and the stored
+ * one stands, category by category for a choice.
+ */
+const queuedSinceClear = function queuedSinceClear(
+	stored: HydrationRecords,
+	queued: ConsentSnapshot,
+	epoch: number
+): HydrationRecords {
+	const choice = choiceSinceEpoch(queued.explicitChoice, epoch, false);
+	const categories = { ...stored.choice?.categories };
+	for (const [category, decision] of Object.entries(choice?.categories ?? {})) {
+		const key = category as keyof typeof categories;
+		categories[key] = laterOf(
+			categories[key] ?? null,
+			decision,
+			(made) => made.confirmedAt
+		) as (typeof categories)[typeof key];
+	}
+	return {
+		...stored,
+		choice:
+			Object.keys(categories).length > 0 ? { categories, version: 3 } : null,
+		noticeDismissal: laterOf(
+			stored.noticeDismissal ?? null,
+			noticeSinceEpoch(queued.noticeDismissal, epoch),
+			(made) => made.dismissedAt
+		),
+		vendorChoice: laterOf(
+			stored.vendorChoice ?? null,
+			vendorChoiceSinceEpoch(queued.vendorChoice, epoch),
+			(made) => made.confirmedAt
+		),
+	};
+};
+
+/**
+ * A seeded subject cut to its ID, as a clear leaves it, or `undefined`
+ * when it holds nothing more.
+ */
+const seededSubjectCut = function seededSubjectCut(
+	subject: ConsentSubject | null
+): ConsentSubject | null | undefined {
+	return subject && Object.keys(subject).some((key) => key !== 'subjectId')
+		? subjectAfterClear(subject)
+		: undefined;
 };
 
 /** The complete subject a storage read's records carry, `null` for none. */
@@ -439,37 +569,72 @@ export const mountPersistence = function mountPersistence(
 	 * past the per-cookie limit, so a newer stored one replaces the seeded
 	 * list before any gate consults the denials.
 	 *
+	 * Another tab can clear after the server read the cookies. The browser's
+	 * clear epoch then voids the seeded records from before it, as it voids
+	 * stored ones, and a record it voids yields to what storage holds. A
+	 * seeded decision from the clearing millisecond is kept: the seed does
+	 * not say whether its writer had seen the clear. Seeded decisions that
+	 * outlive the clear stay the seed, so a stored grant still cannot
+	 * replace them. From another handle's queue that missed the clear, only
+	 * records made since count. The seeded subject keeps its ID alone, as after any
+	 * clear.
+	 *
 	 * The read also becomes what the writer starts from: the kernel's
 	 * records stay the seed's, and storage is what it was read as here.
 	 * Reconciling merges only records that changed since this read, so a
 	 * grant left out here stays out until another runtime writes storage.
 	 * Returns the subject the stored records carry, `null` for none.
 	 */
+	let seedMissedClear = false;
 	const applyNewerStoredRecords =
 		function applyNewerStoredRecords(): ConsentSubject | null {
 			const at = now();
 			const read = readStoredRecordsForReconcile(storageConfig, at);
 			baseline = [read, false];
-			const records = withQueued(read.records);
+			const queued = queuedWrites.get(consentKey)?.getSnapshot();
+			const records =
+				queued && queueMissedClear(queued, read.epoch)
+					? queuedSinceClear(read.records, queued, read.epoch)
+					: withQueued(read.records);
 			const snapshot = kernel.getSnapshot();
 			const patch: HydrationRecords = {};
-			const seeded = snapshot.explicitChoice?.categories ?? {};
-			const denials = Object.entries(records.choice?.categories ?? {}).filter(
-				([category, decision]) =>
-					isNewerDenial(decision, seeded[category as keyof typeof seeded])
+			const choice = choiceSinceEpoch(
+				snapshot.explicitChoice,
+				read.epoch,
+				true
 			);
-			if (denials.length > 0) {
-				patch.choice = {
-					categories: { ...seeded, ...Object.fromEntries(denials) },
-					version: 3,
-				};
+			const choicePatch = seededChoicePatch(
+				snapshot.explicitChoice,
+				choice,
+				records.choice
+			);
+			if (choicePatch !== undefined) {
+				patch.choice = choicePatch;
 			}
+			const notice = noticeSinceEpoch(snapshot.noticeDismissal, read.epoch);
+			if (notice !== snapshot.noticeDismissal) {
+				patch.noticeDismissal = records.noticeDismissal ?? null;
+			}
+			const vendors = vendorChoiceSinceEpoch(snapshot.vendorChoice, read.epoch);
 			const { vendorChoice } = records;
-			if (
+			if (vendors !== snapshot.vendorChoice) {
+				patch.vendorChoice = vendorChoice ?? null;
+			} else if (
 				vendorChoice &&
-				vendorChoice.confirmedAt > (snapshot.vendorChoice?.confirmedAt ?? -1)
+				vendorChoice.confirmedAt > (vendors?.confirmedAt ?? -1)
 			) {
 				patch.vendorChoice = vendorChoice;
+			}
+			seedMissedClear = [
+				choice !== snapshot.explicitChoice,
+				notice !== snapshot.noticeDismissal,
+				vendors !== snapshot.vendorChoice,
+			].includes(true);
+			const subject = seedMissedClear
+				? seededSubjectCut(snapshot.subject)
+				: undefined;
+			if (subject !== undefined) {
+				patch.subject = subject;
 			}
 			if (Object.keys(patch).length > 0) {
 				kernel.hydrate({ ...patch, now: at });
@@ -921,7 +1086,10 @@ export const mountPersistence = function mountPersistence(
 			if (queued && queuedSubjectId) {
 				startQueuedSubject(queued, queuedSubjectId);
 			} else {
-				startSubject(before, recorded);
+				startSubject(
+					seedMissedClear ? subjectAfterClear(before) : before,
+					recorded
+				);
 			}
 			unsubscribers.push(kernel.subscribe(followSubjectId));
 		}

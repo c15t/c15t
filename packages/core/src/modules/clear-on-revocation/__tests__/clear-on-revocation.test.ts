@@ -12,6 +12,7 @@ import {
 import { createKernel as createConsentKernel } from '../../../kernel';
 import type { InternalKernel } from '../../../kernel/internals';
 import {
+	JOURNEY_STORAGE_KEY,
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
@@ -134,22 +135,29 @@ describe('cookie cleanup', () => {
 });
 
 describe('web storage cleanup', () => {
-	test.each(['euconsent-v2', 'euconsent-*'])(
-		'preserves IAB consent records matched by %s and c15t*',
-		(tcStringTarget) => {
+	test.each([
+		['euconsent-v2', 'addtl_consent'],
+		['euconsent-*', 'addtl_*'],
+	])(
+		'preserves IAB consent records matched by %s, %s and c15t*',
+		(tcStringTarget, addtlConsentTarget) => {
 			localStorage.setItem('c15t-iab-authority-v1', 'authority');
 			localStorage.setItem('euconsent-v2', 'tc-string');
+			localStorage.setItem('addtl_consent', '2~89.2577~dv.');
 			document.cookie = 'euconsent-v2=tc-string; Path=/';
+			document.cookie = 'addtl_consent=2~89.2577~dv.; Path=/';
 			localStorage.setItem('c15t-analytics', 'tracking');
 			attach({
 				measurement: {
-					cookies: [tcStringTarget],
-					localStorage: ['c15t*', tcStringTarget],
+					cookies: [tcStringTarget, addtlConsentTarget],
+					localStorage: ['c15t*', tcStringTarget, addtlConsentTarget],
 				},
 			});
 			expect(localStorage.getItem('c15t-iab-authority-v1')).toBe('authority');
 			expect(localStorage.getItem('euconsent-v2')).toBe('tc-string');
+			expect(localStorage.getItem('addtl_consent')).toBe('2~89.2577~dv.');
 			expect(document.cookie).toContain('euconsent-v2=tc-string');
+			expect(document.cookie).toContain('addtl_consent=2~89.2577~dv.');
 			expect(localStorage.getItem('c15t-analytics')).toBeNull();
 		}
 	);
@@ -169,6 +177,18 @@ describe('web storage cleanup', () => {
 			expect(sessionStorage.getItem(key)).toBeNull();
 		}
 		expect(sessionStorage.getItem('unrelated')).toBe('keep');
+	});
+
+	test("keeps a 'tab' journey's id in sessionStorage", () => {
+		sessionStorage.setItem(JOURNEY_STORAGE_KEY, 'journey');
+		sessionStorage.setItem('c15t-tracking', 'tracking');
+		attach(
+			{ measurement: { sessionStorage: ['c15t*'] } },
+			createConsentKernel(),
+			'custom'
+		);
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBe('journey');
+		expect(sessionStorage.getItem('c15t-tracking')).toBeNull();
 	});
 
 	test('matches exact and prefix names without skipping keys as indexes shift', () => {
