@@ -125,6 +125,8 @@ describe('extractRelevantHeaders', () => {
 		const headers = new Headers();
 		headers.set('purpose', 'prefetch');
 		headers.set('sec-purpose', 'prefetch');
+		headers.set('x-purpose', 'prefetch');
+		headers.set('x-moz', 'prefetch');
 		headers.set('next-router-prefetch', '1');
 		headers.set('x-middleware-prefetch', '1');
 
@@ -135,6 +137,8 @@ describe('extractRelevantHeaders', () => {
 			purpose: 'prefetch',
 			'sec-purpose': 'prefetch',
 			'x-middleware-prefetch': '1',
+			'x-moz': 'prefetch',
+			'x-purpose': 'prefetch',
 		});
 	});
 

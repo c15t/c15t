@@ -7,9 +7,11 @@ import {
 	appendJourneyParams,
 	buildConsentSessionReport,
 	deriveJourneyPrompt,
+	isSpeculativeRequest,
 	journeyDomainFrom,
 	readJourneyParams,
 	readSessionJourney,
+	SPECULATION_HEADERS,
 } from './session-report';
 
 const ID = '3b241101-e2bb-4255-8caf-4136c566a962';
@@ -223,5 +225,30 @@ describe('session report journey', () => {
 			source: 'route',
 		});
 		expect(v.safeParse(consentSessionReportSchema, report).success).toBe(false);
+	});
+});
+
+describe('isSpeculativeRequest', () => {
+	it.each([
+		['sec-purpose', 'prefetch;prerender'],
+		['purpose', 'prefetch'],
+		['x-purpose', 'preview'],
+		['x-purpose', 'prefetch'],
+		['x-moz', 'prefetch'],
+		['next-router-prefetch', '1'],
+		['x-middleware-prefetch', '1'],
+	])('reads %s: %s', (name, value) => {
+		expect(isSpeculativeRequest(new Headers({ [name]: value }))).toBe(
+			value !== 'preview'
+		);
+	});
+
+	it('checks every header a server forwards for it', () => {
+		for (const name of SPECULATION_HEADERS) {
+			expect(isSpeculativeRequest(new Headers({ [name]: 'prefetch' }))).toBe(
+				true
+			);
+		}
+		expect(isSpeculativeRequest(new Headers())).toBe(false);
 	});
 });

@@ -434,26 +434,37 @@ export const buildConsentSessionReport = function buildConsentSessionReport(
 };
 
 /**
+ * Request headers that mark a prefetch or prerender rather than a page
+ * view: the browsers' purpose headers, and the flags Next.js's router and
+ * middleware set. A server that forwards a request forwards these so the
+ * backend can tell too.
+ */
+export const SPECULATION_HEADERS = [
+	'sec-purpose',
+	'purpose',
+	'x-purpose',
+	'x-moz',
+	'next-router-prefetch',
+	'x-middleware-prefetch',
+] as const;
+
+/**
  * Whether a request is speculative: a browser, CDN, or router prefetching
  * or prerendering a page the visitor may never open. Such a request still
  * resolves consent so the response is right, but it is not a session;
  * reporting it would count visits that never happened.
  *
  * @param headers - The incoming request's headers.
- * @returns `true` for a prefetch or prerender request.
+ * @returns `true` when a {@link SPECULATION_HEADERS} header names a
+ * prefetch or prerender, or is the flag `1`.
  */
 export const isSpeculativeRequest = function isSpeculativeRequest(
 	headers: Headers
 ): boolean {
-	const purpose = (
-		headers.get('sec-purpose') ??
-		headers.get('purpose') ??
-		headers.get('x-purpose') ??
-		headers.get('x-moz') ??
-		''
-	).toLowerCase();
-	if (purpose.includes('prefetch') || purpose.includes('prerender')) {
-		return true;
-	}
-	return headers.get('next-router-prefetch') === '1';
+	return SPECULATION_HEADERS.some((name) => {
+		const value = headers.get(name)?.toLowerCase() ?? '';
+		return (
+			value === '1' || value.includes('prefetch') || value.includes('prerender')
+		);
+	});
 };

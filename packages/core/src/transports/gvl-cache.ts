@@ -10,6 +10,10 @@ import { failedResponseError } from '../libs/failed-response';
 export interface CachedGvl {
 	gvl: GlobalVendorList | null;
 	expiresAt: number;
+	/** The failure being backed off from when no list has loaded. */
+	error?: unknown;
+	/** `false` when only a failed fetch is remembered and no list has loaded. */
+	loaded?: boolean;
 }
 
 export type GvlCache = Map<string, CachedGvl>;
@@ -30,6 +34,14 @@ export interface FetchCachedGvlOptions {
 }
 
 const DEFAULT_TTL_SECONDS = 86_400;
+/**
+ * How long a failed fetch is remembered before the next call tries again.
+ * A stalled request holds an init for the full fetch timeout, so without
+ * this an outage would slow every init, not one a minute.
+ */
+const FAILURE_BACKOFF_MS = 60_000;
+/** Most lists one cache keeps, one per URL and language; the oldest goes first. */
+const MAX_ENTRIES = 64;
 
 const defaultGvlCache: GvlCache = new Map();
 const inflightByCache = new WeakMap<
@@ -44,6 +56,23 @@ const getInflight = function getInflight(cache: GvlCache) {
 		inflightByCache.set(cache, inflight);
 	}
 	return inflight;
+};
+
+/** Stores `entry` as the newest under `key`, dropping the oldest past the cap. */
+const remember = function remember(
+	cache: GvlCache,
+	key: string,
+	entry: CachedGvl
+): void {
+	cache.delete(key);
+	cache.set(key, entry);
+	while (cache.size > MAX_ENTRIES) {
+		const oldest = cache.keys().next().value;
+		if (oldest === undefined) {
+			break;
+		}
+		cache.delete(oldest);
+	}
 };
 
 const ttlFromHeaders = function ttlFromHeaders(headers: Headers): number {
@@ -76,7 +105,9 @@ export const clearGvlCache = function clearGvlCache(
 };
 
 /**
- * Fetches a vendor list through the cache.
+ * Fetches a vendor list through the cache. When a refresh fails, by status
+ * or by a thrown or aborted fetch, the last good list is served, and the
+ * endpoint is not asked again for a minute.
  *
  * @param options - Endpoint, language, and fetch implementation.
  * @returns The list, or `null` when the endpoint answered 204.
@@ -89,8 +120,14 @@ export const fetchCachedGvl = function fetchCachedGvl(
 	const now = options.now ?? Date.now();
 	const key = `${options.url}|${options.language}`;
 	const cached = cache.get(key);
+	const hasValue = cached !== undefined && cached.loaded !== false;
 	if (cached && cached.expiresAt > now) {
-		return Promise.resolve(cached.gvl);
+		return hasValue
+			? Promise.resolve(cached.gvl)
+			: Promise.reject(cached.error);
+	}
+	if (cached && !hasValue) {
+		cache.delete(key);
 	}
 
 	const inflight = getInflight(cache);
@@ -100,6 +137,8 @@ export const fetchCachedGvl = function fetchCachedGvl(
 	}
 
 	const label = options.label ?? 'c15t';
+	const current = () => inflightByCache.get(cache) === inflight;
+	let settled = false;
 	const run = (async () => {
 		try {
 			const response = await options.fetch(options.url, {
@@ -107,10 +146,6 @@ export const fetchCachedGvl = function fetchCachedGvl(
 				method: 'GET',
 			});
 			if (!response.ok && response.status !== 204) {
-				if (cached) {
-					// Keep serving the last good list while the upstream misbehaves.
-					return cached.gvl;
-				}
 				throw await failedResponseError(`${label}: GVL`, response);
 			}
 			const gvl =
@@ -118,19 +153,52 @@ export const fetchCachedGvl = function fetchCachedGvl(
 					? null
 					: ((await response.json()) as GlobalVendorList);
 			// A cleared cache belongs to newer requests; an old fill cannot repopulate it.
-			if (inflightByCache.get(cache) === inflight) {
+			if (current()) {
 				const ttl = ttlFromHeaders(response.headers);
 				if (ttl > 0) {
-					cache.set(key, { expiresAt: now + ttl * 1000, gvl });
+					remember(cache, key, {
+						expiresAt: now + ttl * 1000,
+						gvl,
+						loaded: true,
+					});
 				} else {
 					cache.delete(key);
 				}
 			}
 			return gvl;
+		} catch (error) {
+			// The backoff runs from the failure, not from when the fetch began.
+			const failedAt = options.now ?? Date.now();
+			if (current()) {
+				if (hasValue) {
+					// Keep serving the last good list while backing off from the endpoint.
+					remember(cache, key, {
+						expiresAt: failedAt + FAILURE_BACKOFF_MS,
+						gvl: cached.gvl,
+						loaded: true,
+					});
+				} else {
+					remember(cache, key, {
+						error,
+						expiresAt: failedAt + FAILURE_BACKOFF_MS,
+						gvl: null,
+						loaded: false,
+					});
+				}
+			}
+			if (hasValue) {
+				return cached.gvl;
+			}
+			throw error;
 		} finally {
+			settled = true;
 			inflight.delete(key);
 		}
 	})();
-	inflight.set(key, run);
+	// A fetch that throws at once settles the fill before this line.
+	// Registering it then would leave a finished fill for every later call.
+	if (!settled) {
+		inflight.set(key, run);
+	}
 	return run;
 };
