@@ -114,8 +114,9 @@ ordinary banner; see [customize](/docs/frameworks/html/customize). With
 `shadow: false` and your own stylesheet, load both `dist/c15t.css` and
 `dist/c15t.iab.css` from the package.
 
-The IAB banner always shows the c15t branding. `ui.dialog.hideBranding` hides
-it in the preference dialog. `ui.banner.title`, `description` and the button
+`ui.banner.hideBranding` does not hide the "Secured by" tag on the IAB banner.
+`ui.dialog.hideBranding` hides it in the preference dialog. A backend that
+sets `branding: 'none'` hides the tag on both. `ui.banner.title`, `description` and the button
 text options apply to the IAB banner too, and a description can include
 `{partnerCount}`. `ui.iab.loadErrorText`, `saveErrorText` and
 `moreVendorsText` change the loading error, save error and pagination copy.

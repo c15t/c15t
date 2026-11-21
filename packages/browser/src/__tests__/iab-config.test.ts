@@ -1,7 +1,9 @@
+import { createOfflineTransport, custom } from '@c15t/core';
 import { clearGVLCache } from '@c15t/iab';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
+import { resolveRules } from '../policy-rules';
 import type { ConsentClient, ScriptTagClientOptions } from '../types';
 import { initIAB as init } from './fixtures/factory-init';
 
@@ -127,6 +129,24 @@ describe('IAB browser configuration', () => {
 		});
 		expect(query(client, 'iab-consent-banner-branding')).not.toBeNull();
 		client.openDialog();
+		expect(query(client, 'iab-consent-dialog-branding')).toBeNull();
+	});
+	it('hides the IAB banner and dialog branding when branding is none', async () => {
+		const client = await start({
+			mode: custom(
+				createOfflineTransport({
+					acknowledgeNoRecords: true,
+					branding: 'none',
+					iabEnabled: true,
+					policyRules: resolveRules(undefined),
+				})
+			),
+		});
+		expect(client.getSnapshot().branding).toBe('none');
+		expect(query(client, 'iab-consent-banner-card')).not.toBeNull();
+		expect(query(client, 'iab-consent-banner-branding')).toBeNull();
+		client.openDialog();
+		expect(query(client, 'iab-consent-dialog-card')).not.toBeNull();
 		expect(query(client, 'iab-consent-dialog-branding')).toBeNull();
 	});
 	it('maps legacy banner focus and scroll options through presentation rules', async () => {

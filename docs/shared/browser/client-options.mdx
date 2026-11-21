@@ -97,7 +97,7 @@ group: reference
   | `rejectButtonText` | `string` | "Reject All" | Label of the reject button. |
   | `customizeButtonText` | `string` | "Customize" | Label of the button that opens the dialog. |
   | `legalLinks` | list of `privacyPolicy`, `cookiePolicy`, `termsOfService`, or `null` | none | Which configured legal links to show after the description. `null` or `[]` shows none. |
-  | `hideBranding` | `boolean` | `false` | Hide the "Secured by" tag. The IAB banner always keeps it. |
+  | `hideBranding` | `boolean` | `false` | Hide the "Secured by" tag. The IAB banner keeps it unless the backend sets `branding: 'none'`. |
   | `scrollLock` | `boolean` | from `presentation` | Deprecated. Use `presentation.prompt.blocking`. |
   | `trapFocus` | `boolean` | from `presentation` | Deprecated. Use `presentation.prompt.blocking`. |
 

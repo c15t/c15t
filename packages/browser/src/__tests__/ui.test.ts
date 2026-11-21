@@ -1,4 +1,4 @@
-import { policyRulePresets } from '@c15t/core';
+import { createOfflineTransport, custom, policyRulePresets } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { classes } from '../generated/styles';
@@ -324,6 +324,40 @@ describe('mountConsentUI', () => {
 		).toContain('c15t.com');
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
+		).toBeNull();
+	});
+
+	it('hides the banner and dialog branding tags when branding is none', async () => {
+		const { root, client } = await mount(
+			{},
+			{
+				mode: custom(
+					createOfflineTransport({
+						acknowledgeNoRecords: true,
+						branding: 'none',
+						policyRules: [
+							{
+								...policyRulePresets.europeOptIn(),
+								categories: ['measurement', 'marketing'],
+								match: { isDefault: true },
+								scopeMode: 'strict',
+							},
+						],
+					})
+				),
+			}
+		);
+
+		expect(client.getSnapshot().branding).toBe('none');
+		expect(query(root, 'consent-banner-root')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-banner-branding"]')
+		).toBeNull();
+
+		client.openDialog();
+		expect(query(root, 'consent-dialog-root')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-dialog-branding"]')
 		).toBeNull();
 	});
 
