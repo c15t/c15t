@@ -191,6 +191,26 @@ const contentId = function contentId(index: number): string {
 	return `c15t-preference-item-content-${uid}-${index}`;
 };
 
+const restrictionId = function restrictionId(
+	category: CONSENT_CATEGORY
+): string {
+	return `c15t-restriction-${uid}-${category}`;
+};
+
+// Only a saved grant that the current policy or a privacy signal
+// overrides is "restricted". An unsaved draft toggle is not.
+const isRestricted = function isRestricted(
+	category: CONSENT_CATEGORY
+): boolean {
+	if (category === 'necessary') {
+		return false;
+	}
+	return (
+		snapshot.value.explicitChoice?.categories[category]?.value === true &&
+		(snapshot.value.restrictions[category]?.length ?? 0) > 0
+	);
+};
+
 const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
 	return {
@@ -348,6 +368,9 @@ const onAction = async function onAction(action: PresentationAction) {
 							type="button"
 							role="switch"
 							:aria-checked="draft[category] ? 'true' : 'false'"
+							:aria-describedby="
+								isRestricted(category) ? restrictionId(category) : undefined
+							"
 							:aria-label="consentTitle(category)"
 							v-bind="
 								slotAttrs(
@@ -377,6 +400,14 @@ const onAction = async function onAction(action: PresentationAction) {
 						</button>
 					</div>
 				</div>
+				<p
+					v-if="isRestricted(category)"
+					:id="restrictionId(category)"
+					:class="noStyle ? undefined : accordionStyles.restriction"
+					:data-testid="`consent-widget-restriction-${category}`"
+				>
+					Your saved choice is restricted by the current privacy settings.
+				</p>
 				<div
 					v-bind="config.components?.['accordion-item']?.content"
 					:id="contentId(index)"

@@ -133,15 +133,39 @@ describe('save selection', () => {
 		});
 	});
 
-	test('no input under opt-out confirms the unmasked default, not the GPC mask', async () => {
+	test('no input under opt-out records false for a category GPC denies when nothing is recorded', async () => {
 		const kernel = createConsentKernel({
-			consentCategories: ['marketing'],
+			consentCategories: ['marketing', 'measurement'],
 			initialOverrides: { gpc: true },
 			initialPolicyResolution: matchedResolution(
 				optOutRule({
-					categories: ['marketing'],
+					categories: ['marketing', 'measurement'],
 					privacySignals: { gpc: { denyCategories: ['marketing'] } },
 				})
+			),
+			now: NOW,
+		});
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect((await recordSave(kernel)).values).toEqual({
+			marketing: false,
+			measurement: true,
+		});
+	});
+
+	test('no input preserves a saved grant even when GPC restricts it', async () => {
+		const resolution = matchedResolution(
+			optOutRule({
+				categories: ['marketing'],
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			})
+		);
+		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
+			initialOverrides: { gpc: true },
+			initialPolicyResolution: resolution,
+			initialRecords: choiceRecords(
+				{ marketing: true },
+				{ fingerprint: resolution.fingerprints.choice }
 			),
 			now: NOW,
 		});
