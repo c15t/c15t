@@ -23,6 +23,8 @@ import {
 	choiceRecords,
 	explicitChoice,
 	matchedResolution,
+	NOW,
+	noticeRule,
 	optInRule,
 	iabRule,
 } from './fixtures/kernel-fixtures';
@@ -1000,7 +1002,11 @@ describe('kernel transport: identify forwards to transport', () => {
 		const transport: KernelTransport = { identify: identifySpy };
 
 		const kernel = createConsentKernel({
-			initialRecords: { subject: { subjectId: 'sub-42' } },
+			initialRecords: choiceRecords(
+				{ measurement: true },
+				{ subjectId: 'sub-42' }
+			),
+			now: NOW,
 			transport,
 		});
 		await kernel.commands.identify({ externalId: 'user-42' });
@@ -1010,6 +1016,80 @@ describe('kernel transport: identify forwards to transport', () => {
 		expect(identifySpy).toHaveBeenCalledWith(
 			{ externalId: 'user-42' },
 			'sub-42'
+		);
+	});
+
+	// An app or server that seeds a known subject, with no record yet,
+	// links it and loads its record at once.
+	test('identify links and loads a subject the app supplied before any record', async () => {
+		const identifySpy = vi.fn<NonNullable<KernelTransport['identify']>>();
+		identifySpy.mockResolvedValue();
+		const loadSubjectRecord =
+			vi.fn<NonNullable<KernelTransport['loadSubjectRecord']>>();
+		loadSubjectRecord.mockResolvedValue(null);
+		const kernel = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_existing_backend' } },
+			transport: { identify: identifySpy, loadSubjectRecord },
+		});
+		await kernel.commands.identify({ externalId: 'user-42' });
+
+		expect(identifySpy).toHaveBeenCalledWith(
+			{ externalId: 'user-42' },
+			'sub_existing_backend'
+		);
+		expect(loadSubjectRecord).toHaveBeenCalledWith('sub_existing_backend');
+	});
+
+	test('identify passes no subject for a provisional ID until a save records it', async () => {
+		const identifySpy = vi.fn<NonNullable<KernelTransport['identify']>>();
+		identifySpy.mockResolvedValue();
+		const loadSubjectRecord =
+			vi.fn<NonNullable<KernelTransport['loadSubjectRecord']>>();
+		loadSubjectRecord.mockResolvedValue(null);
+		const kernel = createKernel({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			initialRecords: { subject: { subjectId: 'sub-42' } },
+			now: NOW,
+			transport: {
+				identify: identifySpy,
+				loadSubjectRecord,
+				save: () => Promise.resolve({ ok: true }),
+			},
+		});
+		kernel.markProvisionalSubject('sub-42');
+		await kernel.commands.identify({ externalId: 'user-42' });
+		expect(identifySpy).toHaveBeenLastCalledWith(
+			{ externalId: 'user-42' },
+			null
+		);
+		expect(loadSubjectRecord).not.toHaveBeenCalled();
+
+		await kernel.commands.save({ measurement: true });
+		await kernel.commands.identify({ externalId: 'user-42' });
+		expect(identifySpy).toHaveBeenLastCalledWith(
+			{ externalId: 'user-42' },
+			'sub-42'
+		);
+	});
+
+	// With persistence off, `dismissNotice()` stores and sends nothing, so
+	// the ID it acknowledges is still gone on the next page load.
+	test('a notice dismissal that stores nothing leaves the ID provisional', async () => {
+		const identifySpy = vi.fn<NonNullable<KernelTransport['identify']>>();
+		identifySpy.mockResolvedValue();
+		const kernel = createKernel({
+			initialPolicyResolution: matchedResolution(noticeRule()),
+			initialRecords: { subject: { subjectId: 'sub-42' } },
+			now: NOW,
+			transport: { identify: identifySpy },
+		});
+		kernel.markProvisionalSubject('sub-42');
+		await kernel.commands.dismissNotice();
+		await kernel.commands.identify({ externalId: 'user-42' });
+
+		expect(identifySpy).toHaveBeenLastCalledWith(
+			{ externalId: 'user-42' },
+			null
 		);
 	});
 
@@ -1414,8 +1494,13 @@ describe('createHostedTransport: request shape', () => {
 							fetch,
 							snapshot: MANIFEST_FIXTURE,
 						});
+			// A stored choice carries the ID, so identify links it at once.
 			const kernel = createConsentKernel({
-				initialRecords: { subject: { subjectId: 'sub_unsaved' } },
+				initialRecords: choiceRecords(
+					{ measurement: true },
+					{ subjectId: 'sub_unsaved' }
+				),
+				now: NOW,
 				transport,
 			});
 
@@ -1440,6 +1525,44 @@ describe('createHostedTransport: request shape', () => {
 			});
 		}
 	);
+
+	// An ID c15t generated that no record carries is gone on the next page
+	// load. Linking it would leave the backend a subject per page view.
+	test('a provisional ID is not linked; the identity goes with the first save', async () => {
+		const fetchSpy = vi.fn((_url: unknown, _init?: RequestInit) =>
+			Promise.resolve(Response.json({ ok: true, subjectId: 'sub_memory' }))
+		);
+		const kernel = createKernel({
+			initialRecords: { subject: { subjectId: 'sub_memory' } },
+			transport: createHostedTransport({
+				backendURL: 'https://backend.test',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			}),
+		});
+		kernel.markProvisionalSubject('sub_memory');
+
+		await kernel.commands.identify({
+			externalId: 'user-42',
+			identityProvider: 'app',
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(kernel.getSnapshot().user?.externalId).toBe('user-42');
+
+		await kernel.commands.save('all');
+		const saves = fetchSpy.mock.calls.filter(
+			([url, init]) =>
+				init?.method === 'POST' && withoutQuery(url).endsWith('/subjects')
+		);
+		expect(saves).toHaveLength(1);
+		expect(JSON.parse(saves[0]?.[1]?.body as string)).toMatchObject({
+			externalSubjectId: 'user-42',
+			identityProvider: 'app',
+			subjectId: 'sub_memory',
+		});
+		expect(
+			fetchSpy.mock.calls.filter(([, init]) => init?.method === 'PATCH')
+		).toHaveLength(0);
+	});
 
 	test('initURL overrides init without changing the save endpoint', async () => {
 		const fetchSpy = vi

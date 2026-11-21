@@ -85,7 +85,6 @@ import { handledRequestFor } from './libs/handled-request';
 import { isPrerendering } from './libs/prerendering';
 import {
 	readConsentInputs,
-	readSubjectCookieHeader,
 	rememberVisitorRender,
 } from './libs/request-inputs';
 
@@ -486,9 +485,6 @@ const resolveConsentState = async function resolveConsentState(
 		ownRoutes: [routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX],
 		reportSessions: options.reportSessions,
 		request: {
-			// The cookie header with the subject ID the middleware set on this
-			// response, which the browser has not sent yet.
-			cookie: readSubjectCookieHeader(handled),
 			headers: request.headers,
 			// What `consentRequestMiddleware` normalized for this request, so
 			// overrides survive runtimes with immutable headers.

@@ -432,8 +432,8 @@ describe('vendor-only subject through a server render', () => {
 		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([
 			'meta-pixel',
 		]);
-		expect(cookieValue('c15t-sid')).toBe('sub_next');
-		expect(localStorage.getItem('c15t-sid')).toBe('sub_next');
+		expect(cookieValue('c15t-sid')).toBeNull();
+		expect(localStorage.getItem('c15t-sid')).toBeNull();
 		seeded.handle.dispose();
 		seeded.kernel.dispose();
 	});
@@ -441,8 +441,8 @@ describe('vendor-only subject through a server render', () => {
 	// The vendor reader keeps the local subject on an equal time, as if the
 	// cookie missed a rewrite. A sibling subdomain's rewrite at the same
 	// time looks the same from here. A seeded start resolves it as a
-	// hydrating load does, and leaves the shared subject cookie alone.
-	it('a sibling vendor rewrite at the same time leaves the shared subject cookie alone, and a later vendor save republishes the local ID', async () => {
+	// hydrating load does.
+	it('a sibling vendor rewrite at the same time keeps the local ID, and a later vendor save republishes it', async () => {
 		const { handle, kernel } = await savedVisitor();
 		const local = kernel.getSnapshot().subject?.subjectId;
 		const record = kernel.getSnapshot().vendorChoice;
@@ -452,13 +452,11 @@ describe('vendor-only subject through a server render', () => {
 		handle.dispose();
 		kernel.dispose();
 		document.cookie = `c15t-vendors=${encodeVendorChoiceCompact({ ...record, subject: { subjectId: 'sub_sibling' } })}; path=/`;
-		document.cookie = 'c15t-sid=sub_sibling; path=/';
 
 		const { initialRecords, subject } = serverRender();
 		expect(subject?.subjectId).toBe('sub_sibling');
 		expect(subject?.setCookie).toBeNull();
 		const seeded = seed(initialRecords);
-		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
 		const hydrating = vendorOnlyKernel();
 		const hydratingHandle = createPersistence({
 			kernel: hydrating,
@@ -467,14 +465,11 @@ describe('vendor-only subject through a server render', () => {
 		expect(seeded.kernel.getSnapshot().subject?.subjectId).toBe(
 			hydrating.getSnapshot().subject?.subjectId
 		);
-		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
-		// Focus and a storage event check the subject cookie again. The record
-		// cookies name the sibling's ID too, so neither runtime writes its own
-		// ID over it.
+		// Focus and a storage event read the records again. Neither moves the
+		// local ID.
 		window.dispatchEvent(new Event('focus'));
-		window.dispatchEvent(new StorageEvent('storage', { key: 'c15t-sid' }));
+		window.dispatchEvent(new StorageEvent('storage', { key: 'c15t-vendors' }));
 		await vi.runAllTimersAsync();
-		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
 		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([
 			'meta-pixel',
 		]);
@@ -494,7 +489,7 @@ describe('vendor-only subject through a server render', () => {
 		);
 		expect(seeded.kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
 		expect(serverRender().subject?.subjectId).toBe(local);
-		expect(cookieValue('c15t-sid')).toBe('sub_sibling');
+		expect(cookieValue('c15t-sid')).toBeNull();
 		seeded.handle.dispose();
 		seeded.kernel.dispose();
 	});

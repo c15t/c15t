@@ -220,7 +220,7 @@ test.each(
 			] as const
 	)
 )(
-	'a necessary-only %s on the startup ID sends it, and a reload and the server keep it, with %s storage key',
+	'a necessary-only %s on the startup ID sends it, nothing stores it before, and a reload and the server keep it, with %s storage key',
 	async (action, _, storageConfig) => {
 		const sent: (string | undefined)[] = [];
 		const first = boot({ scope: 'necessary-only', sent, storageConfig });
@@ -230,10 +230,12 @@ test.each(
 		expect(first.kernel.getSnapshot().noticeDismissal).toBeNull();
 		expect(first.kernel.getSnapshot().activeUI).toBe('banner');
 
-		// The server already sees the browser's ID before any choice.
+		// Before any choice the ID lives in memory only, so the server
+		// reads none.
+		expect(storedSid(storageConfig)).toEqual({ cookie: null, local: null });
+		expect(everythingStored()).not.toContain(startup);
 		const before = serverRead(storageConfig);
-		expect(before.subject?.subjectId).toBe(startup);
-		expect(before.subject?.setCookie).toBeNull();
+		expect(before.subject).toBeNull();
 		expect(before.records?.choice).toBeNull();
 
 		await save(first.kernel, action);
@@ -285,10 +287,7 @@ test.each(
 			scope === 'necessary-only'
 		);
 		expectNoOptionalGrant(first.kernel.getSnapshot());
-		expect(storedSid(storageConfig)).toEqual({
-			cookie: CANONICAL,
-			local: CANONICAL,
-		});
+		expect(storedSid(storageConfig)).toEqual({ cookie: null, local: null });
 		const server = serverRead(storageConfig);
 		expect(server.subject?.subjectId).toBe(CANONICAL);
 		expect(server.subject?.setCookie).toBeNull();
@@ -337,10 +336,7 @@ test.each(STORAGE)(
 		// Only the notice subject cookie missed the rewrite.
 		expect(subjectIdOf(first.kernel)).toBe(CANONICAL);
 		expect(getRawCookieValue(keys.noticeSubject)).toContain(startup);
-		expect(storedSid(storageConfig)).toEqual({
-			cookie: CANONICAL,
-			local: CANONICAL,
-		});
+		expect(storedSid(storageConfig)).toEqual({ cookie: null, local: null });
 
 		const reload = boot({ scope: 'necessary-only', storageConfig });
 		expect(subjectIdOf(reload.kernel)).toBe(CANONICAL);
@@ -352,11 +348,7 @@ test.each(STORAGE)(
 		// browser starts from what that render read.
 		const server = serverRead(storageConfig);
 		expect(server.records?.choice).toBeNull();
-		// The response must not hand the browser its old ID back.
-		expect(server.subject?.setCookie?.value).not.toBe(startup);
-		if (server.subject?.setCookie) {
-			document.cookie = server.subject.setCookie.header;
-		}
+		expect(server.subject?.setCookie ?? null).toBeNull();
 		const seeded = createConsentKernel({
 			consentCategories: ['necessary'],
 			initialRecords: server.records,
@@ -372,10 +364,7 @@ test.each(STORAGE)(
 		expect(subjectIdOf(seeded)).toBe(CANONICAL);
 		expect(seeded.getSnapshot().explicitChoice).toBeNull();
 		expectNoOptionalGrant(seeded.getSnapshot());
-		expect(storedSid(storageConfig)).toEqual({
-			cookie: CANONICAL,
-			local: CANONICAL,
-		});
+		expect(storedSid(storageConfig)).toEqual({ cookie: null, local: null });
 		seededHandle.dispose();
 
 		const { kernel } = boot({ scope: 'necessary-only', storageConfig });
@@ -385,14 +374,15 @@ test.each(STORAGE)(
 );
 
 test.each(STORAGE)(
-	'a notice record and a different stored ID resolve to one ID in the server reader and the browser, with %s storage key',
+	'a notice record and a different legacy stored ID resolve to one ID in the server reader and the browser, with %s storage key',
 	async (_, storageConfig) => {
 		const keys = resolveStorageKeys(storageConfig);
 		const first = boot({ scope: 'necessary-only', storageConfig });
 		const recorded = subjectIdOf(first.kernel) as string;
 		await save(first.kernel, 'none');
 		first.handle.dispose();
-		// Another tab, or a server response, stored its own ID meanwhile.
+		// An older c15t on another tab, or a server response, stored its own
+		// ID meanwhile.
 		const other = generateSubjectId();
 		document.cookie = `${keys.subject}=${other}; path=/`;
 		localStorage.setItem(keys.subject, other);
@@ -408,6 +398,8 @@ test.each(STORAGE)(
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 		expectNoOptionalGrant(kernel.getSnapshot());
+		// Startup removes the legacy copy.
+		expect(storedSid(storageConfig)).toEqual({ cookie: null, local: null });
 	}
 );
 
@@ -420,7 +412,7 @@ test.each(
 			] as const
 	)
 )(
-	'a clear after a canonical acknowledgement keeps only the ID when deletions %s, with %s storage key',
+	'a clear after a canonical acknowledgement keeps the ID in memory only when deletions %s, with %s storage key',
 	async (_, __, dropNoticeDeletes, storageConfig) => {
 		const keys = resolveStorageKeys(storageConfig);
 		const first = boot({
@@ -460,18 +452,17 @@ test.each(
 		const left = cookieNames().filter((name) => name.startsWith(keys.consent));
 		const stale = [keys.notice, keys.noticeSubject];
 		expect(stale.every((name) => left.includes(name))).toBe(dropNoticeDeletes);
-		expect(left.filter((name) => !stale.includes(name)).sort()).toEqual(
-			[keys.epoch, keys.subject].sort()
-		);
+		expect(left.filter((name) => !stale.includes(name))).toEqual([keys.epoch]);
 		const server = serverRead(storageConfig);
-		expect(server.subject?.subjectId).toBe(CANONICAL);
-		expect(server.subject?.setCookie).toBeNull();
+		expect(server.subject).toBeNull();
 		expect(server.records?.choice).toBeNull();
 		expect(server.records?.noticeDismissal).toBeNull();
 		first.handle.dispose();
 
+		// Nothing stored the ID, so the next page load starts a new one.
 		const { kernel } = boot({ scope: 'necessary-only', storageConfig });
-		expect(subjectIdOf(kernel)).toBe(CANONICAL);
+		expect(subjectIdOf(kernel)).toMatch(/^sub_/u);
+		expect(subjectIdOf(kernel)).not.toBe(CANONICAL);
 		expect(kernel.getSnapshot().noticeDismissal).toBeNull();
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
@@ -487,7 +478,7 @@ test.each(
 			] as const
 	)
 )(
-	'a withdrawal and a clear in %s keep the ID and drop the linked account, with %s storage key',
+	'a withdrawal and a clear in %s keep the ID in memory only and drop the linked account, with %s storage key',
 	async (where, _, storageConfig) => {
 		const first = boot({ storageConfig });
 		const subjectId = subjectIdOf(first.kernel);
@@ -526,16 +517,16 @@ test.each(
 		);
 		expect(stored.choice).toBeNull();
 		expect(stored.noticeDismissal).toBeNull();
-		expect(stored.subject).toEqual({ subjectId });
-		expect(storedSid(storageConfig)).toEqual({
-			cookie: subjectId,
-			local: subjectId,
-		});
+		expect(stored.subject).toBeNull();
+		expect(storedSid(storageConfig)).toEqual({ cookie: null, local: null });
 		expect(everythingStored()).not.toContain('account-1');
+		expect(everythingStored()).not.toContain(subjectId);
 		first.handle.dispose();
 
 		const { kernel } = boot({ storageConfig });
-		expect(kernel.getSnapshot().subject).toEqual({ subjectId });
+		expect(subjectIdOf(kernel)).toMatch(/^sub_/u);
+		expect(subjectIdOf(kernel)).not.toBe(subjectId);
+		expect(kernel.getSnapshot().subject?.externalId).toBeUndefined();
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	}
@@ -568,10 +559,7 @@ test.each(
 		expect(replaced).toMatch(/^sub_/u);
 		expect([startup, CANONICAL]).not.toContain(replaced);
 		expect(replaced).toBe(next ?? replaced);
-		expect(storedSid(storageConfig)).toEqual({
-			cookie: replaced,
-			local: replaced,
-		});
+		expect(storedSid(storageConfig)).toEqual({ cookie: null, local: null });
 		const server = serverRead(storageConfig);
 		expect(server.subject?.subjectId).toBe(replaced);
 		expect(server.subject?.setCookie).toBeNull();
@@ -624,7 +612,7 @@ test.each(
 					.map((key) => [`local:${key}`, localStorage.getItem(key)]),
 			]);
 		const kept = live();
-		const expected = [`cookie:${keys.subject}`, `cookie:${keys.epoch}`];
+		const expected = [`cookie:${keys.epoch}`];
 		if (necessaryOnly) {
 			expected.push(`cookie:${keys.notice}`, `cookie:${keys.noticeSubject}`);
 		} else {
@@ -633,6 +621,7 @@ test.each(
 		for (const key of expected) {
 			expect(Object.keys(kept), key).toContain(key);
 		}
+		expect(Object.keys(kept)).not.toContain(`cookie:${keys.subject}`);
 
 		document.cookie = `${keys.consent}-analytics=tracking; path=/`;
 		document.cookie = '_ga=GA1.1.1; path=/';

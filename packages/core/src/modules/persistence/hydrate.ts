@@ -28,8 +28,6 @@ import {
 	readStoredConsentRecordFromCookieHeader,
 	readStoredNoticeDismissal,
 	readStoredNoticeDismissalFromCookieHeader,
-	readStoredSubjectId,
-	readStoredSubjectIdFromCookieHeader,
 	readStoredVendorChoice,
 	readStoredVendorChoiceFromCookieHeader,
 } from './record-storage';
@@ -54,9 +52,8 @@ export interface StoredRecords {
 	/** Subject carried by the notice record, independently of other records. */
 	noticeSubject?: ConsentSubject | null;
 	/**
-	 * The subject ID the records themselves carry, `null` when they carry
-	 * none. `records.subject` falls back to the stored subject ID; this
-	 * does not.
+	 * The subject ID the records carry, `null` when they carry none. The
+	 * same ID as `records.subject`, kept for callers that read it here.
 	 */
 	recordedSubjectId: string | null;
 	/**
@@ -116,24 +113,6 @@ const envelopeSinceEpoch = function envelopeSinceEpoch(
 };
 
 /**
- * The subject the records carry. The envelope's subject wins; the vendor
- * record's copy covers a visitor whose only act so far decided vendors;
- * the notice record's covers one who only acknowledged a notice; the
- * stored subject ID covers a visitor who has decided nothing yet, or
- * whose records were cleared. A record subject without an ID takes the
- * stored one.
- */
-const composeSubject = function composeSubject(
-	recorded: ConsentSubject | null,
-	storedSubjectId: string | null
-): ConsentSubject | null {
-	if (recorded?.subjectId || !storedSubjectId) {
-		return recorded;
-	}
-	return { ...recorded, subjectId: storedSubjectId };
-};
-
-/**
  * The record that carries the subject among the surviving records: the
  * envelope, else the vendor record, else the notice record.
  */
@@ -169,15 +148,13 @@ const recordedSubject = function recordedSubject(
  * Builds the records from decoded reads. Anything confirmed before the
  * clear epoch (the newer of the stored epoch and the envelope's own) was
  * cleared and reads as absent, so a record written back by a runtime that
- * missed the clear cannot bring it back. The stored subject ID is not cut
- * to the epoch: a clear keeps it.
+ * missed the clear cannot bring it back.
  */
 const composeRecords = function composeRecords(
 	selection: StoredConsentSelection,
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
 	vendors: ReturnType<typeof readStoredVendorChoice>,
 	clearEpoch: number,
-	storedSubjectId: string | null,
 	now: number
 ): StoredRecords {
 	const envelopeEpoch = selection.selected?.epoch ?? 0;
@@ -205,7 +182,7 @@ const composeRecords = function composeRecords(
 		choice,
 		noticeDismissal: kernelNoticeDismissal(noticeRecord),
 		now,
-		subject: composeSubject(recorded, storedSubjectId),
+		subject: recorded,
 		vendorChoice: kernelVendorChoice(vendorRecord),
 	};
 	return {
@@ -288,7 +265,6 @@ const readRecords = function readRecords(
 		},
 		Math.max(clearEpoch, selection.selected?.epoch ?? 0)
 	);
-	const storedSubjectId = readStoredSubjectId(storageConfig);
 	if (preserveUndecodable) {
 		markUndecodable(unreadable, selection, { notice, vendors });
 	}
@@ -297,14 +273,7 @@ const readRecords = function readRecords(
 		notice: noticeUnavailable,
 		vendors: vendorsUnavailable,
 	} = unreadable;
-	const stored = composeRecords(
-		selection,
-		notice,
-		vendors,
-		clearEpoch,
-		storedSubjectId,
-		now
-	);
+	const stored = composeRecords(selection, notice, vendors, clearEpoch, now);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
@@ -360,7 +329,6 @@ const composeFromCookieHeader = function composeFromCookieHeader(
 		readStoredNoticeDismissalFromCookieHeader(cookieHeader, storageConfig, now),
 		readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
 		readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
-		readStoredSubjectIdFromCookieHeader(cookieHeader, storageConfig),
 		now
 	);
 };
@@ -379,23 +347,6 @@ export const readStoredRecordsFromCookieHeader =
 		now: number
 	): HydrationRecords {
 		return composeFromCookieHeader(cookieHeader, storageConfig, now).records;
-	};
-
-/**
- * The subject ID the cookie copies of the records carry, read as a server
- * reads them but without the `<key>-sid` fallback. `null` when they carry
- * none.
- *
- * @internal
- */
-export const readRecordedSubjectIdFromCookieHeader =
-	function readRecordedSubjectIdFromCookieHeader(
-		cookieHeader: string | undefined,
-		storageConfig: StorageConfig | undefined,
-		now: number
-	): string | null {
-		return composeFromCookieHeader(cookieHeader, storageConfig, now)
-			.recordedSubjectId;
 	};
 
 /**

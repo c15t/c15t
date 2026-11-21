@@ -47,6 +47,16 @@ export interface InternalKernel extends ConsentKernel {
 	 */
 	markLive: (at?: number) => void;
 	/**
+	 * Mark `id` as an ID c15t generated that no record carries, or clear the
+	 * mark with `null`. It lives in memory only until a save records it, so
+	 * `identify()` keeps the identity for the first save instead of linking
+	 * an ID the next page load does not have. The first save, vendor save or
+	 * notice acknowledgement that carries it clears the mark.
+	 */
+	markProvisionalSubject: (id: string | null) => void;
+	/** The ID {@link markProvisionalSubject} marked, `null` for none. */
+	getProvisionalSubject: () => string | null;
+	/**
 	 * Keep save requests from leaving until `until` settles, whether it
 	 * resolves or rejects. A request that already left is not held.
 	 * Persistence calls this from its `choice:recorded` listener while its

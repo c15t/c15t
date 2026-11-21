@@ -37,7 +37,6 @@ it('measures the real cookie projections and hydrates without writes', async () 
 		'c15t',
 		'c15t-notice',
 		'c15t-notice-subject',
-		'c15t-sid',
 	]);
 	const cookieValue = (name: string) =>
 		cookies

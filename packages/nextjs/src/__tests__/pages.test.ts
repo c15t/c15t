@@ -660,7 +660,7 @@ describe('withConsentProps', () => {
 		).resolves.toEqual({ notFound: true });
 	});
 
-	test('a first visit gets a c15t-sid cookie, and the state carries the same ID', async () => {
+	test('a first visit gets no c15t-sid cookie, and the state carries no subject', async () => {
 		const page = createPageContext({ cookie: 'theme=dark' });
 		page.responseHeaders.set('set-cookie', 'session=1; Path=/');
 		const result = await withConsentProps(undefined, {
@@ -671,52 +671,12 @@ describe('withConsentProps', () => {
 			throw new Error('expected props');
 		}
 		const { consent } = await result.props;
-		const subjectId = consent?.initialRecords?.subject?.subjectId;
-		expect(subjectId).toMatch(/^sub_/u);
+		expect(consent?.initialRecords?.subject?.subjectId).toBeUndefined();
 		expect(consent?.initialRecords?.choice).toBeNull();
-		expect(page.responseHeaders.get('set-cookie')).toEqual([
-			'session=1; Path=/',
-			`c15t-sid=${subjectId}; Max-Age=31536000; Path=/; Secure; SameSite=Lax`,
-		]);
+		expect(page.responseHeaders.get('set-cookie')).toBe('session=1; Path=/');
 	});
 
-	test('a returning visitor keeps their ID and gets no new cookie', async () => {
-		const page = createPageContext({ cookie: 'c15t-sid=sub_returning' });
-		const result = await withConsentProps(undefined, {
-			reportSessions: false,
-		})(page.context);
-
-		if (!('props' in result)) {
-			throw new Error('expected props');
-		}
-		const { consent } = await result.props;
-		expect(consent?.initialRecords?.subject?.subjectId).toBe('sub_returning');
-		expect(page.responseHeaders.has('set-cookie')).toBe(false);
-	});
-
-	test("the subject cookie survives the page's own set-cookie", async () => {
-		const page = createPageContext({});
-		const result = await withConsentProps(({ res }) => {
-			res.setHeader('set-cookie', 'session=1; Path=/');
-			return Promise.resolve({ props: {} });
-		})(page.context);
-
-		if (!('props' in result)) {
-			throw new Error('expected props');
-		}
-		const { consent } = await result.props;
-		expect(page.responseHeaders.get('set-cookie')).toEqual([
-			'session=1; Path=/',
-			expect.stringMatching(
-				new RegExp(
-					`^c15t-sid=${consent?.initialRecords?.subject?.subjectId};`,
-					'u'
-				)
-			),
-		]);
-	});
-
-	test('storage.storageKey alone names both cookies', async () => {
+	test('storage.storageKey names the consent cookie', async () => {
 		const page = createPageContext({
 			cookie: 'my-consent=c.necessary:1,c.marketing:1,i.t:1',
 		});
@@ -732,55 +692,6 @@ describe('withConsentProps', () => {
 		expect(consent?.initialRecords?.choice?.categories.marketing?.value).toBe(
 			true
 		);
-		expect(page.responseHeaders.get('set-cookie')).toEqual([
-			expect.stringMatching(/^my-consent-sid=sub_/u),
-		]);
-	});
-
-	test('a plain-HTTP request gets a subject cookie without Secure', async () => {
-		const page = createPageContext({}, false);
-		await withConsentProps(undefined, { reportSessions: false })(page.context);
-		expect(page.responseHeaders.get('set-cookie')).toEqual([
-			expect.stringMatching(
-				/^c15t-sid=sub_\w+; Max-Age=31536000; Path=\/; SameSite=Lax$/u
-			),
-		]);
-	});
-
-	test('a request a TLS proxy forwarded gets a Secure subject cookie', async () => {
-		const page = createPageContext({ 'x-forwarded-proto': 'https' }, false);
-		await withConsentProps(undefined, { reportSessions: false })(page.context);
-		expect(page.responseHeaders.get('set-cookie')).toEqual([
-			expect.stringMatching(/; Secure; SameSite=Lax$/u),
-		]);
-	});
-
-	test('subjectCookie: false sets no cookie and carries no subject', async () => {
-		const page = createPageContext({});
-		const result = await withConsentProps(undefined, {
-			reportSessions: false,
-			subjectCookie: false,
-		})(page.context);
-
-		if (!('props' in result)) {
-			throw new Error('expected props');
-		}
-		const { consent } = await result.props;
-		expect(consent?.initialRecords?.subject?.subjectId).toBeUndefined();
 		expect(page.responseHeaders.has('set-cookie')).toBe(false);
-	});
-
-	test('cookieName names the subject cookie', async () => {
-		const page = createPageContext({});
-		await withConsentProps(undefined, {
-			cookieName: 'consent',
-			reportSessions: false,
-			storage: { crossSubdomain: true },
-		})(page.context);
-		expect(page.responseHeaders.get('set-cookie')).toEqual([
-			expect.stringMatching(
-				/^consent-sid=sub_\w+; .*; Domain=\.example\.com;/u
-			),
-		]);
 	});
 });

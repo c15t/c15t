@@ -99,13 +99,11 @@ describe('c15tHandle', () => {
 		expect(locals.config).toMatchObject({
 			// No signal is not a decision: an absent header stays undefined.
 			initialPrivacySignals: { gpc: undefined },
-			// The subject ID the handle just set is not a choice.
-			initialRecords: {
-				choice: null,
-				subject: { subjectId: expect.stringMatching(/^sub_/u) },
-			},
+			initialRecords: { choice: null },
 			now: expect.any(Number),
 		});
+		// Nothing is stored before a choice, so there is no subject ID yet.
+		expect(locals.config.initialRecords?.subject?.subjectId).toBeUndefined();
 		expect(locals.inputs.country).toBeUndefined();
 	});
 
@@ -207,8 +205,7 @@ describe('c15tHandle mode', () => {
 });
 
 // The consent route never renders a page, and its manifest is public data a
-// shared cache keeps: a subject cookie on it would reach every visitor the
-// cache serves it to.
+// shared cache keeps.
 describe('c15tHandle on the consent route', () => {
 	beforeEach(() => {
 		clearManifestCache();
@@ -251,84 +248,20 @@ describe('c15tHandle on the consent route', () => {
 		}
 	);
 
-	test('a page whose path only starts like the route still gets one', async () => {
-		const setCookie = vi.fn();
-		await runHandle(
-			createEvent({ setCookie, url: 'https://shop.example/api/c15t-docs' }),
-			{ routePrefix: '/api/c15t' }
-		);
-		expect(setCookie).toHaveBeenCalledWith(
-			'c15t-sid',
-			expect.stringMatching(/^sub_/u),
-			expect.anything()
-		);
-	});
-});
-
-// The handle runs before the response exists, so the app marks routes whose
-// response a shared cache keeps, as in the rendering docs: each route and
-// the paths below it get `c15tHandle({ subjectCookie: false })` in place of
-// the default handle.
-describe('c15tHandle on routes a shared cache keeps', () => {
-	const SHARED_ROUTES = ['/api/feed', '/blog'];
-	const isShared = (pathname: string) =>
-		SHARED_ROUTES.some(
-			(route) => pathname === route || pathname.startsWith(`${route}/`)
-		);
-	const visitorHandle = c15tHandle();
-	const sharedHandle = c15tHandle({ subjectCookie: false });
-
-	const serve = async function serve(path: string) {
+	test('a page request sets no subject cookie, whatever the deprecated options say', async () => {
 		const setCookie = vi.fn();
 		const event = createEvent({
-			headers: { 'cf-ipcountry': 'DE', 'sec-gpc': '1' },
+			headers: { cookie: 'theme=dark' },
 			setCookie,
-			url: `https://shop.example${path}`,
+			url: 'https://shop.example/pricing',
 		});
-		const resolve = vi.fn(() => Promise.resolve(new Response('ok')));
-		const handle = isShared(event.url.pathname) ? sharedHandle : visitorHandle;
-		await handle({ event, resolve });
-		return { event, setCookie };
-	};
-
-	test.each(['/api/feed', '/api/feed/rss', '/blog', '/blog/first-post'])(
-		'%s gets no cookie and still has normalized consent headers',
-		async (path) => {
-			const { event, setCookie } = await serve(path);
-			expect(setCookie).not.toHaveBeenCalled();
-			expect(event.request.headers.get('x-c15t-country')).toBe('DE');
-			expect(event.request.headers.get('sec-gpc')).toBe('1');
-		}
-	);
-
-	test.each(['/api/feedback', '/blogger', '/pricing'])(
-		'%s still gets a subject ID',
-		async (path) => {
-			const { setCookie } = await serve(path);
-			expect(setCookie).toHaveBeenCalledWith(
-				'c15t-sid',
-				expect.stringMatching(/^sub_/u),
-				expect.anything()
-			);
-		}
-	);
-
-	// What `sequence(c15tHandle(), c15tHandle({ subjectCookie: false }))` runs:
-	// the first handle resolves through the second.
-	test('a handle with subjectCookie: false after the default one cannot take back its cookie', async () => {
-		const setCookie = vi.fn();
-		const event = createEvent({
-			setCookie,
-			url: 'https://shop.example/api/feed',
+		const { locals } = await runHandle(event, {
+			storage: { crossSubdomain: true },
+			subjectCookie: true,
+			trustForwardedHeaders: true,
 		});
-		await visitorHandle({
-			event,
-			resolve: (next) =>
-				sharedHandle({
-					event: next,
-					resolve: () => Promise.resolve(new Response('ok')),
-				}),
-		});
-		expect(setCookie).toHaveBeenCalledTimes(1);
+		expect(setCookie).not.toHaveBeenCalled();
+		expect(locals.cookie).toBeUndefined();
+		expect(event.request.headers.get('cookie')).toBe('theme=dark');
 	});
 });

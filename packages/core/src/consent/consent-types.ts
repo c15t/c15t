@@ -301,7 +301,8 @@ export interface ConsentInfo {
 	 *
 	 * @remarks
 	 * This is the primary identifier for the device/browser.
-	 * Generated client-side using generateSubjectId() and stored in cookie.
+	 * Generated client-side using generateSubjectId(). Stored with the
+	 * consent records once the visitor's first save writes them.
 	 * New in v2.0 - replaces the server-generated consentId.
 	 *
 	 * @example 'sub_2VZxR7YmNpKq3WfLs8TgHd'
