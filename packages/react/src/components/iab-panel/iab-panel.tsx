@@ -21,7 +21,6 @@ import {
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useHeadlessIABConsentUI } from '~/component-hooks/use-headless-iab-consent-ui';
 import { useTranslations } from '~/component-hooks/use-translations';
 import { ConsentDialogTrigger } from '~/components/panel-trigger';
 import type { ConsentDialogTriggerProps } from '~/components/panel-trigger';
@@ -32,6 +31,7 @@ import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useIABConsentManager } from '~/hooks/use-iab-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
@@ -261,29 +261,11 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		[iabState]
 	);
 
-	const handleAcceptAll = async () => {
-		try {
-			await performDialogAction('accept');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleAcceptAll = () => performDialogAction('accept');
 
-	const handleRejectAll = async () => {
-		try {
-			await performDialogAction('reject');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleRejectAll = () => performDialogAction('reject');
 
-	const handleSave = async () => {
-		try {
-			await performDialogAction('customize');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleSave = () => performDialogAction('customize');
 
 	const handleClose = useCallback(() => {
 		closeUI();

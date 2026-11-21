@@ -7,8 +7,17 @@ import type {
 import type { SurfaceCopy } from '../ui/copy';
 import { h } from '../ui/dom';
 
-type Vendor = GlobalVendorList['vendors'][number] | NonIABVendor;
+type GVLVendor = GlobalVendorList['vendors'][number] & {
+	dataDeclaration?: number[];
+};
+type Vendor = GVLVendor | NonIABVendor;
 type NamedItems = Record<number, { name: string; description?: string }>;
+
+/** The GVL sends a vendor's data category ids as `dataDeclaration`. */
+const dataCategoryIds = (vendor: Vendor): number[] =>
+	('dataDeclaration' in vendor ? vendor.dataDeclaration : undefined) ??
+	vendor.dataCategories ??
+	[];
 
 const duration = (value: number | null | undefined): number | undefined =>
 	typeof value === 'number' && Number.isFinite(value) && value >= 0
@@ -203,11 +212,7 @@ export const createVendorDisclosures = (
 		vendor.specialFeatures ?? [],
 		gvl?.specialFeatures
 	);
-	appendGroup(
-		t.dataCategories,
-		vendor.dataCategories ?? [],
-		gvl?.dataCategories
-	);
+	appendGroup(t.dataCategories, dataCategoryIds(vendor), gvl?.dataCategories);
 	content.append(createStorageDisclosures(vendor, copy, standardRetention));
 	return content;
 };

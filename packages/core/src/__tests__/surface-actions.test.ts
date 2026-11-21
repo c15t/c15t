@@ -4,7 +4,7 @@
  * these functions, so the sequences are pinned here rather than per
  * renderer.
  */
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, onTestFinished, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
 import type {
@@ -352,14 +352,47 @@ describe('saveIABConsentSurface', () => {
 		expect(kernel.getSnapshot().activeUI).toBe('dialog');
 	});
 
-	test('brings the surface back and rethrows when the save fails', async () => {
+	test('reports a failed save once and brings the surface back', async () => {
 		const kernel = createIABKernel();
 		showConsentSurface(kernel, 'dialog');
 		const iab = fakeIAB(kernel, 'throws');
+		const onError = vi.fn();
+		const pending = saveIABConsentSurface(kernel, iab.save, onError);
+		iab.finish();
+		await expect(pending).resolves.toEqual({ ok: false });
+		expect(onError).toHaveBeenCalledOnce();
+		expect(onError).toHaveBeenCalledWith(new Error('vendor list failed'));
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+	});
+
+	test('logs a failed save when no handler is given', async () => {
+		const kernel = createIABKernel();
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* asserted below */
+		});
+		onTestFinished(() => error.mockRestore());
+		const iab = fakeIAB(kernel, 'throws');
 		const pending = saveIABConsentSurface(kernel, iab.save);
 		iab.finish();
-		await expect(pending).rejects.toThrow('vendor list failed');
-		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		await expect(pending).resolves.toEqual({ ok: false });
+		expect(error).toHaveBeenCalledOnce();
+	});
+
+	test('keeps the surface closed and returns ok: false when a save fails after recording', async () => {
+		const kernel = createIABKernel();
+		showConsentSurface(kernel, 'dialog');
+		const onError = vi.fn();
+		const pending = saveIABConsentSurface(
+			kernel,
+			() => {
+				kernel.set.iab({ authority: { ...AUTHORITY } });
+				return Promise.reject(new Error('Unable to save IAB preferences.'));
+			},
+			onError
+		);
+		await expect(pending).resolves.toEqual({ ok: false });
+		expect(onError).toHaveBeenCalledOnce();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
 	});
 
 	test('a superseded save does not reopen the surface a newer save closed', async () => {

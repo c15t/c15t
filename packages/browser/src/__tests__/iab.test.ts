@@ -306,6 +306,28 @@ describe('IAB browser entry', () => {
 			'These means of processing can be used solely in pursuit of one or several purposes'
 		);
 	});
+	it('puts the partners link inside the description, once', async () => {
+		const client = await start();
+		const link = query(client, 'iab-consent-banner-partners-link');
+		const description = link.parentElement;
+		expect(description?.tagName).toBe('P');
+		const text = description?.textContent ?? '';
+		expect(text.split(link.textContent ?? '').length).toBe(2);
+	});
+	it('keeps the partners link apart from a custom description that does not name it', async () => {
+		const client = await start({
+			ui: {
+				banner: { description: 'We work with {partnerCount} companies.' },
+				styles: false,
+			},
+		});
+		const link = query(client, 'iab-consent-banner-partners-link');
+		expect(link.parentElement?.tagName).not.toBe('P');
+		expect(link.previousElementSibling?.tagName).toBe('P');
+		expect(link.previousElementSibling?.textContent).toBe(
+			`We work with ${Object.keys(completeGVL.vendors).length} companies.`
+		);
+	});
 	it('opens the vendors tab from the partner disclosure and shows policy URLs', async () => {
 		const client = await start();
 		query(client, 'iab-consent-banner-partners-link').click();
@@ -393,6 +415,29 @@ describe('IAB browser entry', () => {
 		expect(query(client, 'iab-vendor-10-li').getAttribute('aria-checked')).toBe(
 			'true'
 		);
+	});
+	it('reports a failed IAB save once through the error event and returns not-ok', async () => {
+		const client = await start();
+		const { iab } = client.runtime;
+		if (!iab) {
+			throw new Error('Expected IAB handle');
+		}
+		const failure = new Error('tc string encoding failed');
+		vi.spyOn(iab, 'save').mockRejectedValueOnce(failure);
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* asserted below */
+		});
+		const errors = vi.fn();
+		client.on('error', errors);
+		try {
+			expect(await client.acceptAll()).toEqual({ ok: false });
+			expect(errors).toHaveBeenCalledOnce();
+			expect(errors).toHaveBeenCalledWith(failure);
+			expect(consoleError).not.toHaveBeenCalled();
+			expect(client.getSnapshot().activeUI).toBe('banner');
+		} finally {
+			consoleError.mockRestore();
+		}
 	});
 	it('closes preferences on the local record when the backend save fails', async () => {
 		const factory = offline({ acknowledgeNoRecords: true });

@@ -9,10 +9,13 @@ import type { ConsentClient } from '../types';
 import { resolveCopy } from '../ui/copy';
 import { initIAB as init } from './fixtures/factory-init';
 
-const vendor: GlobalVendorList['vendors'][number] = {
+// The GVL sends a vendor's data category ids as `dataDeclaration`.
+const vendor: GlobalVendorList['vendors'][number] & {
+	dataDeclaration?: number[];
+} = {
 	cookieMaxAgeSeconds: 172800,
 	cookieRefresh: true,
-	dataCategories: [1],
+	dataDeclaration: [1],
 	dataRetention: {
 		purposes: { 1: 0, 2: 7 },
 		specialPurposes: { 1: 14 },
@@ -192,7 +195,7 @@ describe('IAB vendor disclosures', () => {
 			...vendor,
 			cookieMaxAgeSeconds: null,
 			cookieRefresh: false,
-			dataCategories: undefined,
+			dataDeclaration: undefined,
 			dataRetention: undefined,
 		});
 		expect(element.textContent).not.toContain('Stored for');

@@ -12,11 +12,11 @@ import {
 	useConsentActiveUI,
 	useConsentConfig,
 	useConsentIabSave,
-	useConsentIabSelection,
 	useConsentInit,
 	useIabTranslations,
 } from '#c15t/composables';
 
+import { useIabPreferenceTab } from '../composables/iab-preference-tab';
 import {
 	useConsentKernel,
 	useConsentSnapshot,
@@ -59,7 +59,7 @@ const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
-const iabSelection = useConsentIabSelection();
+const preferenceTab = useIabPreferenceTab();
 const kernel = useConsentKernel();
 const saveIab = useConsentIabSave();
 // The banner closes in the click task; see `saveIABConsentSurface`.
@@ -152,26 +152,22 @@ const descriptionParts = computed(() => {
 });
 
 const onAction = async function onAction(action: PresentationAction) {
-	try {
-		if (action === 'customize') {
-			iabSelection.value.preferenceCenterTab = 'purposes';
-			activeUI.value = 'manager';
-			return;
-		}
-		if (action === 'accept') {
-			await save('all');
-			return;
-		}
-		if (action === 'reject') {
-			await save('none');
-		}
-	} catch {
-		// Leave the prompt available so a failed vendor-list load can be retried.
+	if (action === 'customize') {
+		preferenceTab.value = 'purposes';
+		activeUI.value = 'manager';
+		return;
+	}
+	if (action === 'accept') {
+		await save('all');
+		return;
+	}
+	if (action === 'reject') {
+		await save('none');
 	}
 };
 
 const openVendors = function openVendors() {
-	iabSelection.value.preferenceCenterTab = 'vendors';
+	preferenceTab.value = 'vendors';
 	activeUI.value = 'manager';
 };
 
