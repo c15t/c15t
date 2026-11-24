@@ -171,10 +171,11 @@ Match the rule to where your page views go:
 The blocker answers a blocked `fetch` with a 451 response instead of an error,
 so `notra.js` does not fall back to `sendBeacon`.
 
-The rule stops requests, not the copy that is running in the other tab. That
-copy keeps counting visible time while measurement is refused. If the visitor
-then allows measurement again from another tab, it sends that time with its
-next report, and it and a newly loaded copy both count the next page view.
+The rule stops requests, not a copy still running in a tab that did not
+reload. That copy keeps counting visible time while measurement is refused. If
+the visitor then allows measurement again from another tab, it sends that time
+with its next report, and it and a newly loaded copy both count the next page
+view.
 
 Keep `reloadOnConsentRevoked` on as well. Without the reload, a later grant on
 the same page starts a second copy that counts each view twice.
