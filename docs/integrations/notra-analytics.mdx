@@ -138,9 +138,11 @@ which ends a copy that has already run. Two gaps remain:
   but does not reload it, so the running copy keeps sending a page view on
   each client-side navigation.
 
-To close both, add a rule for Notra's ingest to the
+To stop those requests, add a rule for Notra's collection URL to the
 [network blocker](/docs/frameworks/javascript/modules/network-blocker). Each
 framework guide has a Network blocker page that shows where the option goes.
+Set `vendor` as well as `category`, so the rule also holds when a visitor turns
+Notra off and leaves measurement on.
 
 {/* example: fragment */}
 
@@ -151,15 +153,28 @@ networkBlocker: {
 			id: 'notra',
 			domain: 'ingest.usenotra.com',
 			category: 'measurement',
+			vendor: 'notra-analytics',
 		},
 	],
 },
 ```
 
+Match the rule to where your page views go:
+
+| Your setup | `domain` | `pathIncludes` |
+| --- | --- | --- |
+| Default | `ingest.usenotra.com` | None |
+| `endpoint` | The host of `endpoint` | `/api/collect` |
+| `apiUrl` | The host of `apiUrl`, or your site's host when it is a path | The path of `apiUrl` |
+| `scriptUrl` without `apiUrl` | The host of `scriptUrl` | `/api/collect` |
+
 The blocker answers a blocked `fetch` with a 451 response instead of an error,
-so `notra.js` does not fall back to `sendBeacon`. With `endpoint` or `apiUrl`,
-use that host as `domain`, and add `pathIncludes: '/api/collect'` when the
-host is your own site.
+so `notra.js` does not fall back to `sendBeacon`.
+
+The rule stops requests, not the copy that is running in the other tab. That
+copy keeps counting visible time while measurement is refused. If the visitor
+then allows measurement again from another tab, it sends that time with its
+next report, and it and a newly loaded copy both count the next page view.
 
 Keep `reloadOnConsentRevoked` on as well. Without the reload, a later grant on
 the same page starts a second copy that counts each view twice.

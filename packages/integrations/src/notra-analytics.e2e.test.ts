@@ -171,6 +171,46 @@ describe('notra analytics contract', () => {
 		};
 	};
 
+	it('removes the web key when the only loader is disposed while notra.js downloads', async () => {
+		const kernel = createConsentKernel();
+		await kernel.commands.save(grantedMeasurementConsents);
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [notraAnalytics({ webKey: 'nwk.contract' })],
+		});
+		const element = document.querySelector('script');
+
+		loader.dispose();
+		await Promise.resolve();
+
+		expect(element?.isConnected).toBe(false);
+		expect(element?.hasAttribute('data-key')).toBe(false);
+		kernel.dispose();
+	});
+
+	it('removes the web key from a disposed element when a new loader mounts first', async () => {
+		const kernel = createConsentKernel();
+		await kernel.commands.save(grantedMeasurementConsents);
+		const createLoader = () =>
+			createScriptLoader({
+				kernel,
+				scripts: [notraAnalytics({ webKey: 'nwk.contract' })],
+			});
+		const first = createLoader();
+		const disposed = document.querySelector('script');
+
+		first.dispose();
+		const second = createLoader();
+		const mounted = document.querySelector('script');
+		await Promise.resolve();
+
+		expect(mounted).not.toBe(disposed);
+		expect(disposed?.hasAttribute('data-key')).toBe(false);
+		expect(mounted?.dataset.key).toBe('nwk.contract');
+		second.dispose();
+		kernel.dispose();
+	});
+
 	it('removes the web key on refusal after the loader that created the element is disposed', async () => {
 		const { dispose, element, first, kernel } = await twoLoaders();
 

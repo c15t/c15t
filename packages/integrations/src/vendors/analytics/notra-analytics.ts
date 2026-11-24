@@ -147,7 +147,24 @@ const rememberElement = function rememberElement(
 
 // Loaders that share one element can each refuse or leave. The key goes only
 // once the element is out of the page, because a loader that still has
-// consent keeps it there.
+// consent keeps it there. A file that arrives later then finds no key.
+const dropKeyIfDetached = function dropKeyIfDetached(
+	elementId: string,
+	element = scriptElements.get(elementId)
+): void {
+	if (
+		element === undefined ||
+		element.isConnected ||
+		settledElements.has(element)
+	) {
+		return;
+	}
+	element.removeAttribute('data-key');
+	if (scriptElements.get(elementId) === element) {
+		scriptElements.delete(elementId);
+	}
+};
+
 const dropKeyOnRefusal = function dropKeyOnRefusal(
 	info: ScriptCallbackInfo
 ): void {
@@ -157,12 +174,7 @@ const dropKeyOnRefusal = function dropKeyOnRefusal(
 		rememberElement(info);
 		return;
 	}
-	const element = scriptElements.get(info.elementId);
-	if (element === undefined || element.isConnected) {
-		return;
-	}
-	element.removeAttribute('data-key');
-	scriptElements.delete(info.elementId);
+	dropKeyIfDetached(info.elementId);
 };
 
 const settleElement = function settleElement(info: ScriptCallbackInfo): void {
@@ -174,14 +186,14 @@ const settleElement = function settleElement(info: ScriptCallbackInfo): void {
 
 // `onDispose` runs before the loader removes the element, and a loader that
 // shares it keeps it in the page, so check once the removal has happened.
-const forgetDetachedElement = function forgetDetachedElement(
+// Without a loader, nothing would stop a later file after a refusal. The
+// check uses the disposed element, because a new loader can mount another
+// element under the same id first.
+const dropKeyOnDispose = function dropKeyOnDispose(
 	info: ScriptCallbackInfo
 ): void {
-	queueMicrotask(() => {
-		if (scriptElements.get(info.elementId)?.isConnected === false) {
-			scriptElements.delete(info.elementId);
-		}
-	});
+	const { element, elementId } = info;
+	queueMicrotask(() => dropKeyIfDetached(elementId, element));
 };
 
 /**
@@ -237,7 +249,7 @@ export const notraAnalytics = function notraAnalytics(
 		}),
 		onBeforeLoad: rememberElement,
 		onConsentChange: dropKeyOnRefusal,
-		onDispose: forgetDetachedElement,
+		onDispose: dropKeyOnDispose,
 		onError: settleElement,
 		onLoad: settleElement,
 	};
