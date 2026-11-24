@@ -131,28 +131,57 @@ const resolveSource = function resolveSource(options: NotraAnalyticsOptions): {
 	};
 };
 
+// Elements whose `notra.js` may still be downloading, by element id.
 const scriptElements = new Map<string, HTMLScriptElement>();
+
+// Elements whose file has run or failed, so their key no longer matters.
+const settledElements = new WeakSet<HTMLScriptElement>();
 
 const rememberElement = function rememberElement(
 	info: ScriptCallbackInfo
 ): void {
-	if (info.element) {
+	if (info.element && !settledElements.has(info.element)) {
 		scriptElements.set(info.elementId, info.element);
 	}
 };
 
+// Loaders that share one element can each refuse or leave. The key goes only
+// once the element is out of the page, because a loader that still has
+// consent keeps it there.
 const dropKeyOnRefusal = function dropKeyOnRefusal(
 	info: ScriptCallbackInfo
 ): void {
 	if (info.hasConsent) {
+		// A loader that reuses an element already in the page skips
+		// `onBeforeLoad` and gets the element here.
+		rememberElement(info);
 		return;
 	}
-	scriptElements.get(info.elementId)?.removeAttribute('data-key');
+	const element = scriptElements.get(info.elementId);
+	if (element === undefined || element.isConnected) {
+		return;
+	}
+	element.removeAttribute('data-key');
 	scriptElements.delete(info.elementId);
 };
 
-const forgetElement = function forgetElement(info: ScriptCallbackInfo): void {
+const settleElement = function settleElement(info: ScriptCallbackInfo): void {
+	if (info.element) {
+		settledElements.add(info.element);
+	}
 	scriptElements.delete(info.elementId);
+};
+
+// `onDispose` runs before the loader removes the element, and a loader that
+// shares it keeps it in the page, so check once the removal has happened.
+const forgetDetachedElement = function forgetDetachedElement(
+	info: ScriptCallbackInfo
+): void {
+	queueMicrotask(() => {
+		if (scriptElements.get(info.elementId)?.isConnected === false) {
+			scriptElements.delete(info.elementId);
+		}
+	});
 };
 
 /**
@@ -162,15 +191,17 @@ const forgetElement = function forgetElement(info: ScriptCallbackInfo): void {
  * integrity. `notra.js` sets no cookie and writes no browser storage, and it
  * has no stop call. A refusal while the file is still downloading keeps it
  * from sending. After the file has run, only a page load stops it, so keep
- * c15t's default reload on revocation.
+ * c15t's default reload on revocation, and add a network blocker rule for the
+ * ingest host to stop the report it sends as the page unloads.
  *
  * @see https://github.com/usenotra/typescript-sdk/blob/main/docs/tracking/README.md#web-analytics-script
  *
  * @param options - Notra web key and optional build, routing and host settings.
  * @returns The consent-gated Notra script.
- * @remarks When `webKey` is missing, blank or does not start with `nwk.`, the
- *   helper logs `notraAnalytics: missing or invalid webKey` with
- *   `console.error` and returns a script that never loads.
+ * @remarks When `webKey` is missing, blank, does not start with `nwk.` or has
+ *   nothing after it, the helper logs
+ *   `notraAnalytics: missing or invalid webKey` with `console.error` and
+ *   returns a script that never loads.
  *
  * @example
  * ```ts
@@ -183,7 +214,11 @@ export const notraAnalytics = function notraAnalytics(
 	options: NotraAnalyticsOptions
 ): Script {
 	const webKey = readId(options?.webKey);
-	if (webKey === undefined || !webKey.startsWith(webKeyPrefix)) {
+	if (
+		webKey === undefined ||
+		!webKey.startsWith(webKeyPrefix) ||
+		webKey.length === webKeyPrefix.length
+	) {
 		return skipMissingId('notraAnalytics', 'webKey', {
 			category: 'measurement',
 			manifest: notraAnalyticsManifest,
@@ -202,8 +237,8 @@ export const notraAnalytics = function notraAnalytics(
 		}),
 		onBeforeLoad: rememberElement,
 		onConsentChange: dropKeyOnRefusal,
-		onDispose: forgetElement,
-		onError: forgetElement,
-		onLoad: forgetElement,
+		onDispose: forgetDetachedElement,
+		onError: settleElement,
+		onLoad: settleElement,
 	};
 };

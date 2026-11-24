@@ -76,8 +76,8 @@ describe('notraAnalytics', () => {
 		});
 	});
 
-	it.each(['', '   ', 'test_key', 'pk_test_key'])(
-		'skips a web key that is blank or lacks the nwk. prefix: %j',
+	it.each(['', '   ', 'test_key', 'pk_test_key', 'nwk.', ' nwk. '])(
+		'skips a web key that is blank, lacks the nwk. prefix or ends at it: %j',
 		(webKey) => {
 			expectSkippedScript(
 				() => notraAnalytics({ webKey }),

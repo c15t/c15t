@@ -2,6 +2,8 @@
  * @vitest-environment jsdom
  */
 
+import { createConsentKernel } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -141,5 +143,60 @@ describe('notra analytics contract', () => {
 
 		expect(element?.isConnected).toBe(false);
 		expect(element?.hasAttribute('data-key')).toBe(false);
+	});
+
+	// Two loaders on one kernel share one element. jsdom never fetches the
+	// file, so the element stays in the downloading state throughout.
+	const twoLoaders = async function twoLoaders() {
+		const kernel = createConsentKernel();
+		await kernel.commands.save(grantedMeasurementConsents);
+		const createLoader = () =>
+			createScriptLoader({
+				kernel,
+				scripts: [notraAnalytics({ webKey: 'nwk.contract' })],
+			});
+		const first = createLoader();
+		const second = createLoader();
+		const elements = document.querySelectorAll('script');
+		expect(elements).toHaveLength(1);
+		return {
+			dispose: () => {
+				first.dispose();
+				second.dispose();
+				kernel.dispose();
+			},
+			element: elements[0] as HTMLScriptElement,
+			first,
+			kernel,
+		};
+	};
+
+	it('removes the web key on refusal after the loader that created the element is disposed', async () => {
+		const { dispose, element, first, kernel } = await twoLoaders();
+
+		first.dispose();
+		await Promise.resolve();
+		expect(element.isConnected).toBe(true);
+
+		await kernel.commands.save(deniedConsents);
+
+		expect(element.isConnected).toBe(false);
+		expect(element.hasAttribute('data-key')).toBe(false);
+		dispose();
+	});
+
+	it('keeps the web key while another loader that shares the element has consent', async () => {
+		const { dispose, element, first, kernel } = await twoLoaders();
+
+		first.updateScripts([]);
+
+		expect(element.isConnected).toBe(true);
+		expect(element.dataset.key).toBe('nwk.contract');
+
+		await kernel.commands.save(deniedConsents);
+
+		expect(element.isConnected).toBe(false);
+		expect(element.hasAttribute('data-key')).toBe(false);
+		dispose();
 	});
 });

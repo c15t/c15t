@@ -12,4 +12,5 @@ packages:
 `@usenotra/sdk` 2.0.0 pins, with subresource integrity, and takes the same
 `errors`, `hash` and `endpoint` settings as the SDK's `<NotraAnalytics />`.
 `notra.js` has no stop call, so keep the default page reload when consent is
-withdrawn. The CLI can add it during setup.
+withdrawn, and add the network blocker rule from the docs to stop its last
+report as the page unloads. The CLI can add it during setup.

@@ -15,7 +15,9 @@ its requests off the page until measurement is allowed. Your policy decides
 when that is, and an opt-out policy can allow measurement before the visitor
 has made a choice. When measurement is withdrawn, c15t removes the script and
 reloads the page, because a reload is the only way to stop a copy of
-`notra.js` that has already run.
+`notra.js` that has already run. That copy can still send as the page unloads,
+so also add the [network blocker rule](#loading-and-revocation) for Notra's
+ingest.
 
 ## Configure Notra
 
@@ -42,7 +44,7 @@ does not load or gate it.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `webKey` | Required | Set as `data-key`. The helper trims it. If the value is missing, blank or does not start with `nwk.`, the helper logs an error and the script does not load. |
+| `webKey` | Required | Set as `data-key`. The helper trims it. If the value is missing, blank, does not start with `nwk.` or has nothing after it, the helper logs an error and the script does not load. |
 | `errors` | `false` | Loads `notra.plus.js` in place of `notra.js`. See [report errors and count hash routes](#report-errors-and-count-hash-routes). |
 | `hash` | `false` | Sets `data-hash`, so `notra.js` counts `#hash` route changes as page views. |
 | `apiUrl` | `https://ingest.usenotra.com/api/collect` | URL that receives page views, set as `data-api`. With `endpoint` or `scriptUrl`, the helper leaves the attribute off unless you set `apiUrl`, and `notra.js` posts to `/api/collect` on the origin it loaded from. |
@@ -63,11 +65,13 @@ notraAnalytics({ webKey: 'nwk.your_web_key', errors: true, hash: true });
 ```
 
 With `errors: true` the helper loads `notra.plus.js`, which also reports
-uncaught errors and unhandled promise rejections. For each one it sends the
-first 300 characters of the message with the URL and line of the script that
-threw it, up to five errors per page view. An error message contains whatever
-your code or a library puts in it, so check that thrown messages hold no
-personal data before you turn this on.
+uncaught errors and unhandled promise rejections, up to five per page view.
+For an uncaught error it sends the first 300 characters of the message with
+the URL and line of the script that threw it. For a rejection it sends the
+first 300 characters of the reason's `message`, or of the reason itself when
+it is not an `Error`, with the page address, query string included, and line
+`0`. A message or a rejected value holds whatever your code or a library puts
+in it, so check that neither carries personal data before you turn this on.
 
 Set `hash: true` for a single-page app that routes with `#` fragments. Without
 it, `notra.js` removes the fragment from the address it sends and treats a
@@ -102,27 +106,68 @@ the same origin. Your proxy can compress the pinned file, but it has to leave
 the bytes unchanged, because a minified or rewritten copy fails the integrity
 check and does not run.
 
+The script element carries `integrity` and `crossorigin="anonymous"`, so the
+browser fetches the file in CORS mode. When `endpoint` is on another origin
+than your site, as `notra.example.com` is for `www.example.com`, the proxy
+must answer requests for `/api/notra.*.js` with an
+`Access-Control-Allow-Origin` header, such as `*` or your site's origin.
+Without it the browser blocks the file, Notra sends nothing and the only sign
+is a CORS error in the console. A proxy on your site's own origin needs no
+header.
+
 ## Loading and revocation
 
 Once measurement is allowed, the helper appends one async script with your key
 in `data-key`. `notra.js` defines no global and has no event API, so
 your code has nothing to queue or call before the script loads. The script
-sends a page view when it starts and another on each client-side navigation
-that changes the address. When the visitor hides or leaves the page, it sends
-the visible time, the scroll depth and the Core Web Vitals for that view. It
-also sends the host and path of each link to another site that the visitor
-clicks.
+sends a page view when it starts, on each `pushState` and back or forward
+navigation that changes the address, and on each `replaceState` that changes
+the path. A `replaceState` that changes only the query string sends nothing.
+Before each new page view, and when the visitor hides or leaves the page, it
+sends the visible time, the scroll depth and the Core Web Vitals for the view
+that ended. It also sends the host and path of each link to another site that
+the visitor clicks.
 
-`notra.js` has no stop or opt-out call. On withdrawal c15t removes the script
-element and reloads the page, and the reload ends the listeners of a copy that
-has already run. Keep `reloadOnConsentRevoked` on. With it off, the running
-copy keeps sending page views after the visitor has refused, and a later grant
-on the same page starts a second copy that counts each view twice.
+`notra.js` has no stop or opt-out call, and it reads your key once, when it
+starts. On withdrawal c15t removes the script element and reloads the page,
+which ends a copy that has already run. Two gaps remain:
+
+- As the reload starts, the running copy sends one last report with the
+  visible time, scroll depth and Core Web Vitals of the current view.
+- A withdrawal saved in another tab removes the script element in this tab
+  but does not reload it, so the running copy keeps sending a page view on
+  each client-side navigation.
+
+To close both, add a rule for Notra's ingest to the
+[network blocker](/docs/frameworks/javascript/modules/network-blocker). Each
+framework guide has a Network blocker page that shows where the option goes.
+
+{/* example: fragment */}
+
+```ts
+networkBlocker: {
+	rules: [
+		{
+			id: 'notra',
+			domain: 'ingest.usenotra.com',
+			category: 'measurement',
+		},
+	],
+},
+```
+
+The blocker answers a blocked `fetch` with a 451 response instead of an error,
+so `notra.js` does not fall back to `sendBeacon`. With `endpoint` or `apiUrl`,
+use that host as `domain`, and add `pathIncludes: '/api/collect'` when the
+host is your own site.
+
+Keep `reloadOnConsentRevoked` on as well. Without the reload, a later grant on
+the same page starts a second copy that counts each view twice.
 
 Removing a script element does not cancel a download that has started. If the
 visitor refuses while `notra.js` is still downloading, the helper removes
-`data-key` from the element, and the script exits without sending anything
-when it finds no key.
+`data-key` from the element once c15t takes it out of the page, and the script
+exits without sending anything when it finds no key.
 
 ## Cookies and storage
 
@@ -156,6 +201,9 @@ your key in `k` and the page address in `u`. The Application panel shows no
 Notra cookies or storage entries. A successful `POST` does not prove that the
 view reached your dashboard, which also depends on the beta being on for your
 workspace.
+
+With the network blocker rule in place, scroll the page, turn measurement off
+and save. No `POST` to `/api/collect` appears before or after the reload.
 
 <include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
 
