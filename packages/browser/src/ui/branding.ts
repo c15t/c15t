@@ -96,7 +96,7 @@ export const renderBranding = function renderBranding(
 							: cx(styles.brandingWordmark, styles.brandingInth),
 						dir: 'ltr',
 					},
-					'inth'
+					createBrandMark(resolved)
 				)
 			: h(
 					'span',

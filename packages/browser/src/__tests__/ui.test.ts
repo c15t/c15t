@@ -327,6 +327,37 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it.each(['inth', 'consent'] as const)(
+		'renders the inth mark in the banner and dialog tags for %s branding',
+		async (branding) => {
+			const { root, client } = await mount(
+				{},
+				{
+					mode: custom(
+						createOfflineTransport({ acknowledgeNoRecords: true, branding })
+					),
+				}
+			);
+
+			for (const testId of [
+				'consent-banner-branding',
+				'consent-dialog-branding',
+			]) {
+				if (testId === 'consent-dialog-branding') {
+					client.openDialog();
+				}
+				const tag = query(root, testId);
+				expect(tag.getAttribute('data-branding')).toBe('inth');
+				expect(tag.getAttribute('href')).toContain('inth.com');
+				const wordmark = tag.querySelector(`.${classes.branding.brandingInth}`);
+				const mark = wordmark?.querySelector('svg');
+				expect(mark?.getAttribute('viewBox')).toBe('0 0 88 90');
+				expect(mark?.getAttribute('aria-hidden')).toBe('true');
+				expect(wordmark?.textContent).toBe('');
+			}
+		}
+	);
+
 	it('hides the banner and dialog branding tags when branding is none', async () => {
 		const { root, client } = await mount(
 			{},
