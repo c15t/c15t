@@ -36,6 +36,7 @@ export const createIABSurface = (
 	let overlay: HTMLElement | null = null;
 	let preferences: IABPreferences | null = null;
 	let release: (() => void)[] = [];
+	let releaseDismiss: (() => void) | null = null;
 	let disposed = false;
 	let ready = false;
 	let loadFailed = false;
@@ -49,11 +50,15 @@ export const createIABSurface = (
 		loadFailed: boolean;
 	} | null = null;
 	let status: HTMLElement | null = null;
-	const clear = (): void => {
+	const clear = (keepDismiss = false): void => {
 		for (const cleanup of release) {
 			cleanup();
 		}
 		release = [];
+		if (!keepDismiss) {
+			releaseDismiss?.();
+			releaseDismiss = null;
+		}
 		root?.remove();
 		overlay?.remove();
 		root = null;
@@ -396,8 +401,8 @@ export const createIABSurface = (
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(root);
-		if (dialog) {
-			release.push(onDialogDismiss(root, () => client.closeDialog()));
+		if (dialog && !releaseDismiss) {
+			releaseDismiss = onDialogDismiss(root, () => client.closeDialog());
 		}
 		if (flip) {
 			void root.offsetHeight;
@@ -456,7 +461,7 @@ export const createIABSurface = (
 		// A rebuild of the surface already on screen, such as when the
 		// vendor list arrives, swaps it in place rather than entering again.
 		const entering = rendered?.ui !== ui;
-		clear();
+		clear(ui === 'dialog' && !entering);
 		build(snapshot, ui === 'dialog', entering);
 		rendered = { loadFailed, ready, snapshot, ui };
 	};
