@@ -80,7 +80,9 @@ export const handle = c15tHandle({ mode: hosted() });
 
 `hosted()` reads the backend URL from `consentManifest`, or takes
 `hosted({ backendURL })`. The request to `/init` carries the resolved
-location, language and GPC, the `user-agent` and, over `https` or to a
+location, language and GPC, the `user-agent`, speculative prefetch headers
+(`sec-purpose`, `purpose`, `x-purpose`, `x-moz`, `next-router-prefetch` and
+`x-middleware-prefetch`) and, over `https` or to a
 loopback host, the consent cookie alone. Every render waits on the backend,
 up to 500 ms. `consentManifest` still downloads the manifest during the
 build; set `onBuildError: 'runtime'` if a backend outage should not stop the
