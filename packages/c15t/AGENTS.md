@@ -434,7 +434,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Salesforce Account Engagement](./docs/integrations/salesforce-pardot.md): Gate Salesforce Account Engagement tracking on marketing consent, configure its consent API or classic Pardot snippet, and verify revocation with c15t.
 - [Segment](./docs/integrations/segment.md): Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
 - [Sentry](./docs/integrations/sentry.md): Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
-- [Shopify](./docs/integrations/shopify.md): Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront, so Shopify analytics wait for the visitor's choice and follow each later change.
+- [Shopify](./docs/integrations/shopify.md): Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront in Next.js, TanStack Start, React Router, Nuxt, Astro or SvelteKit.
 - [Snapchat Pixel](./docs/integrations/snapchat-pixel.md): Load the Snapchat Pixel only after marketing consent with the c15t snapchatPixel helper, guard snaptr event calls, and check it in DevTools.
 - [Statable](./docs/integrations/statable-analytics.md): Load Statable analytics after measurement consent with the c15t statableAnalytics helper, configure its ingestion endpoint, and verify requests and browser storage.
 - [The Trade Desk](./docs/integrations/the-trade-desk.md): Load The Trade Desk with c15t after marketing consent and verify its loader, storage and revocation behavior.

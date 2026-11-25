@@ -1,0 +1,89 @@
+// #region docs:shopify-react-router-root title="app/root.tsx"
+import { createShopifyCustomerPrivacy } from '@c15t/integrations/shopify';
+import { ShopifyScripts } from '@shopify/hydrogen/react';
+import type { AllConsentNames } from 'c15t/react';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentProvider,
+	hosted,
+	useSnapshot,
+} from 'c15t/react';
+import type { ReactNode } from 'react';
+import { useEffect } from 'react';
+import {
+	Links,
+	Meta,
+	Outlet,
+	Scripts,
+	ScrollRestoration,
+	useNavigate,
+} from 'react-router';
+
+import { i18n, shop } from './lib/shop';
+
+// One bridge per page. Its `setup` holds Hydrogen's analytics until Shopify
+// has the visitor's choice.
+const shopifyPrivacy = createShopifyCustomerPrivacy();
+
+// Shopify's scripts load outside c15t, so declare the categories the bridge
+// maps. Without them the dialog offers only Necessary.
+const consentCategories: AllConsentNames[] = [
+	'measurement',
+	'marketing',
+	'functionality',
+];
+
+const options = { consentCategories, mode: hosted() };
+
+/** Sends each c15t snapshot to Shopify. Render it inside the provider. */
+const ShopifyConsentSync = () => {
+	const snapshot = useSnapshot();
+	useEffect(() => shopifyPrivacy.update(snapshot), [snapshot]);
+	return null;
+};
+
+export const Layout = ({ children }: { children: ReactNode }) => {
+	const navigate = useNavigate();
+	return (
+		<html lang="en">
+			<head>
+				<meta charSet="utf-8" />
+				<meta
+					content="width=device-width, initial-scale=1"
+					name="viewport"
+				/>
+				<Meta />
+				<Links />
+				{/* Replaces the template's default-banner consent. */}
+				<ShopifyScripts
+					consent={{ mode: 'custom-banner', setup: shopifyPrivacy.setup }}
+					i18n={i18n}
+					navigate={(url) => navigate(url)}
+					shop={shop}
+				/>
+			</head>
+			<body>
+				{children}
+				<ScrollRestoration />
+				<Scripts />
+			</body>
+		</html>
+	);
+};
+
+const App = () => (
+	<ConsentProvider options={options}>
+		<ShopifyConsentSync />
+		<Outlet />
+		<ConsentBanner />
+		<ConsentDialog />
+		<footer>
+			<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+		</footer>
+	</ConsentProvider>
+);
+
+export default App;
+// #endregion docs:shopify-react-router-root

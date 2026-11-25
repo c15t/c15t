@@ -13,6 +13,7 @@
 		"@c15t/integrations": "workspace:*",
 		"@c15t/node-sdk": "workspace:*",
 		"@c15t/ui": "workspace:*",
+		"@shopify/hydrogen": "2026.10.0",
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {

@@ -52,6 +52,8 @@ the backend request fails, they stay blocked and no banner shows.
 React Router framework mode, Remix and similar frameworks have no c15t adapter.
 Use the quickstart's `Consent` component and render it in your root component,
 around the outlet. In React Router framework mode that is `app/root.tsx`.
+For a Shopify Hydrogen storefront, follow the React Router steps in
+[Shopify](/docs/integrations/shopify#connect-hydrogen-to-c15t).
 
 `ConsentProvider` renders on the server without touching browser APIs, and the
 browser takes over after hydration:

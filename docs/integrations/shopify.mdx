@@ -1,8 +1,8 @@
 ---
 title: Shopify
-description: Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront, so Shopify analytics wait for the visitor's choice and follow each later change.
+description: Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront in Next.js, TanStack Start, React Router, Nuxt, Astro or SvelteKit.
 seoTitle: Shopify Hydrogen consent integration for c15t
-seoDescription: Load Shopify analytics pixel only after measurement consent. Set up the c15t helper with your shop domain and verify tracking in DevTools.
+seoDescription: Make Shopify Hydrogen analytics follow your c15t banner in Next.js, TanStack Start, React Router, Nuxt, Astro or SvelteKit.
 group: integrations
 ---
 
@@ -14,54 +14,163 @@ bridge's `setup` function holds Hydrogen's analytics events until Shopify has
 the visitor's choice.
 
 The [Shopify example](https://github.com/c15t/c15t/tree/v3/examples/shopify-nextjs)
-runs the code on this page in a Next.js app against mock.shop.
+runs the Next.js code on this page against mock.shop.
 
 <Signpost href="https://inth.com/integrations/shopify" label="Setup guide">
   This page is the code reference for the c15t Shopify bridge. To set up the cookie banner for Shopify, use the Inth guide.
 </Signpost>
 
-## Add the bridge
+## Before you start
 
-Set up c15t with the [Next.js quickstart](/docs/frameworks/next/quickstart)
-first, then install the integrations package:
+- A storefront on Hydrogen 2026.10 or later, which added `ShopifyScripts`
+  and the framework bindings. Older storefronts use Hydrogen's analytics
+  components; follow [Shopify's migration guide](https://shopify.dev/docs/storefronts/hydrogen/migrate#migrate-analytics)
+  first.
+- c15t set up with your [framework quickstart](/docs/frameworks).
+- Hydrogen's `handleShopifyRoutes` in your server. It serves
+  `/api/<version>/graphql.json`, where the Customer Privacy API saves each
+  choice. Hydrogen's templates and setup steps add it. Without it, Shopify
+  rejects every choice, and under an opt-in policy Hydrogen keeps holding
+  events.
+
+## Install the bridge
 
 <CommandTabs command="@c15t/integrations" mode="install" />
 
-Create the bridge once per page and pass its `setup` to `ShopifyScripts` with
-`mode: 'custom-banner'`. A second component feeds the bridge each c15t
-snapshot:
+## Connect Hydrogen to c15t
 
-<include src="../shared/examples/shopify-nextjs/shopify-analytics.mdx" />
+Every framework makes the same three changes:
 
-Render `ShopifyAnalytics` in the document head, as Hydrogen requires, with
-your shop's details. Render `ShopifyConsentSync` inside `ConsentRoot`:
+1. Pass the bridge's `setup` to Hydrogen's consent settings with
+   `mode: 'custom-banner'`, in place of `default-banner`.
+2. Send each c15t snapshot to the bridge.
+3. Declare the `measurement`, `marketing` and `functionality` categories.
+   Shopify's scripts load outside c15t's `scripts` option, so c15t can't find
+   them. Without the declaration, the dialog offers only Necessary and Shopify
+   receives a denial for everything. The categories must also be in your
+   policy's scope.
 
-<include src="../shared/examples/shopify-nextjs/shopify-layout.mdx" />
+Change your storefront's root or layout; don't replace it with the code
+below. Each example shows one complete file so the changes are easy to see,
+and leaves out what your storefront already has, such as its loader, route
+middleware and other Hydrogen props. `shop` and `i18n` stand for the values
+your storefront already passes to Hydrogen.
 
-## Declare the categories
+Hydrogen allows one analytics bus per page. A second set of Shopify tags
+throws `Analytics bus already initialized`, and the first keeps its consent
+mode. Where your storefront already renders the tags, through
+`ShopifyScripts` or `renderShopifyScriptTags()` and
+`initializeShopifyScripts()`, change the consent settings it passes and keep
+everything else, such as `analytics`, `routes`, `navigate` and `nonce`.
 
-c15t's dialog offers only the categories that something on the page uses.
-Shopify's scripts load through `ShopifyScripts`, not through c15t's `scripts`
-option, so c15t cannot find them. Declare the categories the bridge maps, or
-the dialog shows only Necessary and Shopify receives a denial for everything:
+<Tabs items={['Next.js', 'TanStack Start', 'React Router', 'Nuxt', 'Astro', 'SvelteKit']}>
+  <Tab value="Next.js">
+    `ShopifyAnalytics` renders `ShopifyScripts` with the bridge's `setup`.
+    `ShopifyConsentSync` feeds the bridge each snapshot:
 
-<include src="../shared/examples/shopify-nextjs/shopify-config.mdx" />
+    <include src="../shared/examples/shopify-nextjs/shopify-analytics.mdx" />
 
-The categories must also be in your policy's scope.
+    The example passes `channel: 'headless'` because mock.shop has no
+    storefront ID. Leave `analytics` out when you have one, so events carry
+    it.
 
-## Serve the Storefront API route
+    Render `ShopifyAnalytics` in the document head and `ShopifyConsentSync`
+    inside `ConsentRoot`:
 
-The Customer Privacy API saves each choice by posting to the storefront's own
-`/api/<version>/graphql.json`. Hydrogen's `handleShopifyRoutes` serves that
-route, forwards it to your shop and keeps the cookies Shopify sets. In
-Next.js, call it from `proxy.ts`:
+    <include src="../shared/examples/shopify-nextjs/shopify-layout.mdx" />
 
-<include src="../shared/examples/shopify-nextjs/shopify-proxy.mdx" />
+    Declare the categories in `c15t.config.ts`:
 
-The consent route needs no handlers. The example adds Hydrogen's cart
-handlers for its cart, and its `lib/shop.ts` holds the store domain and
-market. It has no customer accounts, so it passes a session manager that
-stores nothing. Pass your own if your storefront signs customers in.
+    <include src="../shared/examples/shopify-nextjs/shopify-config.mdx" />
+
+    If your app doesn't serve the Storefront API route yet, call
+    `handleShopifyRoutes` from `proxy.ts`, as the example does. Shopify's
+    Vercel Shop template already does. The example adds Hydrogen's cart
+    handlers for its cart, and passes a session manager that stores nothing
+    because it has no customer accounts:
+
+    <include src="../shared/examples/shopify-nextjs/shopify-proxy.mdx" />
+  </Tab>
+
+  <Tab value="TanStack Start">
+    Render `ShopifyScripts` in the root route's head and
+    `ShopifyConsentSync` inside `ConsentRoot`. `options` declares the
+    categories:
+
+    <include src="../shared/examples/tanstack-start/shopify-tanstack-start-root.mdx" />
+  </Tab>
+
+  <Tab value="React Router">
+    Hydrogen's React Router template renders `ShopifyScripts` in
+    `app/root.tsx` with `mode: 'default-banner'`. Change its `consent` prop,
+    then wrap the outlet in `ConsentProvider` with the categories and
+    `ShopifyConsentSync`. Keep the template's loader, `middleware` export,
+    nonce and other `ShopifyScripts` props, which the example leaves out:
+
+    <include src="../shared/examples/react/shopify-react-router-root.mdx" />
+
+    `ShopifyScripts` reads no c15t state, so it stays in `Layout`, outside
+    the provider. `mode: hosted()` uses the backend URL from the
+    [React quickstart](/docs/frameworks/react/quickstart)'s Vite setup.
+  </Tab>
+
+  <Tab value="Nuxt">
+    Hydrogen's Vue `ShopifyScripts` takes the bridge's `setup`. The c15t
+    module provides the kernel to the whole app, so `app.vue` can connect it
+    to the bridge:
+
+    <include src="../shared/examples/nuxt/shopify-nuxt-app.mdx" />
+
+    Declare the categories in the c15t module options:
+
+    <include src="../shared/examples/nuxt/shopify-categories.mdx" />
+  </Tab>
+
+  <Tab value="Astro">
+    Hydrogen has no Astro component, so the layout renders its tags with
+    `renderShopifyScriptTags()` and starts them with
+    `initializeShopifyScripts()`. Both read the same consent settings:
+
+    <include src="../shared/examples/astro/shopify-astro-bridge.mdx" />
+
+    The layout's script also follows c15t's page client and sends each change
+    to the bridge:
+
+    <include src="../shared/examples/astro/shopify-astro-layout.mdx" />
+
+    Declare the categories in the c15t integration options:
+
+    <include src="../shared/examples/astro/shopify-categories.mdx" />
+
+    With `ClientRouter`, make links that change market or language load the
+    full page, for example with `data-astro-reload`. A client-side swap
+    reruns Shopify's bootstrap script, which replaces the Customer Privacy
+    API, and the bridge stops reaching Shopify.
+  </Tab>
+
+  <Tab value="SvelteKit">
+    Hydrogen has no Svelte component, so the layout renders its tags with
+    `renderShopifyScriptTags()` and starts them with
+    `initializeShopifyScripts()`. Create the bridge in a module that both the
+    layout and the sync component import:
+
+    <include src="../shared/examples/sveltekit/shopify-sveltekit-bridge.mdx" />
+
+    `getConsentKernel()` works only inside `ConsentRoot`, so a small
+    component connects the kernel to the bridge:
+
+    <include src="../shared/examples/sveltekit/shopify-sveltekit-sync.mdx" />
+
+    The root layout renders the tags, declares the categories on
+    `ConsentRoot` and renders the sync component inside it:
+
+    <include src="../shared/examples/sveltekit/shopify-sveltekit-layout.mdx" />
+
+    The imports use `#lib/*`, SvelteKit 3's replacement for `$lib`, mapped to
+    `./src/lib/*` in your `package.json` `imports`. If your app uses another
+    alias, change the imports to match.
+  </Tab>
+</Tabs>
 
 ## How categories map
 

@@ -8,6 +8,11 @@ export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
+			// #region docs:shopify-categories title="astro.config.mjs (partial)"
+			// The categories the Shopify bridge maps. Shopify's scripts load
+			// outside c15t, so c15t can't discover them.
+			consentCategories: ['measurement', 'marketing', 'functionality'],
+			// #endregion docs:shopify-categories
 			mode: local(),
 			// #region docs:vendors-option title="astro.config.mjs (partial)"
 			vendors: [
