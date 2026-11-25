@@ -74,13 +74,21 @@ const readBanner = (html) => {
 		'Use generated inline banner CSS'
 	);
 	// The replay moves every stylesheet into <head>, so check the original
-	// response already delivers the guard before the root it hides.
+	// response already delivers this root's guard before the root. Match its
+	// own class: the IAB banner's guard uses the same attribute.
+	const rootClasses =
+		/\bclass=(?<quote>["'])(?<classes>.*?)\k<quote>/u
+			.exec(tokens[start][0])
+			?.groups.classes.split(/\s+/u)
+			.filter(Boolean) ?? [];
 	assert.ok(
 		tokens.some(
 			(token) =>
 				token.groups.raw?.toLowerCase() === 'style' &&
 				token.index < tokens[start].index &&
-				token[0].includes('[data-c15t-streamed]')
+				rootClasses.some((name) =>
+					token[0].includes(`.${name}[data-c15t-streamed]`)
+				)
 		),
 		'The streamed-root guard must precede the banner root'
 	);
@@ -607,7 +615,7 @@ export const verifyStreamedBanner = async (
 					({ index, roots, actionSelector, actionText }) => {
 						const node = document.querySelectorAll(roots).item(index);
 						return (
-							[...node.querySelectorAll(actionSelector)]
+							[...(node?.querySelectorAll(actionSelector) ?? [])]
 								.findLast((entry) => entry.closest(roots) === node)
 								?.textContent.trim() === actionText
 						);
