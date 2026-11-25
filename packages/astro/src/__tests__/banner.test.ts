@@ -109,12 +109,12 @@ describe('<ConsentBanner />', () => {
 		const root = new JSDOM(html).window.document.querySelector<HTMLElement>(
 			'[data-testid="consent-banner-root"]'
 		);
-		const marker = root?.lastElementChild as HTMLElement | null | undefined;
+		const marker = root?.lastElementChild;
 
 		expect(root?.hasAttribute('data-c15t-streamed')).toBe(true);
 		expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
 		expect(marker?.matches('span[data-c15t-stream-end]')).toBe(true);
-		expect(marker?.hidden).toBe(true);
+		expect(marker?.hasAttribute('hidden')).toBe(true);
 	});
 
 	it('renders nothing when the server says the banner should stay hidden', async () => {
