@@ -149,8 +149,10 @@ export interface ConsentProxyOptions {
 	 * Extra request headers to forward from the browser in addition to the
 	 * default allowlist (`accept`, `accept-language`, `content-type`,
 	 * `cookie`, `if-none-match`, `origin`, `referer`, `user-agent`,
-	 * `sec-gpc`, and every consent request header). `forwarded` and
-	 * `x-forwarded-*` are ignored: the proxy sets those itself.
+	 * `sec-gpc`, the speculation/prefetch headers `sec-purpose`, `purpose`,
+	 * `x-purpose`, `x-moz`, `next-router-prefetch`, and
+	 * `x-middleware-prefetch`, and every consent request header). `forwarded`
+	 * and `x-forwarded-*` are ignored: the proxy sets those itself.
 	 */
 	forwardHeaders?: readonly string[];
 
