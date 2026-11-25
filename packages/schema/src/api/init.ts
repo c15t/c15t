@@ -65,6 +65,7 @@ export const translationsSchema = v.object({
 	common: v.object({
 		acceptAll: v.optional(v.string()),
 		acknowledge: v.optional(v.string()),
+		close: v.optional(v.string()),
 		customize: v.optional(v.string()),
 		dismiss: v.optional(v.string()),
 		rejectAll: v.optional(v.string()),

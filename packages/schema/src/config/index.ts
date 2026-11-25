@@ -81,6 +81,8 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		card?: T;
 		header?: T;
 		title?: T;
+		/** Close button, rendered when the dialog's `showCloseButton` is on. */
+		closeButton?: T;
 		content?: T;
 		overlay?: T;
 	};
@@ -289,6 +291,7 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 	},
 	dialog: {
 		card: true,
+		closeButton: true,
 		container: true,
 		content: true,
 		header: true,
@@ -443,6 +446,12 @@ export interface ConsentConfig<T = Record<string, unknown>> {
 	hideBranding?: boolean;
 	bannerHideBranding?: boolean;
 	dialogHideBranding?: boolean;
+	/**
+	 * Show a close button in the stock preference dialog's header. Closing
+	 * records no consent, like Escape.
+	 * @default false
+	 */
+	dialogShowCloseButton?: boolean;
 	iabBannerHideBranding?: boolean;
 	iabDialogHideBranding?: boolean;
 	showTrigger?: boolean;

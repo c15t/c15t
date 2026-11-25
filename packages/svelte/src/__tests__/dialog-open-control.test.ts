@@ -80,3 +80,71 @@ describe('ConsentDialog open prop', () => {
 		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
 	});
 });
+
+describe('ConsentDialog showCloseButton', () => {
+	const CLOSE = '[data-testid="consent-dialog-close"]';
+
+	test('renders no close button by default', async () => {
+		render(Fixture, { open: true, options });
+		await waitFor(() => expect(query(ROOT)).not.toBeNull());
+
+		expect(query(CLOSE)).toBeNull();
+	});
+
+	test('the close button closes the dialog without recording consent', async () => {
+		render(Fixture, { options, showCloseButton: true });
+		await fireEvent.click(query('[data-testid="open-dialog"]') as HTMLElement);
+		await waitFor(() => expect(query(CLOSE)).not.toBeNull());
+
+		const button = query(CLOSE) as HTMLButtonElement;
+		expect(button.getAttribute('aria-label')).toBe('Close');
+		expect(
+			query('[data-testid="consent-dialog-header"]')?.contains(button)
+		).toBe(true);
+
+		await fireEvent.click(button);
+
+		await waitFor(() => expect(query(ROOT)).toBeNull());
+		// Nothing was recorded, so the policy still owes a choice.
+		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
+	});
+
+	test('falls back to English when common.close is missing or blank', async () => {
+		const fallbackOptions = {
+			...options,
+			prefetch: {
+				...policyFixture(),
+				initialTranslations: {
+					language: 'de',
+					translations: {
+						common: {
+							acceptAll: 'Alle akzeptieren',
+							close: '   ',
+							customize: 'Anpassen',
+							rejectAll: 'Alle ablehnen',
+							save: 'Speichern',
+							securedBy: 'Gesichert durch',
+						},
+						consentManagerDialog: {
+							description: 'Beschreibung',
+							title: 'Datenschutz',
+						},
+						consentTypes: {},
+						cookieBanner: {
+							description: 'Banner',
+							title: 'Cookies',
+						},
+					},
+				},
+			},
+		} as ConsentManagerOptions;
+		render(Fixture, {
+			open: true,
+			options: fallbackOptions,
+			showCloseButton: true,
+		});
+		await waitFor(() => expect(query(CLOSE)).not.toBeNull());
+
+		expect(query(CLOSE)?.getAttribute('aria-label')).toBe('Close');
+	});
+});

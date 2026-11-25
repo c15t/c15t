@@ -7,13 +7,18 @@
 	let {
 		options,
 		open = undefined,
+		showCloseButton = undefined,
 	}: {
 		options: ConsentManagerOptions;
 		open?: boolean;
+		showCloseButton?: boolean;
 	} = $props();
 </script>
 
 <ConsentProvider {options}>
 	<ActiveUiControl />
-	<ConsentDialog {open} />
+	<ConsentDialog
+		{open}
+		{showCloseButton}
+	/>
 </ConsentProvider>

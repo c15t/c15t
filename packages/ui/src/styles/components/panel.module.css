@@ -344,12 +344,6 @@
 		position: relative;
 	}
 
-	.closeButton:not(:global(.headless)) {
-		position: absolute;
-		right: 1.375rem;
-		top: 1.375rem;
-	}
-
 	.overlay:not(:global(.headless)) {
 		color: var(--consent-dialog-link-text-color);
 		position: fixed;
@@ -417,6 +411,76 @@
 		margin-top: var(--consent-dialog-card-gap);
 	}
 
+	/* The optional close button sits in the header's top corner, level
+	   with the title. The header's end padding keeps the title and the
+	   description clear of it. */
+	.header:not(:global(.headless)):has(> .closeButton:not(:global(.headless))) {
+		position: relative;
+		padding-inline-end: calc(
+			var(--consent-dialog-card-padding-mobile) + 1rem + 2 *
+				var(--c15t-space-xs)
+		);
+	}
+
+	.header:not(:global(.headless)) > .closeButton:not(:global(.headless)) {
+		position: absolute;
+		top: calc(var(--consent-dialog-card-padding-mobile) - var(--c15t-space-xs));
+		inset-inline-end: calc(
+			var(--consent-dialog-card-padding-mobile) - var(--c15t-space-xs)
+		);
+		margin: 0;
+	}
+
+	.closeButton:not(:global(.headless)) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--c15t-space-xs);
+		border: none;
+		border-radius: var(--c15t-radius-md);
+		background: transparent;
+		color: var(--consent-dialog-muted-color);
+		cursor: pointer;
+		transition:
+			background-color var(--c15t-duration-fast) var(--c15t-easing-out),
+			color var(--c15t-duration-fast) var(--c15t-easing-out);
+	}
+
+	.closeButton:not(:global(.headless)) > svg {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.closeButton:not(:global(.headless)):hover {
+		background-color: var(--c15t-surface-hover);
+		color: var(--consent-dialog-foreground-color);
+	}
+
+	.closeButton:not(:global(.headless)):focus-visible {
+		outline: 2px solid var(--c15t-primary);
+		outline-offset: 2px;
+	}
+
+	:global(.c15t-dark) .closeButton:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color-dark);
+	}
+
+	:global(.c15t-dark) .closeButton:not(:global(.headless)):hover {
+		color: var(--consent-dialog-foreground-color-dark);
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.closeButton:not(:global(.headless)):hover {
+			background-color: transparent;
+			color: var(--consent-dialog-muted-color);
+		}
+
+		:global(.c15t-dark) .closeButton:not(:global(.headless)):hover {
+			color: var(--consent-dialog-muted-color-dark);
+		}
+	}
+
 	.title:not(:global(.headless)) {
 		/* Same heading-element reset as the banner: React's `<h2>` must not
 		   bring the user agent's margins with it. */
@@ -470,6 +534,21 @@
 	@media (min-width: 640px) {
 		.header:not(:global(.headless)) {
 			padding: var(--consent-dialog-card-padding);
+		}
+
+		.header:not(:global(.headless)):has(
+				> .closeButton:not(:global(.headless))
+			) {
+			padding-inline-end: calc(
+				var(--consent-dialog-card-padding) + 1rem + 2 * var(--c15t-space-xs)
+			);
+		}
+
+		.header:not(:global(.headless)) > .closeButton:not(:global(.headless)) {
+			top: calc(var(--consent-dialog-card-padding) - var(--c15t-space-xs));
+			inset-inline-end: calc(
+				var(--consent-dialog-card-padding) - var(--c15t-space-xs)
+			);
 		}
 
 		.content:not(:global(.headless)) {
@@ -559,6 +638,7 @@
 		.contentHidden:not(:global(.headless)),
 		.overlayVisible:not(:global(.headless)),
 		.overlayHidden:not(:global(.headless)),
+		.closeButton:not(:global(.headless)),
 		.overlay:not(:global(.headless))[data-state='open'],
 		.overlay:not(:global(.headless))[data-state='closed'],
 		.root:not(:global(.headless))[data-state='open'],

@@ -13,6 +13,7 @@
 	import { Dialog, Portal } from '../primitives';
 	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import Branding from './branding.svelte';
+	import CloseIcon from './icons/close-icon.svelte';
 	import InlineLegalLinks from './inline-legal-links.svelte';
 	import type { ConsentDialogProps } from './panel-props';
 	import ConsentDialogTrigger from './panel-trigger.svelte';
@@ -25,6 +26,7 @@
 		disableAnimation: localDisableAnimation,
 		hideBranding,
 		legalLinks,
+		showCloseButton = false,
 		showTrigger = false,
 		// A `none` rule that grants the preferences right still opens here.
 		models = ['opt-in', 'opt-out', 'iab', 'none'] as Model[],
@@ -59,6 +61,11 @@
 			consent.state.translationConfig,
 			defaultTranslationConfig
 		)
+	);
+	const closeLabel = $derived(
+		translations.common?.close?.trim() ||
+			defaultTranslationConfig.translations.en?.common?.close ||
+			'Close'
 	);
 	const textDirection = $derived(
 		getTextDirection(consent.state.translationConfig?.defaultLanguage)
@@ -109,6 +116,15 @@
 			'consentDialogTitle',
 			theme.theme,
 			{ baseClassName: styles.title, noStyle },
+			noStyle
+		)
+	);
+
+	const closeButtonStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogCloseButton',
+			theme.theme,
+			{ baseClassName: styles.closeButton, noStyle },
 			noStyle
 		)
 	);
@@ -164,6 +180,12 @@
 			lastResolvedOpen = false;
 		}
 	});
+
+	// Closing records no consent, like Escape. With `open` set the parent
+	// still owns visibility.
+	const handleClose = function handleClose() {
+		consent.state.setActiveUI('none');
+	};
 
 	const handleControlledDismiss = function handleControlledDismiss(
 		event: KeyboardEvent
@@ -254,6 +276,22 @@
 								testIdPrefix="consent-dialog-legal-link"
 							/>
 						</div>
+						{#if showCloseButton}
+							<button
+								type="button"
+								class={closeButtonStyle.className || ''}
+								style={toStyleAttribute(closeButtonStyle.style)}
+								aria-label={closeLabel}
+								data-testid="consent-dialog-close"
+								onclick={handleClose}
+							>
+								<CloseIcon
+									width="1rem"
+									height="1rem"
+									aria-hidden={true}
+								/>
+							</button>
+						{/if}
 					</div>
 
 					<!-- Content: ConsentWidget -->
