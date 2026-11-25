@@ -90,8 +90,8 @@ reveal the banner as it parses. See
 - **Notra.** `notraAnalytics` from `@c15t/integrations/notra-analytics` loads
   Notra's `notra.js` with subresource integrity after `measurement` consent,
   with options for `errors`, `hash`, and `endpoint`. Keep the default reload on
-  withdrawal, and add the `networkBlocker` rule from the guide to stop unload
-  beacons when consent is revoked. See [Notra](/docs/integrations/notra-analytics).
+  withdrawal, and add the `networkBlocker` rule from the guide to stop its
+  last `fetch` report as the page unloads. See [Notra](/docs/integrations/notra-analytics).
 
 Both helpers are available in `c15t` CLI setup. The
 [Shopify Hydrogen guide](/docs/integrations/shopify) now also includes setups
