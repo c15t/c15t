@@ -590,6 +590,57 @@ describe('persistence: a server seed that missed a clear', () => {
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		handle.dispose();
 	});
+
+	test('keeps the seeded subject ID when a mixed seed has a decision that outlives the clear', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW + 1000);
+
+		vi.setSystemTime(NOW + 2000);
+		const otherTab = createConsentKernel({ now: NOW + 2000 });
+		const otherHandle = createPersistence({ kernel: otherTab });
+		await otherTab.commands.identify({ externalId: 'bob' });
+		await otherTab.commands.save({ marketing: false });
+		flushWrites();
+		const otherSubject = otherTab.getSnapshot().subject;
+		otherHandle.dispose();
+
+		const marketingDecision = seed.choice?.categories.marketing;
+		if (!marketingDecision) {
+			throw new Error('Expected seeded marketing decision');
+		}
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...seed,
+				choice: {
+					categories: {
+						...seed.choice?.categories,
+						measurement: {
+							...marketingDecision,
+							confirmedAt: NOW + 1500,
+							value: false,
+						},
+					},
+					version: 3,
+				},
+				subject: { ...seed.subject, externalId: 'alice' },
+			},
+			now: NOW + 2000,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		expect(kernel.getSnapshot().subject?.subjectId).toBe(
+			seed.subject?.subjectId
+		);
+		expect(kernel.getSnapshot().subject?.subjectId).not.toBe(
+			otherSubject?.subjectId
+		);
+		expect(kernel.getSnapshot().subject).not.toHaveProperty('externalId');
+		handle.dispose();
+	});
 });
 
 describe('persistence: dispose', () => {

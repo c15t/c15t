@@ -1127,24 +1127,22 @@ describe('consent journey', () => {
 
 	test('forwards speculation headers to hosted /init so the backend suppresses prefetch visits', async () => {
 		const fetch = upstream();
+		const inputHeaders: Record<(typeof SPECULATION_HEADERS)[number], string> = {
+			'next-router-prefetch': '1',
+			purpose: 'prefetch',
+			'sec-purpose': 'prefetch',
+			'x-middleware-prefetch': '1',
+			'x-moz': 'prefetch',
+			'x-purpose': 'preview',
+		};
 		await render({
 			backendURL: BACKEND,
 			fetch,
-			headers: {
-				'next-router-prefetch': '1',
-				purpose: 'prefetch',
-				'sec-purpose': 'prefetch',
-				'x-middleware-prefetch': '1',
-				'x-moz': 'prefetch',
-				'x-purpose': 'preview',
-			},
+			headers: inputHeaders,
 		});
-		const sent = callsTo(fetch, '/init')[0]?.[1]?.headers as Record<
-			string,
-			string
-		>;
+		const sent = new Headers(callsTo(fetch, '/init')[0]?.[1]?.headers);
 		for (const name of SPECULATION_HEADERS) {
-			expect(sent[name]).toBeTruthy();
+			expect(sent.get(name)).toBe(inputHeaders[name]);
 		}
 	});
 

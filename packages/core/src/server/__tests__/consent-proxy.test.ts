@@ -284,6 +284,14 @@ describe('forwardConsentRequest speculation headers', () => {
 			throw new Error('proxy options did not resolve');
 		}
 		const target = upstream();
+		const inputHeaders: Record<(typeof SPECULATION_HEADERS)[number], string> = {
+			'next-router-prefetch': '1',
+			purpose: 'prefetch',
+			'sec-purpose': 'prefetch',
+			'x-middleware-prefetch': '1',
+			'x-moz': 'prefetch',
+			'x-purpose': 'preview',
+		};
 		await forwardConsentRequest({
 			adapter: '@c15t/test-adapter',
 			backendURL: BACKEND,
@@ -292,19 +300,12 @@ describe('forwardConsentRequest speculation headers', () => {
 			options,
 			path: 'init',
 			request: new Request('https://shop.example/api/c15t/init', {
-				headers: {
-					'next-router-prefetch': '1',
-					purpose: 'prefetch',
-					'sec-purpose': 'prefetch',
-					'x-middleware-prefetch': '1',
-					'x-moz': 'prefetch',
-					'x-purpose': 'preview',
-				},
+				headers: inputHeaders,
 			}),
 		});
 		const forwarded = target.calls[0]?.init.headers;
 		for (const name of SPECULATION_HEADERS) {
-			expect(forwarded?.get(name)).toBeTruthy();
+			expect(forwarded?.get(name)).toBe(inputHeaders[name]);
 		}
 	});
 });
