@@ -1,9 +1,9 @@
 ---
-title: "v3.3.0 - Dialog close button, older browser support and new integrations"
+title: "v3.3.0 - Nuxt 5 support, dialog close button and older browser support"
 version: "3.3.0"
 date: 2026-11-25
-description: "Add a preference dialog close button, restore pre-Safari 15.4 support, stop streamed banner layout shifts, and add Capless and Notra integrations."
-seoTitle: 'c15t 3.3.0: dialog close button and older browser fixes'
+description: "Add Nuxt 5 support, a dialog close button, pre-Safari 15.4 browser support, layout-shift-free streamed banners, and Capless and Notra integrations."
+seoTitle: 'c15t 3.3.0: Nuxt 5 support, close button and browser fixes'
 group: changelog
 tags:
   - release
@@ -25,10 +25,25 @@ draft: false
 authors: [KayleeWilliams]
 ---
 
-c15t 3.3 adds an optional close button to the preference dialog, restores
-support for browsers older than Safari 15.4 and Chrome 98, stops streamed
-consent banners from shifting while HTML parses, and adds Capless and Notra
-integrations alongside smaller fixes across core, IAB, and the UI packages.
+c15t 3.3 adds Nuxt 5 support, an optional close button for the preference
+dialog, support for browsers older than Safari 15.4 and Chrome 98, streamed
+consent banners that do not shift while HTML parses, and Capless and Notra
+integrations, alongside smaller fixes across core, IAB, and the UI packages.
+
+## Nuxt 5 support
+
+The Nuxt module now supports Nuxt 5 nightly builds without Nuxt's Nitro 2
+compatibility layer. It registers portable `nuxt/server` handlers for the
+consent route and DevTools tab, plus Nitro 3 plugin variants for build option
+pinning, Inth URL handling, and early `/init` prefetching, while keeping the
+existing Nitro 2 files for Nuxt 4.
+
+Server renders also fall back to Nuxt's request fetch when the request event
+has no `fetch`. `@c15t/vue` now requires `@nuxt/kit@^4.6.1` and accepts Nuxt
+`^3.0.0 || ^4.0.0 || ^5.0.0-0`. Build option pinning, Inth URL handling, and
+early `/init` prefetching target Nitro 2 and Nitro 3 and do not yet support
+the experimental `@nuxt/vite-server` builder. See the
+[Nuxt module](/docs/frameworks/nuxt/module).
 
 ## Close button for the preference dialog
 
@@ -151,6 +166,8 @@ for Next.js, TanStack Start, React Router, Nuxt, Astro, and SvelteKit.
   session reports.
 - Development builds now warn when read-once provider options change after
   mount.
+- `@c15t/cli` updates `zod` to 4.6.7 and `postcss` to 8.5.33 to address
+  published security advisories.
 
 ## Before you upgrade
 
