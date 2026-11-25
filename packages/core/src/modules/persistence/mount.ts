@@ -594,7 +594,7 @@ export const mountPersistence = function mountPersistence(
 			const choice = choiceSinceEpoch(
 				snapshot.explicitChoice,
 				read.epoch,
-				true
+				false
 			);
 			const choicePatch = seededChoicePatch(
 				snapshot.explicitChoice,
@@ -851,12 +851,15 @@ export const mountPersistence = function mountPersistence(
 			// do not hold, so it did not come from them: it stands, whole.
 			return [subject, false];
 		}
-		if (!subject?.subjectId || fromCookiesAlone(subject.subjectId)) {
+		if (
+			!subject?.subjectId ||
+			seedMissedClear ||
+			fromCookiesAlone(subject.subjectId)
+		) {
 			// Hydration is deferred: take the subject it will bring, whole. A
-			// seed from a consent cookie older than storage, such as one whose
-			// rewrite the browser dropped, yields to the subject storage
-			// agrees on, linked identity included: the seed's belongs to the
-			// ID it names.
+			// seed from a consent cookie older than storage (or invalidated by
+			// a cross-tab clear) yields to the subject storage agrees on,
+			// linked identity included: the seed's belongs to the ID it names.
 			return [recorded, false];
 		}
 		return [subject, false];

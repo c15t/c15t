@@ -1,3 +1,4 @@
+import { SPECULATION_HEADERS } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { c15tVersionHeaders } from '../../transports/version-header';
@@ -273,6 +274,38 @@ describe('forwardConsentRequest', () => {
 			'a=1; Path=/',
 			'b=2; Path=/',
 		]);
+	});
+});
+
+describe('forwardConsentRequest speculation headers', () => {
+	test('forwards prefetch headers to upstream /init by default', async () => {
+		const options = resolveConsentProxyOptions(true);
+		if (!options) {
+			throw new Error('proxy options did not resolve');
+		}
+		const target = upstream();
+		await forwardConsentRequest({
+			adapter: '@c15t/test-adapter',
+			backendURL: BACKEND,
+			fetch: target.fetch,
+			forwarding: FORWARDING,
+			options,
+			path: 'init',
+			request: new Request('https://shop.example/api/c15t/init', {
+				headers: {
+					'next-router-prefetch': '1',
+					purpose: 'prefetch',
+					'sec-purpose': 'prefetch',
+					'x-middleware-prefetch': '1',
+					'x-moz': 'prefetch',
+					'x-purpose': 'preview',
+				},
+			}),
+		});
+		const forwarded = target.calls[0]?.init.headers;
+		for (const name of SPECULATION_HEADERS) {
+			expect(forwarded?.get(name)).toBeTruthy();
+		}
 	});
 });
 

@@ -16,6 +16,7 @@ import type {
 import {
 	createConsentManifestPolicyPack,
 	resolvePolicyRules,
+	SPECULATION_HEADERS,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -1123,6 +1124,29 @@ describe('consent journey', () => {
 			}
 		}
 	);
+
+	test('forwards speculation headers to hosted /init so the backend suppresses prefetch visits', async () => {
+		const fetch = upstream();
+		await render({
+			backendURL: BACKEND,
+			fetch,
+			headers: {
+				'next-router-prefetch': '1',
+				purpose: 'prefetch',
+				'sec-purpose': 'prefetch',
+				'x-middleware-prefetch': '1',
+				'x-moz': 'prefetch',
+				'x-purpose': 'preview',
+			},
+		});
+		const sent = callsTo(fetch, '/init')[0]?.[1]?.headers as Record<
+			string,
+			string
+		>;
+		for (const name of SPECULATION_HEADERS) {
+			expect(sent[name]).toBeTruthy();
+		}
+	});
 
 	test('a shared render leaves the journey to the browser', async () => {
 		const fetch = upstream();
