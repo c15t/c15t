@@ -15,7 +15,10 @@ const compiler: {
 		options: { filename: string }
 	) => {
 		code: string;
-		diagnostics: { severity: string; text: string }[];
+		diagnostics: {
+			severity: 'error' | 'warning' | 'information' | 'hint';
+			text: string;
+		}[];
 	};
 } = createRequire(
 	createRequire(path.join(exampleDirectory('astro'), 'package.json')).resolve(
