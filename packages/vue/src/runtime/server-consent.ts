@@ -27,11 +27,10 @@ export interface NuxtConsentRequest {
 	headers: Record<string, string | undefined>;
 	/** `useRequestURL()`. */
 	url?: URL | string;
-	/**
-	 * `useRequestEvent()`: its `fetch` answers this app's routes in-process
-	 * (Nitro's local fetch), and its `waitUntil` keeps detached work alive.
-	 */
-	event?: { fetch?: unknown; waitUntil?: unknown } | null;
+	/** `useRequestEvent()`: its `waitUntil` keeps detached work alive. */
+	event?: { waitUntil?: unknown } | null;
+	/** The fetch that answers this app's routes in-process. */
+	fetch?: ManifestFetch;
 }
 
 type ModeOptions = Pick<
@@ -83,17 +82,13 @@ export const resolveNuxtConsent = async function resolveNuxtConsent(
 		config.experiment?.arm === undefined
 			? undefined
 			: (config.experiment as ServerExperiment);
-	const localFetch =
-		typeof request.event?.fetch === 'function'
-			? (request.event.fetch as ManifestFetch)
-			: undefined;
 	// The experiment rides along for the arm rule only; the Vue kernel seeds
 	// the experiment from its own config.
 	const { experiment: _carried, ...state } = await resolveRequestConsent({
 		...readModeOptions(config),
 		adapter: '@c15t/vue',
 		experiment,
-		localFetch,
+		localFetch: request.fetch,
 		// Off here means the page has no journey: the state says so and the
 		// browser sends none.
 		reportSessions: config.reportSessions,

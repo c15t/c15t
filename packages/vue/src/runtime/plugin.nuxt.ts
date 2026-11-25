@@ -12,6 +12,7 @@ import {
 	useAppConfig,
 	useHead,
 	useRequestEvent,
+	useRequestFetch,
 	useRequestHeaders,
 	useRequestURL,
 	useRuntimeConfig,
@@ -63,6 +64,37 @@ const warnUnusedInitPrefetch = function warnUnusedInitPrefetch(
 			);
 		}
 	});
+};
+
+/**
+ * The in-process fetch for this render: Nitro v2's `event.fetch`, or the
+ * native fetch behind Nuxt's request fetch on newer server runtimes.
+ */
+const readLocalFetch = function readLocalFetch(
+	event: { fetch?: unknown } | undefined,
+	useFetch: () => unknown
+): typeof globalThis.fetch | undefined {
+	if (!event) {
+		return undefined;
+	}
+	if (typeof event.fetch === 'function') {
+		return event.fetch as typeof globalThis.fetch;
+	}
+	return (useFetch() as { native: typeof globalThis.fetch }).native;
+};
+
+/**
+ * The request the server render resolves consent for. Call it before the
+ * plugin's first await, while the Nuxt context is current.
+ */
+const readConsentRequest = function readConsentRequest(): NuxtConsentRequest {
+	const event = useRequestEvent();
+	return {
+		event,
+		fetch: readLocalFetch(event, () => useRequestFetch()),
+		headers: useRequestHeaders(),
+		url: useRequestURL(),
+	};
 };
 
 /**
@@ -257,14 +289,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		() => undefined
 	);
 	// Read before the first await, while the Nuxt context is current.
-	const request: NuxtConsentRequest | undefined =
-		onServer && readsRecords
-			? {
-					event: useRequestEvent(),
-					headers: useRequestHeaders(),
-					url: useRequestURL(),
-				}
-			: undefined;
+	const request = onServer && readsRecords ? readConsentRequest() : undefined;
 	if (request) {
 		initialRecords.value = readStoredRecordsFromCookieHeader(
 			request.headers.cookie,

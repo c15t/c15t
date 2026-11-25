@@ -10,7 +10,8 @@ export interface SharedRenderInput {
 	/**
 	 * `event.context` of the request being rendered, on the server only.
 	 * Nitro sets `cache` while a route cache rule renders the response it
-	 * stores, and `_nitro.routeRules` for every request.
+	 * stores. It sets the route rules for every request: Nitro 2 at
+	 * `_nitro.routeRules`, Nitro 3 at `routeRules`.
 	 */
 	eventContext?: Readonly<Record<string, unknown>>;
 }
@@ -48,7 +49,9 @@ export const isSharedNuxtRender = function isSharedNuxtRender(
 	if (isEnabled(context?.cache)) {
 		return true;
 	}
-	const rules = asRecord(asRecord(context?._nitro)?.routeRules);
+	const rules = asRecord(
+		asRecord(context?._nitro)?.routeRules ?? context?.routeRules
+	);
 	if (!rules) {
 		return false;
 	}

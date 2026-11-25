@@ -20,9 +20,19 @@ import { createServerFetch } from '../runtime/server/server-fetch';
 
 const mocks = vi.hoisted(() => ({
 	localFetch: vi.fn(),
+	nuxtServerFetch: vi.fn(),
 	serverFetch: vi.fn(),
 	useRuntimeConfig: vi.fn(),
 }));
+
+// oxlint-disable-next-line anti-slop/no-module-mocking -- Nuxt supplies the server runtime; the test provides its fetch and config.
+vi.mock('nuxt/server', () => ({
+	defineEventHandler: (handler: unknown) => handler,
+	serverFetch: mocks.nuxtServerFetch,
+	useRuntimeConfig: mocks.useRuntimeConfig,
+}));
+// oxlint-disable-next-line anti-slop/no-module-mocking -- The module registers this Nitro virtual.
+vi.mock('#c15t/manifest-snapshot', () => ({ default: undefined }));
 
 const MANIFEST: ConsentManifest = {
 	branding: 'c15t',
@@ -404,6 +414,37 @@ describe('init route', () => {
 		});
 		expect(response.ok).toBe(false);
 		expect(Date.now() - startedAt).toBeLessThan(2000);
+	});
+});
+
+describe('portable consent route', () => {
+	test('reads a relative backend through serverFetch below the app base URL', async () => {
+		mocks.useRuntimeConfig.mockReturnValue({
+			app: { baseURL: '/shop/' },
+			public: { c15t: { backendURL: '/shop/api/self-host' } },
+		});
+		mocks.nuxtServerFetch.mockResolvedValue(manifestResponse({}));
+		const { default: handler } =
+			await import('../runtime/server/consent-route');
+		const event = {
+			context: { params: { _: 'init' } },
+			req: new Request('http://localhost/shop/api/c15t/init', {
+				headers: { 'x-c15t-country': 'DE' },
+			}),
+		};
+
+		const response = await (
+			handler as unknown as (input: typeof event) => Promise<Response>
+		)(event);
+
+		expect(await response.json()).toMatchObject({
+			policyResolution: { policyId: 'eu-opt-in' },
+		});
+		expect(mocks.nuxtServerFetch).toHaveBeenCalledWith(
+			event,
+			'/api/self-host/manifest',
+			expect.objectContaining({ forwardHeaders: false })
+		);
 	});
 });
 

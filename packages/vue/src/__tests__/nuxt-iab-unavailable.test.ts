@@ -49,6 +49,10 @@ vi.mock('#imports', async () => {
 		useCookie: () => ({ value: undefined }),
 		useHead: () => undefined,
 		useRequestEvent: () => ({ context: {} }),
+		useRequestFetch: () => ({
+			native: (input: RequestInfo | URL, init?: RequestInit) =>
+				fetch(input, init),
+		}),
 		useRequestHeaders: () => ({ 'x-vercel-ip-country': 'DE' }),
 		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({
