@@ -58,6 +58,7 @@ import { marketoMunchkin } from '../src/vendors/analytics/marketo';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
+import { notraAnalytics } from '../src/vendors/analytics/notra-analytics';
 import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
 import { eloquaTracking } from '../src/vendors/analytics/oracle-eloqua';
 import { pendo } from '../src/vendors/analytics/pendo';
@@ -791,6 +792,14 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		runtimeReplacedGlobals: ['capless'],
 		tier: 'full',
 		vendor: 'capless-analytics',
+	},
+	{
+		createScript: () => notraAnalytics({ webKey: 'nwk.c15t_live_probe' }),
+		loaderUrlSubstring: 'static.usenotra.com/notra.',
+		notes:
+			'notra.js defines no global and exits in an automated browser, so no runtime check can tell that it ran. The probe covers consent gating and that the pinned file name still loads.',
+		tier: 'loader-only',
+		vendor: 'notra-analytics',
 	},
 	{
 		bootstrapCheck: () =>
