@@ -551,7 +551,10 @@ describe('mode and routePrefix', () => {
 	test('publishes the checked routePrefix over one already in runtimeConfig', async () => {
 		warn.mockClear();
 		const nuxt = createNuxt({ backendURL: '/api/self-host' });
-		nuxt.options.runtimeConfig.public.c15t = { routePrefix: '/' };
+		// Untyped, as in the module: an app can put any value here.
+		(nuxt.options.runtimeConfig.public as Record<string, unknown>).c15t = {
+			routePrefix: '/',
+		};
 		await runWithNuxtContext(nuxt, () => module({}, nuxt));
 		// The route and the browser read the same prefix.
 		expect(handlerRoutes(nuxt)).toEqual(['/api/c15t/**']);
@@ -569,7 +572,9 @@ describe('mode and routePrefix', () => {
 			backendURL: '/api/self-host',
 			mode: { resolve: 'browser', type: 'manifest' },
 		});
-		nuxt.options.runtimeConfig.public.c15t = { mode: { type: 'hosted' } };
+		(nuxt.options.runtimeConfig.public as Record<string, unknown>).c15t = {
+			mode: { type: 'hosted' },
+		};
 		await runWithNuxtContext(nuxt, () => module({}, nuxt));
 		// The server and the browser run the same mode.
 		expect(
