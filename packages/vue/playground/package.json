@@ -8,6 +8,6 @@
 	},
 	"dependencies": {
 		"@c15t/vue": "workspace:*",
-		"nuxt": "^4.4.7"
+		"nuxt": "^4.6.4"
 	}
 }

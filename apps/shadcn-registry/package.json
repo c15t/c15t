@@ -30,6 +30,6 @@
 		"react-dom": "19.2.7",
 		"shadcn": "4.21.4",
 		"typescript": "7.0.2",
-		"vitest": "4.1.10"
+		"vitest": "4.1.12"
 	}
 }

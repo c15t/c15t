@@ -15,11 +15,11 @@
 		"vue": "^3.5.39"
 	},
 	"devDependencies": {
-		"@storybook/addon-a11y": "10.4.6",
+		"@storybook/addon-a11y": "10.6.8",
 		"@storybook/test-runner": "^0.24.4",
-		"@storybook/vue3-vite": "10.4.6",
-		"storybook": "10.4.6",
+		"@storybook/vue3-vite": "10.6.8",
+		"storybook": "10.6.8",
 		"typescript": "6.0.3",
-		"vite": "7.3.2"
+		"vite": "7.3.8"
 	}
 }

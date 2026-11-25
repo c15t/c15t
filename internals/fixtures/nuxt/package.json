@@ -18,7 +18,7 @@
 		"@electric-sql/pglite": "0.4.2",
 		"c15t": "workspace:*",
 		"h3": "1.15.11",
-		"nuxt": "^4.5.1",
+		"nuxt": "^4.6.4",
 		"pg": "^8.20.0"
 	},
 	"devDependencies": {

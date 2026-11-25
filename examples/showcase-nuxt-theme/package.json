@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"c15t": "workspace:*",
-		"nuxt": "^4.5.1"
+		"nuxt": "^4.6.4"
 	},
 	"devDependencies": {
 		"typescript": "6.0.3",

@@ -9,9 +9,9 @@
 		"start": "astro preview"
 	},
 	"dependencies": {
-		"@astrojs/svelte": "^7.2.0",
+		"@astrojs/svelte": "^9.1.6",
 		"@c15t/integrations": "workspace:*",
-		"astro": "^5.16.0",
+		"astro": "^7.4.13",
 		"c15t": "workspace:*",
 		"svelte": "^5.0.0"
 	},

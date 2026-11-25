@@ -144,7 +144,7 @@
 		"@emotion/css": "11.13.5",
 		"genversion": "3.2.0",
 		"jsdom": "^25.0.0",
-		"postcss": "8.5.10",
+		"postcss": "8.5.33",
 		"typescript": "7.0.2"
 	},
 	"browserslist": [

@@ -15,7 +15,7 @@
 	"devDependencies": {
 		"@c15t/doc-snippets-html": "workspace:*",
 		"@tailwindcss/postcss": "4.3.3",
-		"postcss": "8.5.16",
+		"postcss": "8.5.33",
 		"tailwindcss": "4.3.3"
 	}
 }
