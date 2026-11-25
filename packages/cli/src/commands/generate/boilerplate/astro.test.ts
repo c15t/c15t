@@ -13,15 +13,15 @@ const compiler: {
 	transform: (
 		source: string,
 		options: { filename: string }
-	) => Promise<{
+	) => {
 		code: string;
-		diagnostics: { severity: number; text: string }[];
-	}>;
+		diagnostics: { severity: string; text: string }[];
+	};
 } = createRequire(
 	createRequire(path.join(exampleDirectory('astro'), 'package.json')).resolve(
 		'astro/package.json'
 	)
-)('@astrojs/compiler');
+)('@astrojs/compiler-rs');
 
 const generate = (
 	framework: 'astro' | 'astro-static',
@@ -58,15 +58,15 @@ describe('Astro boilerplate', () => {
 		60_000
 	);
 
-	it('compiles the layout and keeps script callbacks in the browser entrypoint', async () => {
+	it('compiles the layout and keeps script callbacks in the browser entrypoint', () => {
 		const template = generate('astro', 'hosted', ['google-tag-manager']);
-		const result = await compiler.transform(
+		const result = compiler.transform(
 			template.files['src/layouts/base.astro'] ?? '',
 			{ filename: 'base.astro' }
 		);
-		expect(result.diagnostics.filter((item) => item.severity === 1)).toEqual(
-			[]
-		);
+		expect(
+			result.diagnostics.filter((item) => item.severity === 'error')
+		).toEqual([]);
 		// Astro serializes integration options, so functions stay out of them.
 		expect(template.files['astro.config.mjs']).not.toContain(
 			'googleTagManager('
