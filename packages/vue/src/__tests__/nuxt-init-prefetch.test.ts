@@ -314,16 +314,26 @@ describe('which pages get the script', () => {
 		expect(await renderHead()).toBe(SHELL_HEAD);
 	});
 
-	test('an ssr: false page on Nitro v3', async () => {
+	const renderNitro3Head = async (rules: Record<string, unknown>) => {
 		const { default: plugin } = await vi.importActual<{
 			default: () => void;
 		}>('../runtime/server/init-prefetch.nitro3');
 		plugin();
 		const html = { head: [SHELL_HEAD] };
 		nitro3Hooks.renderHTML?.(html, {
-			event: { context: {}, headers: {}, rules: { ssr: false } },
+			event: { context: {}, headers: {}, rules },
 		});
-		expect(html.head.join('')).toContain('__c15tInitialDataPromises');
+		return html.head.join('');
+	};
+
+	// Nuxt 5 gives every route `ssr: true`; Nitro 3 drops the key from a
+	// route whose rule sets `ssr: false`.
+	test('an ssr: false page on Nitro v3', async () => {
+		expect(await renderNitro3Head({})).toContain('__c15tInitialDataPromises');
+	});
+
+	test('no server-rendered page on Nitro v3', async () => {
+		expect(await renderNitro3Head({ ssr: true })).toBe(SHELL_HEAD);
 	});
 
 	test('a shell Nuxt renders on request', async () => {
