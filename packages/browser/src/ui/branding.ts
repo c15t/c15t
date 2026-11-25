@@ -57,6 +57,24 @@ export const createBrandMark = function createBrandMark(
 };
 
 /**
+ * The inth mark for the tag. Unlike the trigger's mark it is not
+ * decorative: it is the only thing naming the brand in the link.
+ *
+ * @returns An `img` SVG labelled "inth", one em tall.
+ */
+const createInthLogo = function createInthLogo(): SVGSVGElement {
+	const logo = createBrandMark('inth');
+	logo.removeAttribute('aria-hidden');
+	logo.setAttribute('role', 'img');
+	logo.setAttribute('aria-label', 'inth');
+	// Sized like the text it replaces when `noStyle` drops the stylesheet;
+	// the tag CSS overrides both.
+	logo.setAttribute('width', '0.98em');
+	logo.setAttribute('height', '1em');
+	return logo;
+};
+
+/**
  * Render the "Secured by c15t" tag, or nothing.
  *
  * @param params - Branding, placement and copy.
@@ -96,7 +114,7 @@ export const renderBranding = function renderBranding(
 							: cx(styles.brandingWordmark, styles.brandingInth),
 						dir: 'ltr',
 					},
-					'inth'
+					createInthLogo()
 				)
 			: h(
 					'span',
