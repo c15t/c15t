@@ -90,6 +90,20 @@ describe('region extraction', () => {
 		expect(extractRegion(source, 'inner', 'x.tsx')).toBe('<Root />');
 	});
 
+	test('keeps the frontmatter fence when a region opens inside it', () => {
+		const astro = [
+			'---',
+			'// #region docs:layout',
+			"import { ConsentBanner } from 'c15t/astro/components';",
+			'---',
+			'<ConsentBanner />',
+			'<!-- #endregion docs:layout -->',
+		].join('\n');
+		expect(extractRegion(astro, 'layout', 'x.astro')).toBe(
+			"---\nimport { ConsentBanner } from 'c15t/astro/components';\n---\n<ConsentBanner />"
+		);
+	});
+
 	test('reads names and title overrides from markup comments', () => {
 		const found = findRegions(
 			'examples/vue/src/App.vue',

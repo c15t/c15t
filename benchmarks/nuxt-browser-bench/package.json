@@ -15,7 +15,7 @@
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/core": "workspace:*",
 		"@c15t/vue": "workspace:*",
-		"nuxt": "4.5.1",
+		"nuxt": "4.6.4",
 		"vue": "3.5.43"
 	},
 	"devDependencies": {

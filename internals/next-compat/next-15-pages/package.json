@@ -15,7 +15,7 @@
 	"dependencies": {
 		"@c15t/next-compat-shared": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
-		"next": "15.5.25",
+		"next": "15.5.29",
 		"react": "19.2.7",
 		"react-dom": "19.2.7"
 	},
@@ -25,6 +25,6 @@
 		"@types/react-dom": "19.2.3",
 		"playwright": "1.61.1",
 		"typescript": "6.0.3",
-		"vitest": "4.1.10"
+		"vitest": "4.1.12"
 	}
 }

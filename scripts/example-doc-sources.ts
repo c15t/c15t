@@ -35,6 +35,8 @@ export const generatedExamplesDir = 'docs/shared/examples';
  * Mark a region with `#region docs:<name>` and `#endregion docs:<name>` inside
  * any comment syntax the file supports. Add `title="<path>"` to the opening
  * marker when the reader's path differs from the path inside the example app.
+ * To publish a whole `.astro` file, open the region with a `//` comment on the
+ * line after the opening `---`; the fence is kept in the snippet.
  *
  * Demo-only code inside a region stays out of the snippet: end a line with a
  * `docs:hide` comment (`// docs:hide`, `<!-- docs:hide -->`,
@@ -268,8 +270,11 @@ export const extractRegion = (
 	if (end === -1) {
 		throw new Error(`${source} does not close region docs:${name}.`);
 	}
+	// Astro only reads frontmatter whose `---` fence is the file's first line,
+	// so a region covering it opens just inside the fence and keeps the fence.
+	const opensInFrontmatter = start === 1 && lines[0]?.trim() === '---';
 	const body = withoutHiddenLines(
-		lines.slice(start + 1, end),
+		lines.slice(opensInFrontmatter ? 0 : start + 1, end),
 		name,
 		source
 	).filter((line) => !anyMarker.test(line));
