@@ -9,7 +9,7 @@ group: integrations
 The c15t Shopify bridge sends each consent choice to Shopify's Customer
 Privacy API. Shopify's analytics, and the apps and pixels that read that API,
 then follow your c15t banner instead of Shopify's own. The bridge loads no
-script. Hydrogen's `ShopifyScripts` loads the Customer Privacy API, and the
+script. Hydrogen's script tags load the Customer Privacy API, and the
 bridge's `setup` function holds Hydrogen's analytics events until Shopify has
 the visitor's choice.
 
@@ -51,17 +51,22 @@ Every framework makes the same three changes:
    policy's scope.
 
 Change your storefront's root or layout; don't replace it with the code
-below. Each example shows one complete file so the changes are easy to see,
-and leaves out what your storefront already has, such as its loader, route
-middleware and other Hydrogen props. `shop` and `i18n` stand for the values
-your storefront already passes to Hydrogen.
+below. Each example shows the whole file so the changes are easy to see,
+minus what your storefront already has, such as its loader, route middleware
+and other Hydrogen props. `shop` and `i18n` stand for the values your
+storefront already passes to Hydrogen.
 
 Hydrogen allows one analytics bus per page. A second set of Shopify tags
 throws `Analytics bus already initialized`, and the first keeps its consent
 mode. Where your storefront already renders the tags, through
-`ShopifyScripts` or `renderShopifyScriptTags()` and
-`initializeShopifyScripts()`, change the consent settings it passes and keep
-everything else, such as `analytics`, `routes`, `navigate` and `nonce`.
+`ShopifyScripts`, or `getShopifyScriptTags()` or `renderShopifyScriptTags()`
+with `initializeShopifyScripts()`, change the consent settings it passes and
+keep everything else, such as `analytics`, `routes`, `navigate` and `nonce`.
+
+Hydrogen writes the consent mode into its inline analytics script. If your
+Content Security Policy allows inline scripts by hash rather than by nonce,
+update that script's hash after you change the mode, or the browser blocks
+the analytics bus.
 
 <Tabs items={['Next.js', 'TanStack Start', 'React Router', 'Nuxt', 'Astro', 'SvelteKit']}>
   <Tab value="Next.js">
@@ -71,8 +76,8 @@ everything else, such as `analytics`, `routes`, `navigate` and `nonce`.
     <include src="../shared/examples/shopify-nextjs/shopify-analytics.mdx" />
 
     The example passes `channel: 'headless'` because mock.shop has no
-    storefront ID. Leave `analytics` out when you have one, so events carry
-    it.
+    storefront ID. On a real storefront, keep the `analytics` settings it
+    already passes, including its storefront ID and channel.
 
     Render `ShopifyAnalytics` in the document head and `ShopifyConsentSync`
     inside `ConsentRoot`:
@@ -108,6 +113,10 @@ everything else, such as `analytics`, `routes`, `navigate` and `nonce`.
     nonce and other `ShopifyScripts` props, which the example leaves out:
 
     <include src="../shared/examples/react/shopify-react-router-root.mdx" />
+
+    If your root already renders the quickstart's `Consent` component, don't
+    add a second provider. Add `consentCategories` to the options it passes
+    and render `ShopifyConsentSync` inside it.
 
     `ShopifyScripts` reads no c15t state, so it stays in `Layout`, outside
     the provider. `mode: hosted()` uses the backend URL from the
