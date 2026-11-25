@@ -123,6 +123,8 @@ export const createDialog = function createDialog(
 		const hasStyledCloseButton =
 			closeButton !== null &&
 			!noStyle &&
+			Boolean(styles.closeButton) &&
+			closeButton.classList.contains(styles.closeButton) &&
 			!closeButton.classList.contains('headless');
 
 		content = slot(

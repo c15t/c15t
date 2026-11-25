@@ -148,12 +148,14 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
  * </ConsentDialog.Header>
  * ```
  */
-const hasHeadlessClass = function hasHeadlessClass(
-	className: string | undefined
+const hasClassName = function hasClassName(
+	className: string | undefined,
+	name: string
 ): boolean {
 	return (
+		Boolean(name) &&
 		typeof className === 'string' &&
-		className.split(/\s+/u).includes('headless')
+		className.split(/\s+/u).includes(name)
 	);
 };
 
@@ -163,10 +165,16 @@ const ConsentDialogHeader = createForwardRef<
 >(({ children, showCloseButton = false, ...props }, ref) => {
 	const { components } = useUIConfig();
 	const { noStyle: contextNoStyle } = useTheme();
+	const closeButtonClassName = showCloseButton
+		? mergeSlotProps(components?.dialog?.closeButton, {
+				baseClassName: styles.closeButton,
+				noStyle: props.noStyle ?? contextNoStyle,
+			}).className
+		: undefined;
 	const hasStyledCloseButton =
 		showCloseButton &&
-		!(props.noStyle ?? contextNoStyle) &&
-		!hasHeadlessClass(components?.dialog?.closeButton?.className);
+		hasClassName(closeButtonClassName, styles.closeButton) &&
+		!hasClassName(closeButtonClassName, 'headless');
 	let content: ReactNode = children;
 	if (showCloseButton) {
 		const closeButton = <ConsentDialogCloseButton noStyle={props.noStyle} />;

@@ -252,7 +252,10 @@
 						class={headerStyle.className || ''}
 						style={toStyleAttribute(headerStyle.style)}
 						data-has-close-button={showCloseButton &&
-						!noStyle &&
+						Boolean(styles.closeButton) &&
+						(closeButtonStyle.className ?? '')
+							.split(/\s+/u)
+							.includes(styles.closeButton) &&
 						!(closeButtonStyle.className ?? '')
 							.split(/\s+/u)
 							.includes('headless')

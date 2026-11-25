@@ -809,6 +809,27 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it('omits data-has-close-button when the close-button slot sets noStyle', async () => {
+		const { root, client } = await mount({
+			dialog: { showCloseButton: true },
+			theme: {
+				slots: {
+					consentDialogCloseButton: {
+						className: 'custom-close',
+						noStyle: true,
+					},
+				},
+			},
+		});
+		client.openDialog();
+
+		const close = query<HTMLButtonElement>(root, 'consent-dialog-close');
+		expect(close.classList).toContain('custom-close');
+		expect(
+			query(root, 'consent-dialog-header').hasAttribute('data-has-close-button')
+		).toBe(false);
+	});
+
 	it('falls back to English when common.close is blank', async () => {
 		const { root, client } = await mount(
 			{ dialog: { showCloseButton: true } },
