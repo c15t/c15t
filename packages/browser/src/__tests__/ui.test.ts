@@ -352,7 +352,9 @@ describe('mountConsentUI', () => {
 				const wordmark = tag.querySelector(`.${classes.branding.brandingInth}`);
 				const mark = wordmark?.querySelector('svg');
 				expect(mark?.getAttribute('viewBox')).toBe('0 0 88 90');
-				expect(mark?.getAttribute('aria-hidden')).toBe('true');
+				expect(mark?.getAttribute('aria-hidden')).toBeNull();
+				expect(mark?.getAttribute('role')).toBe('img');
+				expect(mark?.getAttribute('aria-label')).toBe('inth');
 				expect(wordmark?.textContent).toBe('');
 			}
 		}
