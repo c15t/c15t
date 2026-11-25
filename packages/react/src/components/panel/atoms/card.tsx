@@ -130,6 +130,17 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 	);
 };
 
+const hasClassName = function hasClassName(
+	className: string | undefined,
+	name: string
+): boolean {
+	return (
+		Boolean(name) &&
+		typeof className === 'string' &&
+		className.split(/\s+/u).includes(name)
+	);
+};
+
 /**
  * The header section of the consent dialog.
  * Should contain the ConsentDialogHeaderTitle and optionally ConsentDialogHeaderDescription.
@@ -148,17 +159,6 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
  * </ConsentDialog.Header>
  * ```
  */
-const hasClassName = function hasClassName(
-	className: string | undefined,
-	name: string
-): boolean {
-	return (
-		Boolean(name) &&
-		typeof className === 'string' &&
-		className.split(/\s+/u).includes(name)
-	);
-};
-
 const ConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
 	ConsentDialogHeaderProps
