@@ -73,5 +73,15 @@ test.each([
 		kernel.set.activeUI('banner');
 		await vi.waitFor(() => expect(banner()).not.toBeNull());
 		expect(banner()?.dataset.entry).toBe(entry);
+		expect(banner()?.getAttribute('data-c15t-streamed')).toBe('');
+		const marker = banner()?.querySelector<HTMLElement>(
+			'[data-c15t-stream-end]'
+		);
+		expect(banner()?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(
+			1
+		);
+		expect(marker?.hidden).toBe(true);
+		expect(marker?.parentElement).toBe(banner());
+		expect(banner()?.lastElementChild).toBe(marker);
 	}
 );

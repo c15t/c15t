@@ -232,6 +232,7 @@
 				? 'late'
 				: undefined}
 			data-testid="iab-consent-banner-root"
+			data-c15t-streamed=""
 			tabindex="-1"
 			use:scrollLock={shouldScrollLock}
 		>
@@ -340,6 +341,10 @@
 					</div>
 				</div>
 			</div>
+			<span
+				data-c15t-stream-end=""
+				hidden
+			></span>
 		</div>
 	</div>
 {/if}

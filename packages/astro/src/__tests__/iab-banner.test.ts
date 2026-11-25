@@ -9,6 +9,7 @@
 import { MINIMAL_GVL } from '@c15t/conformance/fixtures/gvl';
 import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { JSDOM } from 'jsdom';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import IABConsentBanner from '../components/iab-prompt.astro';
@@ -80,6 +81,19 @@ describe('<IABConsentBanner />', () => {
 		]) {
 			expect(html).toContain(`data-testid="${testId}"`);
 		}
+	});
+
+	it('ends the root with its hidden stream marker', async () => {
+		const html = await render(await buildLocals());
+		const root = new JSDOM(html).window.document.querySelector(
+			'[data-testid="iab-consent-banner-root"]'
+		);
+		const marker = root?.lastElementChild;
+
+		expect(root?.hasAttribute('data-c15t-streamed')).toBe(true);
+		expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
+		expect(marker?.matches('span[data-c15t-stream-end]')).toBe(true);
+		expect(marker?.hasAttribute('hidden')).toBe(true);
 	});
 
 	it('names the purposes the shared summary picked', async () => {
