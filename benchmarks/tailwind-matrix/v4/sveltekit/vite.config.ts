@@ -1,5 +1,7 @@
 // #region docs:vite-config title="vite.config.ts"
-import adapter from '@sveltejs/adapter-static'; // docs:hide
+// #hide docs
+import adapter from '@sveltejs/adapter-static';
+// #endhide docs
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
@@ -9,7 +11,9 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit({
 			// Keep your existing SvelteKit options here.
-			adapter: adapter(), // docs:hide
+			// #hide docs
+			adapter: adapter(),
+			// #endhide docs
 		}),
 	],
 });
