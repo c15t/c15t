@@ -111,7 +111,7 @@ What happens next depends on your
 | --- | --- |
 | `createConsentStateHandler` and `resolveConsent` | Resolve the visitor's policy in the Start server, from the bundled manifest or, with runtime fetching, a cached one. The manifest request to your backend carries no visitor location, only headers you name in `forwardHeaders` |
 | `/api/c15t/init` from `createConsentRoute` | Resolves the policy in the Start server from the same inputs, for the browser's init request |
-| `createConsentRoute({ proxy: true })` | Forwards the location headers, `accept-language`, `sec-gpc`, `user-agent`, `origin`, `referer`, and speculative prefetch headers (`sec-purpose`, `purpose`, `x-purpose`, `x-moz`, `next-router-prefetch`, `x-middleware-prefetch`) to your backend on proxied requests such as `GET /init` and `POST /subjects` |
+| `createConsentRoute({ proxy: true })` | Forwards the location headers, `accept-language`, `sec-gpc`, `user-agent`, `origin`, `referer`, and speculative prefetch headers (`sec-purpose`, `purpose`, `x-purpose`, `x-moz`, `next-router-prefetch`, `x-middleware-prefetch`) to your backend on proxied requests such as `POST /subjects` |
 | A state without `routePrefix` | The browser calls your backend's `/init` directly, and the backend reads the location its own host adds |
 
 The server render in the quickstart always uses the Start server's headers,
