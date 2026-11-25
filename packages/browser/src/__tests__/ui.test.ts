@@ -355,6 +355,7 @@ describe('mountConsentUI', () => {
 				expect(mark?.getAttribute('aria-hidden')).toBeNull();
 				expect(mark?.getAttribute('role')).toBe('img');
 				expect(mark?.getAttribute('aria-label')).toBe('inth');
+				expect(mark?.getAttribute('height')).toBe('1em');
 				expect(wordmark?.textContent).toBe('');
 			}
 		}
