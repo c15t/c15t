@@ -63,7 +63,7 @@ describe('CI runners', () => {
 				if (!label.includes('depot-')) {
 					continue;
 				}
-				expect(resolve(label, true), label).toBe('ubuntu-latest');
+				expect(resolve(label, true), label).toBe('ubuntu-24.04');
 				expect(resolve(label, false), label).toMatch(/^depot-/u);
 			}
 		}
