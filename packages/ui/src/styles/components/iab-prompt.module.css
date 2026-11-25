@@ -74,9 +74,9 @@
 		tab-size: var(--iab-consent-banner-tab-size);
 	}
 
-	/* React marks the end of its streamed children. Painting the centered
-	   card before that marker arrives would move it as its content grows.
-	   The completed banner is visible without waiting for JavaScript. */
+	/* Each adapter marks the end of its streamed children. Painting the
+	   centered card before that marker arrives would move it as its content
+	   grows. The completed banner is visible without waiting for JavaScript. */
 	.root[data-c15t-streamed]:not(:has(> [data-c15t-stream-end])) {
 		visibility: hidden;
 	}

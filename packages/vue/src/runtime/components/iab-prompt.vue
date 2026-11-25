@@ -244,6 +244,7 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 					])
 				"
 				data-testid="iab-consent-banner-root"
+				data-c15t-streamed=""
 				:data-entry="entryAttribute"
 				data-position="bottom-left"
 				:dir="textDirection"
@@ -353,6 +354,10 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 						/>
 					</div>
 				</div>
+				<span
+					data-c15t-stream-end=""
+					hidden
+				/>
 			</div>
 		</Transition>
 	</Teleport>
