@@ -242,6 +242,18 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 									dialogStyles.header
 								)
 							"
+							:data-has-close-button="
+								config.dialogShowCloseButton &&
+								!(
+									typeof config.components?.dialog?.closeButton?.class ===
+										'string' &&
+									config.components.dialog.closeButton.class
+										.split(/\s+/u)
+										.includes('headless')
+								)
+									? ''
+									: undefined
+							"
 							data-testid="consent-dialog-header"
 						>
 							<h2

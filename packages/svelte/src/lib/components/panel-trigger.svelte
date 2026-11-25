@@ -256,6 +256,11 @@
 				}, 300);
 				updateCorner(newCorner);
 			}
+			// Clear after any trailing click from the drag finishes, so a drag
+			// that ends without firing a click never swallows a later click.
+			setTimeout(() => {
+				hasDragged = false;
+			}, 0);
 		}
 
 		dragState = createInitialDragState();

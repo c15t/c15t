@@ -400,6 +400,7 @@
 	}
 
 	.header:not(:global(.headless)) {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;
@@ -413,9 +414,16 @@
 
 	/* The optional close button sits in the header's top corner, level
 	   with the title. The header's end padding keeps the title and the
-	   description clear of it. */
+	   description clear of it. Keep the attribute rule separate from `:has()`
+	   so pre-`:has()` browsers do not drop the selector list. */
+	.header:not(:global(.headless))[data-has-close-button] {
+		padding-inline-end: calc(
+			var(--consent-dialog-card-padding-mobile) + 1rem + 2 *
+				var(--c15t-space-xs)
+		);
+	}
+
 	.header:not(:global(.headless)):has(> .closeButton:not(:global(.headless))) {
-		position: relative;
 		padding-inline-end: calc(
 			var(--consent-dialog-card-padding-mobile) + 1rem + 2 *
 				var(--c15t-space-xs)
@@ -534,6 +542,12 @@
 	@media (min-width: 640px) {
 		.header:not(:global(.headless)) {
 			padding: var(--consent-dialog-card-padding);
+		}
+
+		.header:not(:global(.headless))[data-has-close-button] {
+			padding-inline-end: calc(
+				var(--consent-dialog-card-padding) + 1rem + 2 * var(--c15t-space-xs)
+			);
 		}
 
 		.header:not(:global(.headless)):has(

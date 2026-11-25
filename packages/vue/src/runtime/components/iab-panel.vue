@@ -11,7 +11,7 @@ import type {
 	HeadlessIABDisplayRow,
 	HeadlessIABDisplayStackRow,
 } from '@c15t/iab/headless';
-import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
 import '@c15t/ui/styles/components/iab-consent-dialog.css';
@@ -349,12 +349,16 @@ const closeDialog = function closeDialog() {
 	activeUI.value = null;
 };
 
-const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
-	if (isDialogDismissKey(event.key)) {
-		event.preventDefault();
-		closeDialog();
-	}
-};
+watch(
+	() => showDialog.value,
+	(open, _previous, onCleanup) => {
+		if (!open || typeof document === 'undefined') {
+			return;
+		}
+		onCleanup(onDialogDismiss(document.documentElement, closeDialog));
+	},
+	{ immediate: true }
+);
 
 const onAction = async function onAction(action: PresentationAction) {
 	if (action === 'save') {
@@ -463,7 +467,6 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 						:aria-label="iabT?.preferenceCenter?.title"
 						aria-describedby="iab-consent-dialog-description"
 						tabindex="-1"
-						@keydown="onDialogKeydown"
 					>
 						<div
 							v-bind="

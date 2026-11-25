@@ -210,7 +210,7 @@ const DialogContent = createForwardRef<HTMLDialogElement, DialogContentProps>(
 
 		const contentEventHandlers = {
 			onKeyDown: (event: KeyboardEvent<HTMLDialogElement>) => {
-				if (isDialogDismissKey(event.key)) {
+				if (isDialogDismissKey(event.key) && !event.defaultPrevented) {
 					event.preventDefault();
 					setOpen(false);
 				}

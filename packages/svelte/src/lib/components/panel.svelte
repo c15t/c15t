@@ -4,7 +4,7 @@
 		defaultTranslationConfig,
 		resolveConsentPresentation,
 	} from '@c15t/core';
-	import { isDialogDismissKey } from '@c15t/ui/primitives';
+	import { onDialogDismiss } from '@c15t/ui/primitives';
 	import styles from '@c15t/ui/styles/components/consent-dialog';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
@@ -187,13 +187,12 @@
 		consent.state.setActiveUI('none');
 	};
 
-	const handleControlledDismiss = function handleControlledDismiss(
-		event: KeyboardEvent
-	) {
-		if (controlled && isDialogDismissKey(event.key)) {
-			consent.state.setActiveUI('none');
+	$effect(() => {
+		if (!controlled || !dialogOpen || typeof document === 'undefined') {
+			return;
 		}
-	};
+		return onDialogDismiss(document.documentElement, handleClose);
+	});
 </script>
 
 <!-- The dialog's code loads on demand, so its rules arrive with it. -->
@@ -239,7 +238,6 @@
 				aria-describedby="consent-dialog-description"
 				data-blocking={preferences.blocking ? 'true' : undefined}
 				data-testid="consent-dialog-root"
-				onkeydown={handleControlledDismiss}
 			>
 				<!-- Card -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -253,6 +251,13 @@
 					<div
 						class={headerStyle.className || ''}
 						style={toStyleAttribute(headerStyle.style)}
+						data-has-close-button={showCloseButton &&
+						!noStyle &&
+						!(closeButtonStyle.className ?? '')
+							.split(/\s+/u)
+							.includes('headless')
+							? ''
+							: undefined}
 						data-testid="consent-dialog-header"
 					>
 						<h2

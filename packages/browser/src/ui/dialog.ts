@@ -3,6 +3,7 @@ import {
 	resolveConsentPresentation,
 } from '@c15t/core';
 import type { ConsentSnapshot } from '@c15t/core';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
 import { classes } from '../generated/styles';
@@ -67,13 +68,49 @@ export const createDialog = function createDialog(
 		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
-	const onKeyDown = function onKeyDown(event: KeyboardEvent): void {
-		// The dialog's own handler runs first for keys pressed inside it and
-		// marks the event handled, so the document listener skips it.
-		if (event.key === 'Escape' && !event.defaultPrevented) {
+	const forwardShadowEscape = function forwardShadowEscape(
+		event: KeyboardEvent
+	): void {
+		if (
+			event.key === 'Escape' &&
+			!event.defaultPrevented &&
+			!event.composed &&
+			content?.getRootNode() !== document
+		) {
 			event.preventDefault();
-			ctx.client.closeDialog();
+			document.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Escape',
+				})
+			);
 		}
+	};
+
+	const renderCloseButton = function renderCloseButton(
+		closeLabel: string | undefined
+	): HTMLElement | null {
+		if (!options.showCloseButton) {
+			return null;
+		}
+		return slot(
+			h(
+				'button',
+				{
+					'aria-label':
+						closeLabel?.trim() ||
+						defaultTranslationConfig.translations.en?.common?.close ||
+						'Close',
+					class: noStyle ? '' : styles.closeButton,
+					'data-testid': 'consent-dialog-close',
+					onclick: () => ctx.client.closeDialog(),
+					type: 'button',
+				},
+				createCloseIcon()
+			),
+			'consentDialogCloseButton'
+		);
 	};
 
 	const build = function build(snapshot: ConsentSnapshot): void {
@@ -81,6 +118,12 @@ export const createDialog = function createDialog(
 		const { t } = copy;
 		widget = createWidget(ctx, { hideBranding: true });
 		widget.sync(snapshot);
+
+		const closeButton = renderCloseButton(t.common.close);
+		const hasStyledCloseButton =
+			closeButton !== null &&
+			!noStyle &&
+			!closeButton.classList.contains('headless');
 
 		content = slot(
 			h(
@@ -100,7 +143,7 @@ export const createDialog = function createDialog(
 					'data-testid': 'consent-dialog-root',
 					dir: copy.dir,
 					lang: copy.language,
-					onkeydown: onKeyDown as EventListener,
+					onkeydown: forwardShadowEscape as EventListener,
 					role: 'dialog',
 				},
 				slot(
@@ -116,6 +159,9 @@ export const createDialog = function createDialog(
 								'div',
 								{
 									class: noStyle ? '' : styles.header,
+									'data-has-close-button': hasStyledCloseButton
+										? ''
+										: undefined,
 									'data-testid': 'consent-dialog-header',
 								},
 								slot(
@@ -150,26 +196,7 @@ export const createDialog = function createDialog(
 									),
 									'consentDialogDescription'
 								),
-								options.showCloseButton
-									? slot(
-											h(
-												'button',
-												{
-													'aria-label':
-														t.common.close?.trim() ||
-														defaultTranslationConfig.translations.en?.common
-															?.close ||
-														'Close',
-													class: noStyle ? '' : styles.closeButton,
-													'data-testid': 'consent-dialog-close',
-													onclick: () => ctx.client.closeDialog(),
-													type: 'button',
-												},
-												createCloseIcon()
-											),
-											'consentDialogCloseButton'
-										)
-									: null
+								closeButton
 							),
 							'consentDialogHeader'
 						),
@@ -284,10 +311,9 @@ export const createDialog = function createDialog(
 			content.classList.add(styles.contentEntering);
 		}
 		ctx.root.append(overlay, positioner);
-		// A non-blocking dialog does not trap focus, so Escape pressed on the
-		// page must still reach it.
-		document.addEventListener('keydown', onKeyDown);
-		cleanups.push(() => document.removeEventListener('keydown', onKeyDown));
+		// Shared document-level Escape stack: closes only the topmost dialog,
+		// and still reaches a non-blocking dialog that does not trap focus.
+		cleanups.push(onDialogDismiss(positioner, () => ctx.client.closeDialog()));
 		const { blocking } = resolveConsentPresentation({
 			policy: snapshot.policyRule,
 			presentation: ctx.client.presentation,

@@ -1,6 +1,7 @@
 import type { ConsentSnapshot, PresentationAction } from '@c15t/core';
 import type { ConsentRuntimeIABHandle } from '@c15t/core/runtime';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
 import { classes } from '../generated/iab-styles';
@@ -163,9 +164,20 @@ export const createIABSurface = (
 				)
 			);
 			content.addEventListener('keydown', (event) => {
-				if (event.key === 'Escape') {
+				if (
+					event.key === 'Escape' &&
+					!event.defaultPrevented &&
+					!event.composed &&
+					content.getRootNode() !== document
+				) {
 					event.preventDefault();
-					client.closeDialog();
+					document.dispatchEvent(
+						new KeyboardEvent('keydown', {
+							bubbles: true,
+							cancelable: true,
+							key: 'Escape',
+						})
+					);
 				}
 			});
 		}
@@ -384,6 +396,9 @@ export const createIABSurface = (
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(root);
+		if (dialog) {
+			release.push(onDialogDismiss(root, () => client.closeDialog()));
+		}
 		if (flip) {
 			void root.offsetHeight;
 			root.classList.replace(
