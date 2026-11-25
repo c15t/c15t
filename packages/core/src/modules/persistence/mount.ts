@@ -565,12 +565,14 @@ export const mountPersistence = function mountPersistence(
 	 * Another tab can clear after the server read the cookies. The browser's
 	 * clear epoch then voids the seeded records from before it, as it voids
 	 * stored ones, and a record it voids yields to what storage holds. A
-	 * seeded decision from the clearing millisecond is kept: the seed does
-	 * not say whether its writer had seen the clear. Seeded decisions that
-	 * outlive the clear stay the seed, so a stored grant still cannot
-	 * replace them. From another handle's queue that missed the clear, only
-	 * records made since count. The seeded subject keeps its ID alone, as after any
-	 * clear.
+	 * seeded decision from the clearing millisecond is also voided because the
+	 * seed does not say whether its writer had seen the clear; any post-clear
+	 * choice stored at that millisecond still arrives from `records.choice`.
+	 * Seeded decisions that outlive the clear stay the seed, so a stored grant
+	 * still cannot replace them. From another handle's queue that missed the
+	 * clear, only records made since count. When storage holds a subject
+	 * recorded after the clear, startup adopts it; otherwise the seeded
+	 * subject keeps its ID alone, as after any clear.
 	 *
 	 * The read also becomes what the writer starts from: the kernel's
 	 * records stay the seed's, and storage is what it was read as here.
