@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import {
@@ -425,18 +425,21 @@ export const syncBunLockVersions = function syncBunLockVersions(
 	}
 };
 
-/** Use the website changelog for packages in the 3.2.0 stable release. */
-const stableReleaseNotes = function stableReleaseNotes({
-	plan,
-}: {
-	plan: PublishPlan;
-}) {
+/** Use the website changelog when a stable `c15t` release has a matching page. */
+const stableReleaseNotes = function stableReleaseNotes(
+	cwd: string,
+	{ plan }: { plan: PublishPlan }
+) {
+	const published = plan
+		.getPackagesToPublish()
+		.find((pkg) => pkg.name === 'c15t' && pkg.version);
+	const version = published?.version;
 	if (
-		plan
-			.getPackagesToPublish()
-			.some((pkg) => pkg.name === 'c15t' && pkg.version === '3.2.0')
+		version &&
+		prerelease(version) === null &&
+		existsSync(join(cwd, 'changelog', `${version}.mdx`))
 	) {
-		return { notes: 'https://c15t.com/changelog/3.2.0' };
+		return { notes: `https://c15t.com/changelog/${version}` };
 	}
 	return {};
 };
@@ -492,8 +495,9 @@ export const createRelease = function createRelease({
 						release:
 							branch === 'main'
 								? {
-										create: stableReleaseNotes,
-										createGrouped: stableReleaseNotes,
+										create: (options) => stableReleaseNotes(cwd, options),
+										createGrouped: (options) =>
+											stableReleaseNotes(cwd, options),
 									}
 								: true,
 						repo: 'c15t/c15t',
@@ -506,7 +510,7 @@ export const createRelease = function createRelease({
 										...options,
 										releaseNotes:
 											branch === 'main' && options.plan
-												? stableReleaseNotes({ plan: options.plan }).notes
+												? stableReleaseNotes(cwd, { plan: options.plan }).notes
 												: undefined,
 									}),
 								};
