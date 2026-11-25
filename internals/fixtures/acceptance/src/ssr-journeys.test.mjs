@@ -59,6 +59,30 @@ const apps = [
 		probeName: '__c15tSvelteBench',
 		startCommand: ['node', ['build/index.js']],
 	},
+	// Astro and TanStack Start only run the streamed-banner contract. Their
+	// benches don't serve the probes and routes the other journeys read.
+	{
+		buildOutput: 'benchmarks/astro-browser-bench/dist/server/entry.mjs',
+		dir: 'benchmarks/astro-browser-bench',
+		// The default build bakes this origin into its fixture URLs.
+		env: { HOST: '127.0.0.1', PORT: '4353' },
+		label: 'Astro manifest SSR',
+		path: '/ssr-manifest',
+		port: 4353,
+		startCommand: ['node', ['dist/server/entry.mjs']],
+		streamedOnly: true,
+	},
+	{
+		buildOutput:
+			'benchmarks/tanstack-start-browser-bench/dist/server/server.js',
+		dir: 'benchmarks/tanstack-start-browser-bench',
+		env: { HOST: '127.0.0.1', PORT: '4315' },
+		label: 'TanStack Start manifest SSR',
+		path: '/manifest-ssr',
+		port: 4315,
+		startCommand: ['node', ['scripts/serve.mjs']],
+		streamedOnly: true,
+	},
 ].map((app) => ({ ...app, dir: join(repository, app.dir) }));
 
 /**
@@ -529,8 +553,10 @@ for (const app of selected) {
 				await stopProcess(server.child);
 			}
 		});
-		test('first HTML, consent persistence and reload', () =>
-			verifyFreshVisit(browser, app));
+		test.skipIf(app.streamedOnly)(
+			'first HTML, consent persistence and reload',
+			() => verifyFreshVisit(browser, app)
+		);
 		test.each(streamedBannerCases)(
 			'streamed ordinary banner: $name',
 			(scenario) =>
@@ -541,6 +567,9 @@ for (const app of selected) {
 					join(repository, '.ci-reports', 'streamed-banner')
 				)
 		);
+		if (app.streamedOnly) {
+			return;
+		}
 		test('forwarded jurisdiction headers', () =>
 			verifyOverrideHeaders(browser, app));
 		test('global privacy control', () => verifyGpc(browser, app));

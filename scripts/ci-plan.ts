@@ -276,7 +276,7 @@ export const createCiPlan = function createCiPlan(
 	}
 	const journeys = selected
 		.filter((workspace) =>
-			/^benchmarks\/(?:nextjs|nuxt|sveltekit)-browser-bench$/u.test(
+			/^benchmarks\/(?:nextjs|nuxt|sveltekit|astro|tanstack-start)-browser-bench$/u.test(
 				workspace.directory
 			)
 		)
@@ -286,7 +286,15 @@ export const createCiPlan = function createCiPlan(
 				.replace('-browser-bench', '')
 		);
 	if (affected.has('@c15t/fixture-acceptance')) {
-		journeys.splice(0, journeys.length, 'nextjs', 'nuxt', 'sveltekit');
+		journeys.splice(
+			0,
+			journeys.length,
+			'nextjs',
+			'nuxt',
+			'sveltekit',
+			'astro',
+			'tanstack-start'
+		);
 	}
 	const compat = selected
 		.filter((workspace) => workspace.scripts['test:compat'])

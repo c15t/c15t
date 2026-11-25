@@ -4,12 +4,14 @@ packages:
   '@c15t/react': patch
   '@c15t/vue': patch
   '@c15t/svelte': patch
+  '@c15t/astro': patch
 ---
 
 ### Prevent partially parsed consent banners from shifting
 
-Keep styled React, Vue/Nuxt and Svelte consent banners hidden until their
-serialized contents finish parsing in browsers that support CSS `:has()`.
+Keep styled React, Vue/Nuxt, Svelte and Astro consent banners hidden until
+their serialized contents finish parsing in browsers that support CSS
+`:has()`.
 Completed banners appear without waiting for hydration.
 
 Banner roots now end with a hidden `[data-c15t-stream-end]` element.

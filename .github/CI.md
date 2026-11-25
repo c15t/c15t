@@ -12,7 +12,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Starter smoke tests | Each `examples/` starter and `internals/svelte-compat/` app builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
 | Framework parity | DOM, accessibility, styles, geometry, live pixel comparisons and Storybook interactions | Example screenshot copies |
-| SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts | Separate standalone E2E runner |
+| SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts; streamed-banner layout for those plus Astro and TanStack Start | Separate standalone E2E runner |
 | CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS, the Tailwind 3 and 4 framework matrix | Runtime performance suites |
 | Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
 | Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate canary runs and full validation | Routine microbench runs |
@@ -55,7 +55,7 @@ CI_INTEGRATION=starters CI_TARGETS=nextjs,html bun scripts/ci-browser.ts
 STARTER_TARGET=react,nuxt bun run --cwd internals/fixtures/acceptance test:starters
 CI_INTEGRATION=compat CI_TARGETS=16-app,16-static-export bun scripts/ci-browser.ts
 CI_INTEGRATION=parity CI_TARGETS=react,svelte,vue,astro bun scripts/ci-browser.ts
-CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit bun scripts/ci-browser.ts
+CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit,astro,tanstack-start bun scripts/ci-browser.ts
 CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
 TAILWIND_MATRIX_VERSIONS=v3 TAILWIND_MATRIX_FIXTURES=vue,nuxt bun run compat:styles:matrix
 ```
