@@ -73,6 +73,17 @@ const readBanner = (html) => {
 		styles.includes('--consent-banner-'),
 		'Use generated inline banner CSS'
 	);
+	// The replay moves every stylesheet into <head>, so check the original
+	// response already delivers the guard before the root it hides.
+	assert.ok(
+		tokens.some(
+			(token) =>
+				token.groups.raw?.toLowerCase() === 'style' &&
+				token.index < tokens[start].index &&
+				token[0].includes('[data-c15t-streamed]')
+		),
+		'The streamed-root guard must precede the banner root'
+	);
 	return {
 		root: html.slice(tokens[start].index, end),
 		scripts: tokens
@@ -225,7 +236,7 @@ const readNativeLayout = async (cdp, layout) => ({
 						backendNodeId: source.nodeId,
 					});
 					const { result } = await cdp.send('Runtime.callFunctionOn', {
-						functionDeclaration: `function() { return Boolean(this.closest('${rootSelector}')); }`,
+						functionDeclaration: `function() { return Boolean(this.closest?.('${rootSelector}')); }`,
 						objectId: object.objectId,
 						returnByValue: true,
 					});
@@ -578,7 +589,17 @@ export const verifyStreamedBanner = async (
 		const navigation = await page.goto(stream.url, { waitUntil: 'commit' });
 		evidence.csp = navigation.headers()['content-security-policy'];
 		const root = page.locator(rootSelector).nth(parts.rootIndex);
-		await root.locator(parts.selector).last().waitFor({ state: 'attached' });
+		// Wait on the root's own parts only: in the nested control, the inner
+		// root's SVG and actions arrive with the first chunk.
+		await page.waitForFunction(
+			({ index, roots, selector }) => {
+				const node = document.querySelectorAll(roots).item(index);
+				return [...(node?.querySelectorAll(selector) ?? [])].some(
+					(entry) => entry.closest(roots) === node
+				);
+			},
+			{ index: parts.rootIndex, roots: rootSelector, selector: parts.selector }
+		);
 		for (const phase of ['partial', 'root', 'eof']) {
 			if (phase === 'root') {
 				stream.reveal();
@@ -587,7 +608,7 @@ export const verifyStreamedBanner = async (
 						const node = document.querySelectorAll(roots).item(index);
 						return (
 							[...node.querySelectorAll(actionSelector)]
-								.at(-1)
+								.findLast((entry) => entry.closest(roots) === node)
 								?.textContent.trim() === actionText
 						);
 					},
