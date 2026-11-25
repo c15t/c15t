@@ -909,6 +909,31 @@ describe('flushPendingMounts', () => {
 		expect(document.body.querySelectorAll('script')).toHaveLength(1);
 	});
 
+	test('a body script mounted before <body> exists goes to <head>', () => {
+		const { deps } = makeDeps();
+		const { body } = document;
+		body.remove();
+		try {
+			mountScript(
+				deps,
+				{
+					category: 'necessary',
+					id: 'early-body',
+					src: 'https://x/early.js',
+					target: 'body',
+				},
+				deps.getSnapshot(),
+				true,
+				null
+			);
+			expect(document.head.querySelector('script')?.getAttribute('src')).toBe(
+				'https://x/early.js'
+			);
+		} finally {
+			document.documentElement.append(body);
+		}
+	});
+
 	test('empty batch is a no-op', () => {
 		const { deps, emitted } = makeDeps();
 		flushPendingMounts(deps, []);

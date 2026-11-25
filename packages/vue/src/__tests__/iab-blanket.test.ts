@@ -250,3 +250,155 @@ test.each(['banner', 'dialog'] as const)(
 		expect(Object.values(decoded.vendorConsents)).not.toContain(true);
 	}
 );
+
+test.each(['banner', 'dialog'] as const)(
+	'reports a failed IAB %s save once through console.error',
+	async (surface) => {
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* asserted below */
+		});
+		onTestFinished(() => errorSpy.mockRestore());
+		const context = createVueConsentKernelContext({ config, prefetch: init });
+		onTestFinished(() => context.dispose());
+		const handle = createHandle(context.kernel);
+		context.iab = handle;
+		await handle.whenReady();
+		vi.spyOn(handle, 'save').mockRejectedValueOnce(new Error('save failed'));
+		context.kernel.set.activeUI(surface);
+
+		const container = document.createElement('div');
+		document.body.append(container);
+		onTestFinished(() => container.remove());
+		const app = createApp(
+			(surface === 'banner' ? IabPrompt : IabPanel) as Component
+		);
+		app.provide(consentConfigKey, config);
+		app.provide(symbolKernelContext, context);
+		app.provide(symbolKernel, context.kernel);
+		app.provide(symbolSnapshot, context.snapshot);
+		app.provide(symbolInit, context.init);
+		app.provide(symbolActiveUI, context.activeUI);
+		app.provide(symbolConsent, context.storedConsent);
+		app.mount(container);
+		onTestFinished(() => app.unmount());
+
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? '[data-testid="iab-consent-banner-accept-button"]'
+					: '[data-testid="iab-consent-dialog-card"] [data-action="accept"]'
+			);
+		await vi.waitFor(() => expect(button()).not.toBeNull());
+		button()?.click();
+
+		await vi.waitFor(() => expect(errorSpy).toHaveBeenCalledOnce());
+		expect(context.kernel.getSnapshot().activeUI).toBe(surface);
+	}
+);
+test('untouched legitimate interest controls match what a plain Save encodes', async () => {
+	const context = createVueConsentKernelContext({ config, prefetch: init });
+	onTestFinished(() => context.dispose());
+	context.iab = createHandle(context.kernel);
+	await context.iab.whenReady?.();
+	context.kernel.set.activeUI('dialog');
+
+	const container = document.createElement('div');
+	document.body.append(container);
+	onTestFinished(() => container.remove());
+	const app = createApp(IabPanel as Component);
+	app.provide(consentConfigKey, config);
+	app.provide(symbolKernelContext, context);
+	app.provide(symbolKernel, context.kernel);
+	app.provide(symbolSnapshot, context.snapshot);
+	app.provide(symbolInit, context.init);
+	app.provide(symbolActiveUI, context.activeUI);
+	app.provide(symbolConsent, context.storedConsent);
+	app.mount(container);
+	onTestFinished(() => app.unmount());
+
+	const clickTrigger = async (selector: string) => {
+		const el = await vi.waitFor(() => {
+			const node = document.querySelector<HTMLElement>(selector);
+			expect(node).not.toBeNull();
+			return node as HTMLElement;
+		});
+		el.click();
+		await Promise.resolve();
+	};
+
+	await clickTrigger(
+		'[data-testid="stack-item-1"] [data-slot="preference-item-trigger"]'
+	);
+	await clickTrigger(
+		'[data-testid="purpose-item-2"] [data-slot="preference-item-trigger"]'
+	);
+	await clickTrigger(
+		'[data-testid="purpose-item-7"] [data-slot="preference-item-trigger"]'
+	);
+
+	const purpose2Pressed = await vi.waitFor(() => {
+		const value = document
+			.querySelector('[data-testid="purpose-item-2"] button[aria-pressed]')
+			?.getAttribute('aria-pressed');
+		expect(value).not.toBeNull();
+		return value;
+	});
+	const purpose7Pressed = await vi.waitFor(() => {
+		const value = document
+			.querySelector('[data-testid="purpose-item-7"] button[aria-pressed]')
+			?.getAttribute('aria-pressed');
+		expect(value).not.toBeNull();
+		return value;
+	});
+
+	const vendorsTab = Array.from(
+		document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+	).find((button) => button.textContent?.toLowerCase().includes('vendor'));
+	expect(vendorsTab).toBeDefined();
+	vendorsTab?.click();
+
+	const vendor10Pressed = await vi.waitFor(() => {
+		const value = document
+			.querySelector('#vendor-10 button[aria-pressed]')
+			?.getAttribute('aria-pressed');
+		expect(value).not.toBeNull();
+		return value;
+	});
+	const vendor755Pressed = await vi.waitFor(() => {
+		const value = document
+			.querySelector('#vendor-755 button[aria-pressed]')
+			?.getAttribute('aria-pressed');
+		expect(value).not.toBeNull();
+		return value;
+	});
+
+	const saveButton = document.querySelector<HTMLButtonElement>(
+		'[data-testid="iab-consent-dialog-card"] [data-action="save"]'
+	);
+	expect(saveButton).not.toBeNull();
+	saveButton?.click();
+
+	const tcString = await vi.waitFor(() => {
+		const value = context.kernel.getSnapshot().iab?.authority?.tcString;
+		expect(value).toBeTruthy();
+		return value as string;
+	});
+	const decoded = await decodedChoices(tcString);
+
+	expect(purpose2Pressed).toBe(
+		String(decoded.purposeLegitimateInterests[2] !== true)
+	);
+	expect(purpose7Pressed).toBe(
+		String(decoded.purposeLegitimateInterests[7] !== true)
+	);
+	expect(vendor10Pressed).toBe(
+		String(decoded.vendorLegitimateInterests[10] !== true)
+	);
+	expect(vendor755Pressed).toBe(
+		String(decoded.vendorLegitimateInterests[755] !== true)
+	);
+	expect(purpose2Pressed).toBe('true');
+	expect(purpose7Pressed).toBe('false');
+	expect(vendor10Pressed).toBe('true');
+	expect(vendor755Pressed).toBe('false');
+});

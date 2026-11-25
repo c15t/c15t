@@ -161,21 +161,22 @@ describe('persistence: hydration is read-only', () => {
 	});
 });
 
-describe('persistence: the subject ID outlives a clear', () => {
-	test('clearing records that carry the ID stores it, and a reload keeps it', () => {
+describe('persistence: a clear keeps the subject ID in memory only', () => {
+	test('clearing records that carry the ID stores nothing, and a reload starts with a new ID', () => {
 		localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(storedPayload()));
 
 		const kernel = createConsentKernel({ now: NOW });
 		const handle = createPersistence({ kernel });
 		handle.clear();
+		expect(kernel.getSnapshot().subject?.subjectId).toBe(SUBJECT_ID);
 		handle.dispose();
 
 		expect(readLocalStorage()).toBeNull();
-		expect(localStorage.getItem(`${STORAGE_KEY_V2}-sid`)).toBe(SUBJECT_ID);
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-sid`)).toBeNull();
 		const reloaded = createConsentKernel({ now: NOW });
 		createPersistence({ kernel: reloaded }).dispose();
 		expect(reloaded.getSnapshot().explicitChoice).toBeNull();
-		expect(reloaded.getSnapshot().subject?.subjectId).toBe(SUBJECT_ID);
+		expect(reloaded.getSnapshot().subject?.subjectId).not.toBe(SUBJECT_ID);
 	});
 });
 
@@ -346,12 +347,11 @@ describe('persistence: explicit choices still write', () => {
 		expect(document.cookie).toContain('custom-key=');
 
 		const subjectId = kernel.getSnapshot().subject?.subjectId;
-		const customCookies = `custom-key-sid=${subjectId}; custom-key-epoch=${NOW}`;
+		const customCookies = `custom-key-epoch=${NOW}`;
 		handle.clear();
 		expect(localStorage.getItem('custom-key')).toBeNull();
 		expect(readLocalStorage()).toEqual(defaultPayload);
-		// Only the custom key's subject ID and clear epoch are added;
-		// default-key data stays.
+		// Only the custom key's clear epoch is added; default-key data stays.
 		expect(document.cookie).toBe(`${defaultCookie}; ${customCookies}`);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
@@ -368,7 +368,8 @@ describe('persistence: explicit choices still write', () => {
 		reloadedHandle.dispose();
 		expect(readLocalStorage()).toEqual(defaultPayload);
 		expect(document.cookie).toBe(`${defaultCookie}; ${customCookies}`);
-		expect(reloaded.getSnapshot().subject?.subjectId).toBe(subjectId);
+		// The cleared ID was in memory only: a reload starts with a new one.
+		expect(reloaded.getSnapshot().subject?.subjectId).not.toBe(subjectId);
 	});
 
 	test('a failed remote save still persists the choice locally with the same receipt', async () => {

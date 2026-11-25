@@ -5,8 +5,8 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
-import { useHeadlessIABConsentUI } from '~/component-hooks/use-headless-iab-consent-ui';
 import * as Button from '~/components/shared/ui/button';
+import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
@@ -36,29 +36,11 @@ const IABConsentDialogFooter = createForwardRef<
 	const iabTranslations = useIABTranslations();
 	const { isLoading } = useGVLData();
 
-	const handleAcceptAll = async () => {
-		try {
-			await performDialogAction('accept');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleAcceptAll = () => performDialogAction('accept');
 
-	const handleRejectAll = async () => {
-		try {
-			await performDialogAction('reject');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleRejectAll = () => performDialogAction('reject');
 
-	const handleSave = async () => {
-		try {
-			await performDialogAction('customize');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleSave = () => performDialogAction('customize');
 
 	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.footer, {
 		baseClassName: [styles.footer, actionStyles.actionRoot],

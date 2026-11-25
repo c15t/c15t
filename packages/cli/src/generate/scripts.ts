@@ -209,6 +209,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
 		importName: 'mixpanelAnalytics',
 	},
+	'notra-analytics': {
+		example: "notraAnalytics({ webKey: 'nwk.your_web_key' })",
+		importName: 'notraAnalytics',
+	},
 	'one-dollar-stats': {
 		example: 'oneDollarStats()',
 		importName: 'oneDollarStats',

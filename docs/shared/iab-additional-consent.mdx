@@ -102,7 +102,7 @@ shown only.
 c15t writes an AC string only together with a TC String, because Google
 discards an AC string that arrives without one. It stores the string in the
 `addtl_consent` cookie and localStorage entry next to `euconsent-v2`, and
-removes both when it withdraws the TC String. A returning visitor gets their
+removes both when it withdraws the TC String or clears stored records. A returning visitor gets their
 saved provider choices back. A provider you add later has not been shown to
 them, so it stays out of their AC string until they save again. A provider
 you remove and add back keeps the choice the visitor saved for it.

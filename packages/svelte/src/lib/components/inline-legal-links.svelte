@@ -66,12 +66,13 @@
 		{' '}
 		{#each linkEntries as [type, link], index (type)}
 			{#if link}
+				{@const target = link.target || '_blank'}
 				<span>
 					<a
 						href={link.href}
-						target={link.target || '_blank'}
+						{target}
 						rel={link.rel ||
-							(link.target === '_blank' ? 'noopener noreferrer' : undefined)}
+							(target === '_blank' ? 'noopener noreferrer' : undefined)}
 						class={linkClassName || undefined}
 						data-testid={testIdPrefix ? `${testIdPrefix}-${type}` : undefined}
 					>

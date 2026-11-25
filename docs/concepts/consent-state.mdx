@@ -63,22 +63,22 @@ If your own scripts depend on such a category, do one of these:
 Check `effectivePermissions` after Accept All on a fresh visit to see which
 categories your vendor list leaves denied.
 
-## A subject ID from the first page load
+## The subject ID
 
-Every visitor gets a subject ID (`sub_…`) before they decide anything, so
-you can link activity to the visitor from the first page load and still
-find it when they opt out later. It is in `snapshot.subject.subjectId` from
-the first snapshot.
+Every visitor gets a subject ID (`sub_…`). In the browser it is in
+`snapshot.subject.subjectId` from the first snapshot. A server render of a
+first-time visitor has no subject.
 
-- A framework server sets the ID in the `c15t-sid` cookie on the first
-  response, where the adapter's server hook runs. Otherwise the browser
-  creates it when c15t starts and stores it in `c15t-sid` at once.
-- The ID stays the same across reloads. The first save records the same ID
-  with the choice.
-- `c15t-sid` is not a choice. A visitor with only an ID still sees the
-  banner.
-- Clearing choices and revoking consent keep the ID. Only setting the subject
-  to `null` starts over with a new one.
+- Until the visitor acts, the ID lives in memory only. c15t stores no
+  identifier and no consent record before then, so a reload before the
+  first stored record starts with a new ID.
+- The first record stores the ID with it, whether a choice, a vendor
+  decision or a notice acknowledgement. From then on it
+  stays the same across reloads, and a server render reads it from the
+  record cookies.
+- Clearing choices keeps the ID in memory for the rest of the page. Revoking
+  consent is a save, so the records keep the ID. Setting the subject to
+  `null` starts over with a new one.
 
 ## When a choice is saved
 
@@ -300,9 +300,9 @@ wherever it turns up. A decision stamped in the very millisecond of the clear
 counts only if it comes from a tab that had already seen that clear, so a tab's
 own choice right after its own clear stands while another tab's decision in the
 same millisecond does not. A stored record left with no decisions after the
-clear is void too, subject included. The subject ID itself survives the clear:
-it lives in its own key, `c15t-sid`, which clearing never removes, so a
-withdrawal stays linked to the same visitor.
+clear is void too, subject included. The subject ID stays in memory for the
+rest of the page. A withdrawal is a save, so the record it writes keeps the
+visitor's ID.
 
 - A tab that reconciles only after another tab cleared and saved again drops
   its pre-clear decisions instead of merging them back. The external identity
@@ -368,7 +368,11 @@ When a server render seeded the page from the consent cookie
 (`skipHydration`), that seed stays authoritative. A denial that reached only
 localStorage is still applied on top of it when the page mounts, since it can
 only restrict, if it is newer than the seeded decision or from the same
-millisecond as a seeded grant. A stored grant is not.
+millisecond as a seeded grant. A stored grant is not. If another tab cleared
+records after the server read the cookies, the stored clear epoch voids any
+seeded choice, notice dismissal or vendor choice from before it on mount and
+yields to what storage holds. Seeded decisions made after the clear stay, and
+the seeded subject keeps only its ID.
 `persistence: { skipHydration: false }` reads storage back over the seed
 instead, so an older stored decision replaces it. A server render then starts
 no scripts from the HTML, since it can't tell what that read will return.
@@ -393,11 +397,10 @@ the cookie identity wins unless a failed cookie write left a newer local
 identity or a local identity removal. That exception lasts only while both
 notice cookies match the values observed after the failed write; a later server
 or sibling-subdomain cookie update takes precedence. Category-based data cleanup
-protects these records and `<key>-sid` even when a configured wildcard matches
-their names.
+protects these records even when a configured wildcard matches their names.
 
 Clearing the stored records removes the acknowledgement and its
-`<key>-notice-subject` cookie. The subject ID stays in `<key>-sid`, as after any
+`<key>-notice-subject` cookie. The subject ID stays in memory, as after any
 other clear. External identity fields supplied through `identify()` go with the
 record that carried them. Call `set.subjectId(null)` to give the visitor a new
 ID. The consent record follows the rules below.
@@ -436,12 +439,10 @@ server render and the browser use the same ID. When the browser refuses the
 rewrite of a record cookie after the subject ID changed (the consent cookie,
 `c15t-vendors` or `c15t-notice-subject`), that cookie keeps the old ID while
 localStorage holds the new one. A server render then reports the old ID, and
-the browser starts with the new ID from its storage. This happens even when the
-request's `c15t-sid` cookie already holds the new ID. It lasts until a later
+the browser starts with the new ID from its storage. It lasts until a later
 write of that record reaches the cookie, which may never happen while the
-browser keeps refusing it. The server never replaces a `c15t-sid` cookie the
-request already has with the old ID. When this browser's storage holds the
-newer ID, the browser does not store the old one again either.
+browser keeps refusing it. When this browser's storage holds the newer ID, the
+browser does not store the old one again.
 
 The vendor record has a separate limit. A local vendor copy at least as new as
 the cookie's keeps its subject ID, and a rekey to a new subject ID keeps the
@@ -449,12 +450,9 @@ original decision time. So with `crossSubdomain`, a visitor whose only record is
 a vendor decision (no consent record) can hold a local copy and a shared cookie
 copy with the same time but different subject IDs, for example after another
 subdomain rekeyed it at any later moment. This origin then starts with the ID
-from its local copy, on server-rendered loads as well as loads that hydrate. It
-does not write that ID over the shared `c15t-sid` cookie when that cookie and
-the record cookies agree on another ID. A later vendor save from this origin
-does store its ID in the shared vendor cookie, where the other subdomains read
-it. Once that cookie carries it, this origin can also write it to the shared
-`c15t-sid` cookie on a later page load. No optional category is granted and no
+from its local copy, on server-rendered loads as well as loads that hydrate. A
+later vendor save from this origin stores its ID in the shared vendor cookie,
+where the other subdomains read it. No optional category is granted and no
 denial is lifted.
 
 ### Ordering with pending writes

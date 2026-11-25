@@ -1,13 +1,20 @@
 import { defaultTranslationConfig } from '@c15t/core';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
+import { enTranslations } from '@c15t/translations';
 import type { ComponentProps, ReactElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ConsentStateFixture } from '~/__tests__/consent-state-fixture';
 import { policyFixture } from '~/__tests__/policy-fixture';
+import { ConsentDialog } from '~/components/panel';
 import { ConsentDialogFooter } from '~/components/panel/atoms/card';
+import { ConsentBanner } from '~/components/prompt';
+import { hosted } from '~/index';
+import { ConsentProvider as HostedConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 import { BrandingCompactLogo, BrandingLink } from '../branding';
@@ -323,5 +330,65 @@ describe('BrandingCompactLogo', () => {
 			expect(title).toBeInTheDocument();
 			expect(title?.textContent).toBe('INTH');
 		});
+	});
+});
+
+describe('hosted branding none', () => {
+	test('hides the banner and dialog branding tags when /init returns branding none', async () => {
+		const backendFetch = vi.fn(() =>
+			Promise.resolve(
+				new Response(
+					JSON.stringify({
+						branding: 'none',
+						location: { countryCode: 'DE', regionCode: null },
+						policyResolution: writePolicyResolutionWire(
+							policyFixture({}, { id: 'hosted-branding-none' })
+								.initialPolicyResolution
+						),
+						translations: { language: 'en', translations: enTranslations },
+					}),
+					{ headers: { 'x-c15t-policy-contract': '1' } }
+				)
+			)
+		);
+
+		await render(
+			<HostedConsentProvider
+				options={{
+					mode: hosted({
+						backendURL: 'https://consent.example/api/c15t',
+						fetch: backendFetch,
+					}),
+					persistence: false,
+				}}
+			>
+				<ConsentBanner />
+				<ConsentDialog />
+			</HostedConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-banner-root"]')
+			).toBeInTheDocument();
+		});
+		expect(
+			document.querySelector('[data-testid="consent-banner-branding"]')
+		).not.toBeInTheDocument();
+
+		const customizeButton = document.querySelector(
+			'[data-testid="consent-banner-customize-button"]'
+		);
+		expect(customizeButton).toBeInTheDocument();
+		await userEvent.click(customizeButton as Element);
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-dialog-root"]')
+			).toBeInTheDocument();
+		});
+		expect(
+			document.querySelector('[data-testid="consent-dialog-branding"]')
+		).not.toBeInTheDocument();
 	});
 });

@@ -68,8 +68,10 @@ export interface HeadlessIABDialogState {
 export interface HeadlessIABProcessedVendor {
 	id: HeadlessIABVendorId;
 	name: string;
+	/** Privacy policy URL, or `''` when the vendor has no absolute http(s) one. */
 	policyUrl: string;
 	usesNonCookieAccess: boolean;
+	/** Storage disclosure URL, or `null` when the vendor has no absolute http(s) one. */
 	deviceStorageDisclosureUrl: string | null;
 	usesCookies: boolean;
 	cookieMaxAgeSeconds: number | null;

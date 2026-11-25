@@ -34,9 +34,15 @@ translated title in place of `{category}`. The copy comes from the
 preference dialog; it does not grant the category, so mount `ConsentDialog`
 in the same provider.
 
-`ConsentGate` does not add its category to the preference dialog. Keep the
-category in your policy's scope, and in `consentCategories` if you set that
-prop.
+Under a policy with `scopeMode: 'strict'`, a category outside the rule's
+scope cannot be granted. The built-in placeholder then shows
+`consentGate.policyBlocked`, "This content is unavailable under your region's
+consent policy.", without the button.
+
+When it mounts, `ConsentGate` adds its category to the provider's categories,
+so the preference dialog lists it even when `consentCategories` leaves it out.
+Keep the category in your policy's scope: the dialog cannot offer a category
+the policy leaves out.
 
 ## Accessibility
 

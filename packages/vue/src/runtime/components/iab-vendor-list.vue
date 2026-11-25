@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { AdTechProvider } from '@c15t/core';
-import { resolveIABVendorUrls } from '@c15t/iab/headless';
+import {
+	permittedLegitimateInterestPurposes,
+	resolveIABSafeUrl,
+	resolveIABVendorUrls,
+} from '@c15t/iab/headless';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
@@ -65,9 +69,10 @@ const customVendorItems = computed(() =>
 		id: vendor.id,
 		isCustom: true,
 		name: vendor.name,
-		policyUrl: vendor.privacyPolicyUrl,
+		policyUrl: resolveIABSafeUrl(vendor.privacyPolicyUrl) ?? '',
 		usesConsent: (vendor.purposes?.length ?? 0) > 0,
-		usesLegitimateInterest: (vendor.legIntPurposes?.length ?? 0) > 0,
+		usesLegitimateInterest:
+			permittedLegitimateInterestPurposes(vendor.legIntPurposes).length > 0,
 	}))
 );
 
@@ -138,11 +143,11 @@ const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 	return props.vendorConsents[String(vendorId)] ?? false;
 };
 
-/** Legitimate interest is allowed until the visitor objects. */
+/** Follows the effective draft/restriction state that Save encodes. */
 const isLegitimateInterestAllowed = function isLegitimateInterestAllowed(
 	vendorId: IabVendorId
 ) {
-	return props.vendorLegitimateInterests?.[String(vendorId)] ?? true;
+	return props.vendorLegitimateInterests?.[String(vendorId)] ?? false;
 };
 
 watch(

@@ -181,7 +181,6 @@ test.each([
 		expect(nuxt.fetches).toBe(0);
 		expect(stateValue('c15t:records')).toBeUndefined();
 		expect(stateValue('c15t:request-headers')).toEqual({});
-		// Every visitor the cached HTML reaches would get the same subject ID.
 		expect(nuxt.cookies).toEqual([]);
 		expect(html).not.toContain('consent-banner-root');
 	}
@@ -195,7 +194,7 @@ test('a per-request render still prefetches for its visitor', async () => {
 
 	expect(nuxt.fetches).toBe(1);
 	expect(stateValue('c15t:records')).toBeDefined();
-	expect(nuxt.cookies.map(({ name }) => name)).toEqual(['c15t-sid']);
+	expect(nuxt.cookies).toEqual([]);
 	expect(stateValue('c15t:request-headers')).toMatchObject({
 		'accept-language': 'de-DE',
 		'x-vercel-ip-country': 'DE',

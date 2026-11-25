@@ -182,4 +182,44 @@ describe('Vue controls under a legitimate-interest restriction', () => {
 		expect(wrapper.findAll('#vendor-10 [role="switch"]')).toHaveLength(0);
 		expect(wrapper.findAll('#vendor-10 button[aria-pressed]')).toHaveLength(1);
 	});
+
+	test('renders no link for vendor URLs that are not absolute http(s)', () => {
+		const { 10: vendor10 } = completeGVL.vendors;
+		if (!vendor10) {
+			throw new Error('Missing vendor 10 fixture');
+		}
+		const wrapper = mount(IabVendorList, {
+			global,
+			props: {
+				customVendors: [
+					{
+						id: 'custom-unsafe',
+						name: 'Custom Unsafe',
+						privacyPolicyUrl: 'data:text/html,hi',
+						purposes: [1],
+					},
+				],
+				purposes: [],
+				selectedVendorId: null,
+				vendorConsents: {},
+				vendorData: {
+					...completeGVL,
+					vendors: {
+						10: {
+							...vendor10,
+							urls: [
+								{
+									langId: 'en',
+									// oxlint-disable-next-line no-script-url -- Unsafe vendor URLs exercise the link filter.
+									privacy: 'javascript:alert(1)',
+								},
+							],
+						},
+					},
+				},
+			},
+		});
+		expect(wrapper.findAll('#vendor-10 a')).toHaveLength(0);
+		expect(wrapper.findAll('#vendor-custom-unsafe a')).toHaveLength(0);
+	});
 });

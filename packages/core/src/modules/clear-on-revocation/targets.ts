@@ -156,7 +156,8 @@ const clearStorage = (
  */
 export const clearTargets = (
 	targets: ClearOnRevocationTargets,
-	protectedKeys: ReadonlySet<string>
+	protectedKeys: ReadonlySet<string>,
+	protectedSessionKeys: ReadonlySet<string>
 ): void => {
 	for (const cookie of targets.cookies ?? []) {
 		clearCookie(cookie, protectedKeys);
@@ -165,7 +166,10 @@ export const clearTargets = (
 		clearStorage('localStorage', targets.localStorage, protectedKeys);
 	}
 	if (targets.sessionStorage?.length) {
-		// c15t does not persist consent records in sessionStorage.
-		clearStorage('sessionStorage', targets.sessionStorage);
+		clearStorage(
+			'sessionStorage',
+			targets.sessionStorage,
+			protectedSessionKeys
+		);
 	}
 };

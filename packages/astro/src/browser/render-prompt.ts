@@ -264,6 +264,7 @@ export const buildPrompt = function buildPrompt(
 		{
 			class: model.classes.root,
 			'data-blocking': model.blocking ? 'true' : undefined,
+			'data-c15t-streamed': '',
 			'data-model': model.model,
 			'data-position': model.position,
 			'data-prompt': model.prompt,
@@ -279,6 +280,7 @@ export const buildPrompt = function buildPrompt(
 				{ class: model.classes.cardShell },
 				branding ? [branding, card] : [card]
 			),
+			element('span', { 'data-c15t-stream-end': '', hidden: '' }),
 		]
 	);
 	return hiddenBanner(

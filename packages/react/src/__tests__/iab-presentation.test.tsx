@@ -13,11 +13,10 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
-import { useHeadlessIABConsentUI } from '../component-hooks/use-headless-iab-consent-ui';
 import { IABConsentDialog } from '../components/iab-panel';
 import { IABConsentBanner } from '../components/iab-prompt';
 import { KernelContext } from '../context';
-import { useHeadlessIABConsentUI as usePublicHeadlessIABConsentUI } from '../hooks/use-headless-iab-consent-ui';
+import { useHeadlessIABConsentUI } from '../hooks/use-headless-iab-consent-ui';
 import { IABProvider, useIAB } from '../iab-context';
 import { ComponentFixtureProvider } from './component-fixture-provider';
 import type { ComponentFixtureOptions } from './component-fixture-provider';
@@ -400,14 +399,53 @@ it.each(
 	}
 );
 
+it.each(['banner', 'dialog'] as const)(
+	'reports a failed IAB %s save once through console.error',
+	async (surface) => {
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* asserted below */
+		});
+		onTestFinished(() => errorSpy.mockRestore());
+		const save = vi.fn(() => Promise.reject(new Error('offline')));
+		const mounted: { screen?: Awaited<ReturnType<typeof render>> } = {};
+		onTestFinished(async () => {
+			await mounted.screen?.unmount();
+		});
+		mounted.screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options(false),
+					initialUI: surface,
+					mode: custom({ save }),
+				}}
+			>
+				{surface === 'banner' ? <IABConsentBanner /> : <IABConsentDialog />}
+			</ComponentFixtureProvider>
+		);
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? '[data-testid="iab-consent-banner-accept-button"]'
+					: '[data-testid="iab-consent-dialog-root"] [data-action="accept"]'
+			);
+		await vi.waitFor(() => {
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+		});
+		button()?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		await vi.waitFor(() => expect(errorSpy).toHaveBeenCalledOnce());
+	}
+);
+
 it.each(['acceptAll', 'rejectAll', 'savePreferences'] as const)(
 	'the public headless IAB %s closes the dialog without showing the banner',
 	async (method) => {
 		const save = vi.fn(() => Promise.resolve({ ok: true }));
-		let controls!: ReturnType<typeof usePublicHeadlessIABConsentUI>;
+		let controls!: ReturnType<typeof useHeadlessIABConsentUI>;
 		let kernel: ConsentKernel | null = null;
 		const Probe = () => {
-			const current = usePublicHeadlessIABConsentUI();
+			const current = useHeadlessIABConsentUI();
 			const currentKernel = useContext(KernelContext);
 			useEffect(() => {
 				controls = current;

@@ -129,15 +129,15 @@ export const InlineLegalLinks = ({
 				if (!link) {
 					return null;
 				}
+				const target = link.target || '_blank';
+				const rel =
+					link.rel || (target === '_blank' ? 'noopener noreferrer' : undefined);
 				return (
 					<span key={String(type)}>
 						<a
 							href={link.href}
-							target={link.target || '_blank'}
-							rel={
-								link.rel ||
-								(link.target === '_blank' ? 'noopener noreferrer' : undefined)
-							}
+							target={target}
+							rel={rel}
 							{...linkStyles}
 							data-testid={testIdPrefix ? `${testIdPrefix}-${type}` : undefined}
 						>

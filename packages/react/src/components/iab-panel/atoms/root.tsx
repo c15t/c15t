@@ -1,7 +1,7 @@
 'use client';
 
 import type * as C15tCoreTypes from '@c15t/core';
-import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useEffect, useMemo, useState } from 'react';
 import type { FC, ReactNode } from 'react';
@@ -108,15 +108,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 			return;
 		}
 
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (isDialogDismissKey(event.key)) {
-				event.preventDefault();
-				setActiveUI('none');
-			}
-		};
-
-		document.addEventListener('keydown', handleKeyDown);
-		return () => document.removeEventListener('keydown', handleKeyDown);
+		return onDialogDismiss(document.documentElement, () => setActiveUI('none'));
 	}, [isOpen, setActiveUI]);
 
 	// Visibility animation

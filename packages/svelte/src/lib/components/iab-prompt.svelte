@@ -102,11 +102,7 @@
 			return;
 		}
 		const state = iabState;
-		try {
-			await saveIABConsentSurface(consent.kernel, () => state.save());
-		} catch {
-			// Keep the prompt available so a later action can retry the failed load/save.
-		}
+		await saveIABConsentSurface(consent.kernel, () => state.save());
 	};
 
 	const handleAcceptAll = function handleAcceptAll() {
@@ -236,6 +232,7 @@
 				? 'late'
 				: undefined}
 			data-testid="iab-consent-banner-root"
+			data-c15t-streamed=""
 			tabindex="-1"
 			use:scrollLock={shouldScrollLock}
 		>
@@ -344,6 +341,10 @@
 					</div>
 				</div>
 			</div>
+			<span
+				data-c15t-stream-end=""
+				hidden
+			></span>
 		</div>
 	</div>
 {/if}

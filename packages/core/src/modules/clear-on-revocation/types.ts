@@ -59,6 +59,11 @@ export interface ClearOnRevocationTools {
 	optionalConsentCategories: readonly OptionalConsentCategory[];
 	/** c15t's own keys besides the configurable consent key. */
 	protectedStorageKeys: readonly string[];
+	/**
+	 * The sessionStorage keys cleanup never deletes. c15t keeps no consent
+	 * record there, only a `journey: 'tab'` journey id.
+	 */
+	protectedSessionStorageKeys: readonly string[];
 	/** The default consent storage key. */
 	storageKey: string;
 }

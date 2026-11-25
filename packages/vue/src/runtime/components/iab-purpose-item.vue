@@ -130,7 +130,7 @@ const customLegIntVendors = computed(() =>
 );
 
 const isPurposeLiAllowed = computed(
-	() => props.purposeLegitimateInterests?.[props.purpose.id] ?? true
+	() => props.purposeLegitimateInterests?.[props.purpose.id] ?? false
 );
 
 // With no vendor on consent, a consent switch would look like an opt-out
@@ -157,7 +157,7 @@ const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 const getVendorLegitimateInterest = function getVendorLegitimateInterest(
 	vendorId: IabVendorId
 ) {
-	return props.vendorLegitimateInterests?.[String(vendorId)] ?? true;
+	return props.vendorLegitimateInterests?.[String(vendorId)] ?? false;
 };
 
 const handlePurposeLiObjection = function handlePurposeLiObjection() {

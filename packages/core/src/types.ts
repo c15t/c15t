@@ -71,9 +71,10 @@ export type {
 
 /**
  * Brand palette served by `/init` (or chosen offline). Drives default
- * UI theme but has no effect on consent semantics.
+ * UI theme but has no effect on consent semantics. `none` hides the
+ * "Secured by" tag.
  */
-export type KernelBranding = 'c15t' | 'consent' | 'inth';
+export type KernelBranding = 'c15t' | 'consent' | 'inth' | 'none';
 
 /**
  * Who runs the backend that served `/init`: inth's hosted platform or a

@@ -16,7 +16,6 @@
  */
 
 import type { StorageConfig } from '@c15t/core';
-import { resolveRequestSubject } from '@c15t/core/server';
 import type { GetServerSideProps, GetServerSidePropsContext } from 'next';
 
 import type {
@@ -209,11 +208,10 @@ export type WithConsentPropsOptions = Omit<
 	'req'
 > & {
 	/**
-	 * The client's `storageConfig`, so the subject cookie this sets matches
-	 * the one the browser would: `defaultDomain`, `crossSubdomain` and
-	 * `defaultExpiryDays` set its domain and lifetime. `storageKey` names
-	 * both cookies, like `cookieName`, and wins over it. Set it only if you
-	 * changed those client-side.
+	 * The client's `storageConfig`. `storageKey` names the consent cookie,
+	 * like `cookieName`, and wins over it. The other fields are deprecated:
+	 * c15t no longer sets a subject cookie, so nothing reads them. They are
+	 * removed in v4.
 	 */
 	storage?: Pick<
 		StorageConfig,
@@ -221,44 +219,10 @@ export type WithConsentPropsOptions = Omit<
 	>;
 
 	/**
-	 * Set `false` when `ConsentRoot` runs with `persistence={false}` or a
-	 * `consentSource`, so no `c15t-sid` cookie is set. A subject ID or
-	 * choice the visitor's cookies already hold is still read.
-	 *
-	 * @default true
+	 * @deprecated c15t no longer sets a subject cookie, so this does
+	 * nothing. Removed in v4.
 	 */
 	subjectCookie?: boolean;
-};
-
-/**
- * The origin Next.js gives an App Router request's URL: `https` over TLS
- * or when `x-forwarded-proto` says so, else `http`. The subject cookie is
- * `Secure` only over `https`, so a plain-HTTP site keeps it.
- */
-const requestOriginOf = function requestOriginOf(
-	req: GetServerSidePropsContext['req']
-): string | undefined {
-	const { host } = req.headers;
-	if (!host) {
-		return undefined;
-	}
-	const encrypted =
-		(req.socket as { encrypted?: boolean } | undefined)?.encrypted === true;
-	const { 'x-forwarded-proto': proto } = req.headers;
-	const forwarded = (Array.isArray(proto) ? proto[0] : proto)?.includes(
-		'https'
-	);
-	return `${encrypted || forwarded ? 'https' : 'http'}://${host}`;
-};
-
-/** Adds `header` to the response's `Set-Cookie` headers. */
-const appendSetCookie = function appendSetCookie(
-	res: GetServerSidePropsContext['res'],
-	header: string
-): void {
-	const existing = res.getHeader('set-cookie') ?? [];
-	const cookies = Array.isArray(existing) ? existing : [String(existing)];
-	res.setHeader('set-cookie', [...cookies, header]);
 };
 
 /**
@@ -269,10 +233,6 @@ const appendSetCookie = function appendSetCookie(
  *
  * Wraps the page's own `getServerSideProps` when given: consent resolves
  * while it runs, and its redirects and `notFound` pass through unchanged.
- *
- * A visitor with no subject ID gets one in a `c15t-sid` cookie on this
- * response, and the state carries it, so the server render and the browser
- * start with the same ID.
  *
  * @param getServerSideProps - The page's own `getServerSideProps`.
  * @param options - `resolveConsent` options, such as `timeoutMs`.
@@ -297,40 +257,18 @@ export const withConsentProps = function withConsentProps<
 	getServerSideProps?: GetServerSideProps<Props>,
 	options: WithConsentPropsOptions = {}
 ): GetServerSideProps<Props & ConsentPageProps> {
-	const { storage, subjectCookie, ...resolveOptions } = options;
-	// One key for the consent cookie and the subject cookie, whichever
-	// option named it.
+	const { storage, subjectCookie: _subjectCookie, ...resolveOptions } = options;
 	const cookieName = storage?.storageKey ?? options.cookieName;
 	return async (context: GetServerSidePropsContext) => {
-		const subject =
-			subjectCookie === false
-				? null
-				: resolveRequestSubject({
-						request: {
-							headers: context.req.headers,
-							url: requestOriginOf(context.req),
-						},
-						storage: { ...storage, storageKey: cookieName },
-						trustForwardedHeaders: options.trustForwardedHeaders,
-					});
-		const req: NodeRequestLike = subject?.setCookie
-			? { headers: { ...context.req.headers, cookie: subject.cookie } }
-			: context.req;
 		const [state, result] = await Promise.all([
-			resolveConsent({ ...resolveOptions, cookieName, req }),
+			resolveConsent({ ...resolveOptions, cookieName, req: context.req }),
 			getServerSideProps ? getServerSideProps(context) : { props: {} as Props },
 		]);
-		const settled = 'props' in result ? { props: await result.props } : result;
-		// After the page's own handler, whose `res.setHeader('set-cookie', …)`
-		// would replace the subject cookie.
-		if (subject?.setCookie) {
-			appendSetCookie(context.res, subject.setCookie.header);
-		}
-		if (!('props' in settled)) {
-			return settled;
+		if (!('props' in result)) {
+			return result;
 		}
 		// Next.js rejects undefined prop values, such as an absent GPC signal.
 		const consent = JSON.parse(JSON.stringify(state)) as ConsentState;
-		return { props: { ...settled.props, consent } };
+		return { props: { ...(await result.props), consent } };
 	};
 };

@@ -92,21 +92,13 @@ export interface C15tMiddlewareOptions {
 	 */
 	timeoutMs?: number | false;
 	/**
-	 * Read the request's scheme and host from `forwarded` and
-	 * `x-forwarded-*` headers when deciding the subject cookie's `Secure`
-	 * flag and cross-subdomain domain. Any client can send those headers, so
-	 * set this only behind a proxy that sets them and drops incoming ones.
-	 *
-	 * @default false
+	 * @deprecated c15t no longer sets a subject cookie, so the middleware
+	 * reads nothing from this. Removed in v4.
 	 */
 	trustForwardedHeaders?: boolean;
 	/**
-	 * Set `false` when a `consentSource` in
-	 * {@link C15tAstroOptions.clientEntrypoint} owns consent, so the
-	 * middleware sets no `c15t-sid` cookie. A subject ID or choice the
-	 * visitor's cookies already hold is still read.
-	 *
-	 * @default true
+	 * @deprecated c15t no longer sets a subject cookie, so this does
+	 * nothing. Removed in v4.
 	 */
 	subjectCookie?: boolean;
 }

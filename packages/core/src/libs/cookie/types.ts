@@ -62,8 +62,9 @@ export interface StorageConfig {
 	 * @default '' (current domain only)
 	 *
 	 * @remarks
-	 * Overrides crossSubdomain if set.
-	 * Use '.example.com' for all subdomains.
+	 * Ignored when `crossSubdomain` is `true` (which uses `getRootDomain()`).
+	 * Set `defaultDomain` without `crossSubdomain` to specify a domain explicitly,
+	 * such as `'.example.com'` for all subdomains.
 	 */
 	defaultDomain?: string;
 
@@ -119,7 +120,7 @@ export interface CookieOptions {
 	 * createPersistence({ kernel, storageConfig: { crossSubdomain: true } });
 	 *
 	 * // Advanced: Explicit domain
-	 * createPersistence({ kernel, storageConfig: { domain: '.example.com' } });
+	 * createPersistence({ kernel, storageConfig: { defaultDomain: '.example.com' } });
 	 * ```
 	 */
 	domain?: string;

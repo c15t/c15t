@@ -275,6 +275,7 @@ const onAction = function onAction(action: PresentationAction) {
 					])
 				"
 				data-testid="consent-banner-root"
+				data-c15t-streamed=""
 				:data-entry="entryAttribute"
 				:data-variant="variant"
 				:data-position="position"
@@ -384,6 +385,10 @@ const onAction = function onAction(action: PresentationAction) {
 						</ConsentActions>
 					</div>
 				</div>
+				<span
+					data-c15t-stream-end=""
+					hidden
+				/>
 			</div>
 		</Transition>
 	</Teleport>

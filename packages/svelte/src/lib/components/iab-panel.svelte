@@ -6,7 +6,10 @@
 	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
 	import { saveIABConsentSurface } from '@c15t/core/surface-actions';
-	import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
+	import {
+		applyPublisherRestrictionsToGVL,
+		introducedLegitimateInterest,
+	} from '@c15t/iab/headless';
 	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
@@ -206,6 +209,22 @@
 				)
 			: null
 	);
+	const introduced = $derived(
+		iabState?.gvl
+			? introducedLegitimateInterest(
+					iabState.gvl,
+					iabState.publisherRestrictions
+				)
+			: { purposes: [], vendors: [] }
+	);
+	const purposeLegitimateInterests = $derived({
+		...Object.fromEntries(introduced.purposes.map((id) => [id, true])),
+		...iabState?.purposeLegitimateInterests,
+	});
+	const vendorLegitimateInterests = $derived({
+		...Object.fromEntries(introduced.vendors.map((id) => [String(id), true])),
+		...iabState?.vendorLegitimateInterests,
+	});
 
 	const summary = $derived(resolveIABBannerSummary(iabState));
 	const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
@@ -259,11 +278,7 @@
 			return;
 		}
 		const state = iabState;
-		try {
-			await saveIABConsentSurface(consent.kernel, () => state.save());
-		} catch {
-			// Keep the prompt available so a later action can retry the failed load/save.
-		}
+		await saveIABConsentSurface(consent.kernel, () => state.save());
 	};
 
 	const handleAcceptAll = function handleAcceptAll() {
@@ -428,9 +443,9 @@
 											vendorConsents={iabState.vendorConsents}
 											onVendorToggle={handleVendorToggle}
 											onVendorClick={handleVendorClick}
-											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											{vendorLegitimateInterests}
 											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-											purposeLegitimateInterests={iabState.purposeLegitimateInterests}
+											{purposeLegitimateInterests}
 											onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
 											{noStyle}
 											{iabT}
@@ -445,7 +460,7 @@
 											vendorConsents={iabState.vendorConsents}
 											onVendorToggle={handleVendorToggle}
 											onVendorClick={handleVendorClick}
-											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											{vendorLegitimateInterests}
 											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
 											{noStyle}
 											{iabT}
@@ -459,9 +474,9 @@
 											vendorConsents={iabState.vendorConsents}
 											onVendorToggle={handleVendorToggle}
 											onVendorClick={handleVendorClick}
-											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											{vendorLegitimateInterests}
 											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-											purposeLegitimateInterests={iabState.purposeLegitimateInterests}
+											{purposeLegitimateInterests}
 											onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
 											{noStyle}
 											{iabT}
@@ -593,7 +608,7 @@
 									{selectedVendorId}
 									onClearSelection={() => (selectedVendorId = null)}
 									customVendors={iabState.nonIABVendors}
-									vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+									{vendorLegitimateInterests}
 									onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
 									adTechProviders={iabState.adTechProviders}
 									adTechProviderConsents={iabState.adTechProviderConsents}

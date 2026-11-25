@@ -41,6 +41,7 @@ import { marketoMunchkin } from '../vendors/analytics/marketo';
 import { matomoAnalytics } from '../vendors/analytics/matomo-analytics';
 import { clarity } from '../vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../vendors/analytics/mixpanel-analytics';
+import { notraAnalytics } from '../vendors/analytics/notra-analytics';
 import { oneDollarStats } from '../vendors/analytics/one-dollar-stats';
 import { eloquaTracking } from '../vendors/analytics/oracle-eloqua';
 import { pendo } from '../vendors/analytics/pendo';
@@ -451,6 +452,14 @@ export const helperParityCases = {
 		script: mixpanelAnalytics({
 			token: '1234567890abcdef1234567890abcdef',
 		}),
+	},
+	notraAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.usenotra.com/notra.ce3c872ef9c9.js',
+		},
+		script: notraAnalytics({ webKey: 'nwk.test_key' }),
 	},
 	oneDollarStats: {
 		expected: {

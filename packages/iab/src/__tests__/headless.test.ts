@@ -65,6 +65,59 @@ describe('@c15t/iab headless dialog data', () => {
 		});
 	});
 
+	test.each([
+		// oxlint-disable-next-line no-script-url -- Unsafe vendor URLs exercise the link filter.
+		'javascript:alert(1)',
+		'data:text/html,hi',
+		'https://',
+		'/privacy',
+		'//evil.test',
+	])('omits the unsafe vendor link %s', (unsafe) => {
+		const [id, gvlVendor] = Object.entries(completeGVL.vendors)[0] ?? [];
+		if (!(id && gvlVendor)) {
+			throw new Error('fixture has no vendors');
+		}
+		const data = processGVLForDialog({
+			customVendors: [{ ...customVendor, privacyPolicyUrl: unsafe }],
+			gvl: {
+				...completeGVL,
+				vendors: {
+					[id]: { ...gvlVendor, deviceStorageDisclosureUrl: unsafe },
+				},
+			},
+		});
+		const vendors = data.purposes.flatMap((purpose) => purpose.vendors);
+
+		expect(vendors.find((vendor) => vendor.isCustom)?.policyUrl).toBe('');
+		expect(
+			vendors.find((vendor) => vendor.id === Number(id))
+				?.deviceStorageDisclosureUrl
+		).toBeNull();
+	});
+
+	test('never offers legitimate interest on consent-only purposes', () => {
+		const data = processGVLForDialog({
+			customVendors: [
+				{
+					id: 'consent-only-li',
+					legIntPurposes: [1, 7],
+					name: 'Custom',
+					privacyPolicyUrl: 'https://example.com/privacy',
+					purposes: [],
+				},
+			],
+			gvl: completeGVL,
+		});
+		const vendorFor = (purposeId: number) =>
+			data.purposes
+				.find((purpose) => purpose.id === purposeId)
+				?.vendors.find((vendor) => vendor.id === 'consent-only-li');
+
+		// TCF Policies Appendix A: purpose 1 allows consent only.
+		expect(vendorFor(1)).toBeUndefined();
+		expect(vendorFor(7)?.usesLegitimateInterest).toBe(true);
+	});
+
 	test('partitions legitimate-interest vendors by purpose', () => {
 		const data = processGVLForDialog({
 			customVendors: [customVendor],

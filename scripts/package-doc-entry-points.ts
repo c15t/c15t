@@ -52,10 +52,7 @@ export const withPackageSetupLinks = function withPackageSetupLinks(
 	return content.replace(heading, `${heading}${links}\n`);
 };
 
-const frameworkLabels = new Map<string, string>([
-	...frameworkGuides,
-	['react-native', 'React Native'],
-]);
+const frameworkLabels = new Map<string, string>(frameworkGuides);
 const frameworkOrder = [...frameworkLabels.keys()];
 const frameworkEntry = /^- \[[^\]]*\]\(\.\/docs\/frameworks\/(?<dir>[^/)]+)\//u;
 

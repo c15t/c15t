@@ -36,6 +36,33 @@ the same links from `resolveIABVendorUrls(vendor, language)` in
 vendors `processGVLForDialog` returns when you pass it `language`. Vendor lists
 older than GVL v3 have a single `policyUrl` field, which c15t still reads.
 
+c15t shows a vendor link only when it is an absolute `http:` or `https:` URL
+with a host. It drops any other link, such as another scheme, a relative path
+or a protocol-relative URL. The privacy policy then becomes `''`, the
+legitimate interest and storage disclosure links become `null`, and the stock
+vendor lists show no link. This applies to GVL links and to `privacyPolicyUrl`
+on custom vendors. A custom UI can check other links with
+`resolveIABSafeUrl(url)` from `@c15t/iab/headless`.
+
+## Legal bases for custom vendors
+
+A custom vendor in `customVendors` declares its own legal bases: `purposes`
+for consent and `legIntPurposes` for legitimate interest. TCF Policies
+Appendix A allows purposes 1, 3, 4, 5 and 6 only with consent, so c15t ignores
+those purposes in `legIntPurposes`. Accept All never signals legitimate
+interest for them, `setPurposeLegitimateInterest` refuses them, and the stock
+preference centres offer no objection for them. For a custom vendor whose
+`legIntPurposes` lists only those purposes, Accept All sets no vendor
+legitimate interest signal, `setVendorLegitimateInterest` refuses to set one,
+and a saved choice from an earlier release loses it when c15t restores it.
+
+If a custom vendor processes one of those purposes, move it from
+`legIntPurposes` to `purposes`. Earlier releases turned such an entry into a
+legitimate interest signal. After Accept All, `__tcfapi` reported it until
+c15t's state next changed, for example when the preference centre opened, or
+until a reload. IAB Europe's CMP Validator check 9 reads that report and flags
+it. The TC string never carried those bits.
+
 ## Consent scope
 
 c15t stores TCF choices per site and browser, which the TCF calls

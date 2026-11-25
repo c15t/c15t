@@ -929,6 +929,7 @@ export default defineDocsConfig({
 						'promptwatch',
 						'statable-analytics',
 						'capless-analytics',
+						'notra-analytics',
 					],
 					slug: 'web-analytics',
 					title: 'Web analytics',

@@ -186,6 +186,27 @@ describe('IAB controls with publisher restrictions', () => {
 			`button[data-testid="${id}"]`
 		) ?? null;
 
+	it('offers no objection for a custom vendor on a consent-only purpose', async () => {
+		const client = await start({
+			customVendors: [
+				{
+					id: 'consent-only',
+					legIntPurposes: [1],
+					name: 'Consent-only partner',
+					privacyPolicyUrl: 'https://example.com/privacy',
+					purposes: [2],
+				},
+			],
+		});
+		// TCF allows purpose 1 only with consent.
+		expect(find(client, 'purpose-item-1-li')).toBeNull();
+		client.ui?.root
+			.querySelector<HTMLButtonElement>('#c15t-iab-vendors-tab')
+			?.click();
+		expect(find(client, 'iab-vendor-consent-only-consent')).not.toBeNull();
+		expect(find(client, 'iab-vendor-consent-only-li')).toBeNull();
+	});
+
 	it('offers only the objection for a purpose no vendor consents to', async () => {
 		const client = await start({ publisherRestrictions: restrictions });
 		expect(find(client, 'purpose-item-7-consent')).toBeNull();

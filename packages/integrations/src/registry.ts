@@ -691,6 +691,17 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
+		docsSlug: 'notra-analytics',
+		hint: 'Cookieless web analytics',
+		integrationCategory: 'analytics',
+		integrationKind: 'web-analytics',
+		key: 'notraAnalytics',
+		label: 'Notra',
+		packageSubpath: 'notra-analytics',
+		vendor: 'notra-analytics',
+	},
+	{
+		consentCategory: 'measurement',
 		docsSlug: 'statable-analytics',
 		hint: 'Cookieless web analytics',
 		integrationCategory: 'analytics',

@@ -46,7 +46,6 @@ jobs:
       # still diffs against the last successful release, so a parent that
       # failed or is still running stays in range.
       release_affected: ${{ github.ref == 'refs/heads/canary' || startsWith(github.event.head_commit.message, 'Version Packages') }}
-      skip_mobile_device: true
 
   publish:
     name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || '' }}

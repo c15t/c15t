@@ -16,6 +16,7 @@ export {
 	applyPublisherRestrictionsToGVL,
 	introducedLegitimateInterest,
 	type IntroducedLegitimateInterest,
+	permittedLegitimateInterestPurposes,
 } from './headless/effective-vendor-list';
 export {
 	type HeadlessIABDialogDisplayModel,
@@ -39,6 +40,7 @@ export {
 } from './headless/dialog-data';
 export {
 	type IABVendorUrls,
+	resolveIABSafeUrl,
 	resolveIABVendorUrls,
 } from './headless/vendor-urls';
 export type {

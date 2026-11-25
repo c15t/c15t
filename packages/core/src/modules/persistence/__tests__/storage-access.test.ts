@@ -194,8 +194,8 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(document.cookie).toBe(cookie);
 
 		reader.clear();
-		// The subject ID and the clear epoch are the only things left.
-		expect(document.cookie).toMatch(/^c15t-sid=sub_\w+; c15t-epoch=\d+$/u);
+		// The clear epoch is the only thing left.
+		expect(document.cookie).toMatch(/^c15t-epoch=\d+$/u);
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		expect(restored.getSnapshot().noticeDismissal).toBeNull();
 	}
@@ -265,6 +265,8 @@ test('focus keeps a used subject ID when cookies cannot be read', async () => {
 	await kernel.commands.save({ measurement: false });
 	vi.advanceTimersByTime(0);
 	const own = kernel.getSnapshot().subject?.subjectId;
+	// A `c15t-sid` copy an older c15t runtime in another tab wrote is not
+	// read.
 	localStorage.setItem('c15t-sid', 'sub_other_tab');
 	vi.spyOn(document, 'cookie', 'get').mockImplementation(() => {
 		throw new DOMException('Cookies blocked', 'SecurityError');
@@ -279,7 +281,6 @@ test('focus keeps a used subject ID when cookies cannot be read', async () => {
 	window.removeEventListener('error', onError);
 	expect(errors).toEqual([]);
 	expect(kernel.getSnapshot().subject?.subjectId).toBe(own);
-	expect(localStorage.getItem('c15t-sid')).toBe(own);
 });
 
 // A visitor on a site with only necessary categories who linked an account

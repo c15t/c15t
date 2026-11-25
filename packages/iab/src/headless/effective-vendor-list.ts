@@ -25,6 +25,31 @@ type Vendor = GlobalVendorList['vendors'][number];
 const without = (list: readonly number[], purposeId: number): number[] =>
 	list.filter((id) => id !== purposeId);
 
+/**
+ * The purposes in a legitimate interest declaration that TCF lets a CMP
+ * signal. A custom vendor declares its own legal bases, so it can list
+ * purposes 1 and 3 to 6, which TCF Policies Appendix A allows only with
+ * consent. Neither the signals nor the preference UI may offer those.
+ *
+ * @param purposeIds - Purposes a vendor declares for legitimate interest.
+ * @returns The declared purposes that may use legitimate interest.
+ *
+ * @example
+ * ```ts
+ * permittedLegitimateInterestPurposes([1, 3, 7]); // [7]
+ * ```
+ *
+ * @public
+ */
+export const permittedLegitimateInterestPurposes =
+	function permittedLegitimateInterestPurposes(
+		purposeIds: readonly number[] | undefined
+	): number[] {
+		return (purposeIds ?? []).filter(
+			(id) => !CONSENT_ONLY_PURPOSES.includes(id)
+		);
+	};
+
 /** Appends a purpose once, even if the list already declares it. */
 const including = (list: readonly number[], purposeId: number): number[] =>
 	list.includes(purposeId) ? [...list] : [...list, purposeId];

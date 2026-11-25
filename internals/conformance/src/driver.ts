@@ -8,7 +8,7 @@ import type {
  *
  * Each framework package implements this interface once; the conformance
  * suites consume it to exercise behavior without knowing whether the
- * underlying UI is React, Next.js, Svelte, Vue, or Solid.
+ * underlying UI is React, Next.js, Svelte, or Vue.
  *
  * The driver's job is to own the framework-specific rendering lifecycle
  * and expose a uniform surface for the suites to interact with.
@@ -38,8 +38,7 @@ export type SupportedFramework =
 	| 'nextjs'
 	| 'tanstack-start'
 	| 'svelte'
-	| 'vue'
-	| 'solid';
+	| 'vue';
 
 /**
  * Component kinds the driver can mount. Keys map 1:1 with our prebuilt UI
@@ -144,7 +143,7 @@ export interface DriverStore {
 
 export interface TestDriver {
 	readonly framework: SupportedFramework;
-	/** Required at runtime for supported adapters; Solid is primitives-only. */
+	/** Required at runtime for supported adapters. */
 	createPolicySession?: CreatePolicySession;
 	/** Required producer and codec coverage; no framework runtime imports here. */
 	probePolicyContract?: ProbePolicyContract;

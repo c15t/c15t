@@ -1,6 +1,6 @@
 # Cross-framework parity
 
-The runner requires all 16 core stories in each configured React, Svelte, and Vue Storybook. A missing story or unavailable index fails discovery. Solid is excluded because it supplies primitives, not the core adapter contract.
+The runner requires all 16 core stories in each configured React, Svelte, and Vue Storybook. A missing story or unavailable index fails discovery.
 
 Capture starts after story rendering and interaction play finish. It includes tagged UI roots portaled into the document body, their complete descendant trees, the accessibility tree, computed styles, dialog evidence, and per-framework screenshots. JSON attachments retain each framework's capture for review.
 
@@ -105,7 +105,6 @@ PARITY_FRAMEWORKS=react,svelte,vue,astro PARITY_SKIP_PIXEL=1 \
 | `REACT_STORYBOOK_URL` | `http://127.0.0.1:6006` |
 | `SVELTE_STORYBOOK_URL` | `http://127.0.0.1:6007` |
 | `VUE_STORYBOOK_URL` | `http://127.0.0.1:6008` |
-| `SOLID_STORYBOOK_URL` | `http://127.0.0.1:6009` |
 | `ASTRO_STORYBOOK_URL` | `http://127.0.0.1:6010` |
 | `PARITY_FRAMEWORKS` | `react,svelte` |
 | `PARITY_SKIP_PIXEL` | unset |

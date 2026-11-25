@@ -19,7 +19,6 @@
  *   - `SVELTE_STORYBOOK_URL` (default http://127.0.0.1:6007)
  *   - `VUE_STORYBOOK_URL` (default http://127.0.0.1:6008)
  *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte,vue`)
- * Solid is primitives-only and excluded from this core adapter contract.
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
@@ -42,7 +41,6 @@ import { loadStorybookIndex } from '../src/storybook-index';
 const FRAMEWORK_URLS: Record<string, string> = {
 	astro: process.env.ASTRO_STORYBOOK_URL ?? 'http://127.0.0.1:6010',
 	react: process.env.REACT_STORYBOOK_URL ?? 'http://127.0.0.1:6006',
-	solid: process.env.SOLID_STORYBOOK_URL ?? 'http://127.0.0.1:6009',
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',
 	vue: process.env.VUE_STORYBOOK_URL ?? 'http://127.0.0.1:6008',
 };
@@ -84,9 +82,7 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 		string,
 		Awaited<ReturnType<typeof loadStorybookIndex>>
 	> = {};
-	for (const framework of ENABLED_FRAMEWORKS.filter(
-		(entry) => entry !== 'solid'
-	)) {
+	for (const framework of ENABLED_FRAMEWORKS) {
 		const url = FRAMEWORK_URLS[framework];
 		if (!url) {
 			throw new Error(`Unknown configured parity framework: ${framework}`);

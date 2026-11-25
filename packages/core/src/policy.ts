@@ -18,6 +18,7 @@ import type {
 	EvaluationPolicy,
 	ExplicitChoice,
 	OptionalConsentCategory,
+	RestrictionReason,
 } from './consent-record/types';
 import type { AllConsentNames } from './consent/consent-types';
 import { deepFreeze } from './libs/freeze-data';
@@ -186,15 +187,18 @@ export type PresentedSelection = Partial<
 
 /**
  * The selection a no-input `save()` confirms for the active scope: the
- * staged draft value, else the explicit value, else the model's displayed
- * default (allowed under opt-out, preselected under opt-in and IAB). It is
- * deliberately not the effective permission, which may be masked by GPC or
- * an expired grant.
+ * staged draft value, else the explicit value, else `false` when a
+ * restriction such as GPC denies it, else the model's displayed default
+ * (allowed under opt-out and `none`, preselected under opt-in and IAB). An
+ * explicit saved grant stays `true` even when masked by GPC or expired.
  */
 export const presentedSelection = function presentedSelection(
 	rule: ResolvedPolicyRule,
 	draft: PresentedSelection | null,
-	choice: ExplicitChoice | null
+	choice: ExplicitChoice | null,
+	restrictions?: Partial<
+		Record<OptionalConsentCategory, readonly RestrictionReason[]>
+	>
 ): PresentedSelection {
 	const selection: PresentedSelection = {};
 	for (const category of rule.scope) {
@@ -206,6 +210,10 @@ export const presentedSelection = function presentedSelection(
 		const decision = choice?.categories[category];
 		if (decision) {
 			selection[category] = decision.value;
+			continue;
+		}
+		if ((restrictions?.[category]?.length ?? 0) > 0) {
+			selection[category] = false;
 			continue;
 		}
 		selection[category] =

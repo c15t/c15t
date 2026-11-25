@@ -1,7 +1,7 @@
 import type { GlobalVendorList } from '@c15t/core';
 import { expect, test } from 'vitest';
 
-import { resolveIABVendorUrls } from '../headless';
+import { resolveIABSafeUrl, resolveIABVendorUrls } from '../headless';
 import { completeGVL } from './fixtures/gvl-sample';
 
 type Vendor = GlobalVendorList['vendors'][number];
@@ -65,3 +65,50 @@ test('a vendor without links gets none', () => {
 		policyUrl: '',
 	});
 });
+
+const unsafeUrls = [
+	// oxlint-disable-next-line no-script-url -- Unsafe vendor URLs exercise the link filter.
+	'javascript:alert(1)',
+	'data:text/html,hi',
+	'https://',
+	'/privacy',
+	'//evil.test',
+	// `new URL` reads these as absolute; a link resolves them on the page's site.
+	'https:example.com/privacy',
+	'https:/example.com/privacy',
+];
+
+test.each(unsafeUrls)('drops the unsafe link %s', (unsafe) => {
+	const links = vendor({
+		policyUrl: unsafe,
+		urls: [{ langId: 'en', legIntClaim: unsafe, privacy: unsafe }],
+	});
+	expect(resolveIABVendorUrls(links, 'en')).toEqual({
+		legitimateInterestUrl: null,
+		policyUrl: '',
+	});
+});
+
+test('skips an unsafe link for the next language that has a safe one', () => {
+	const mixed = vendor({
+		urls: [
+			// oxlint-disable-next-line no-script-url -- Unsafe vendor URLs exercise the link filter.
+			{ langId: 'de', privacy: 'javascript:alert(1)' },
+			{ langId: 'en', privacy: 'https://example.com/en' },
+		],
+	});
+	expect(resolveIABVendorUrls(mixed, 'de').policyUrl).toBe(
+		'https://example.com/en'
+	);
+});
+
+test.each(unsafeUrls)('resolveIABSafeUrl rejects %s', (unsafe) => {
+	expect(resolveIABSafeUrl(unsafe)).toBeNull();
+});
+
+test.each(['https://example.com/privacy', 'http://example.com/privacy'])(
+	'resolveIABSafeUrl keeps %s',
+	(safe) => {
+		expect(resolveIABSafeUrl(safe)).toBe(safe);
+	}
+);

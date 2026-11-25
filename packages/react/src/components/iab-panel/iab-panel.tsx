@@ -6,8 +6,11 @@ import type * as C15tCoreTypes from '@c15t/core';
  * Provides the IAB TCF 2.4 compliant consent dialog component.
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
-import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
-import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+import {
+	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
+} from '@c15t/iab/headless';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import {
@@ -21,7 +24,6 @@ import {
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useHeadlessIABConsentUI } from '~/component-hooks/use-headless-iab-consent-ui';
 import { useTranslations } from '~/component-hooks/use-translations';
 import { ConsentDialogTrigger } from '~/components/panel-trigger';
 import type { ConsentDialogTriggerProps } from '~/components/panel-trigger';
@@ -32,6 +34,7 @@ import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useIABConsentManager } from '~/hooks/use-iab-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
@@ -217,6 +220,27 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			gvl ? applyPublisherRestrictionsToGVL(gvl, publisherRestrictions) : null,
 		[gvl, publisherRestrictions]
 	);
+	const introduced = useMemo(
+		() =>
+			gvl
+				? introducedLegitimateInterest(gvl, publisherRestrictions)
+				: { purposes: [], vendors: [] },
+		[gvl, publisherRestrictions]
+	);
+	const purposeLegitimateInterests = useMemo(
+		() => ({
+			...Object.fromEntries(introduced.purposes.map((id) => [id, true])),
+			...iabState?.purposeLegitimateInterests,
+		}),
+		[introduced.purposes, iabState?.purposeLegitimateInterests]
+	);
+	const vendorLegitimateInterests = useMemo(
+		() => ({
+			...Object.fromEntries(introduced.vendors.map((id) => [String(id), true])),
+			...iabState?.vendorLegitimateInterests,
+		}),
+		[introduced.vendors, iabState?.vendorLegitimateInterests]
+	);
 
 	// Handlers
 	const handlePurposeToggle = useCallback(
@@ -261,29 +285,11 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		[iabState]
 	);
 
-	const handleAcceptAll = async () => {
-		try {
-			await performDialogAction('accept');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleAcceptAll = () => performDialogAction('accept');
 
-	const handleRejectAll = async () => {
-		try {
-			await performDialogAction('reject');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleRejectAll = () => performDialogAction('reject');
 
-	const handleSave = async () => {
-		try {
-			await performDialogAction('customize');
-		} catch {
-			// Keep the dialog open so a failed vendor-list request can be retried.
-		}
-	};
+	const handleSave = () => performDialogAction('customize');
 
 	const handleClose = useCallback(() => {
 		closeUI();
@@ -310,15 +316,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			return;
 		}
 
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (isDialogDismissKey(event.key)) {
-				event.preventDefault();
-				handleClose();
-			}
-		};
-
-		document.addEventListener('keydown', handleKeyDown);
-		return () => document.removeEventListener('keydown', handleKeyDown);
+		return onDialogDismiss(document.documentElement, handleClose);
 	}, [handleClose, isOpen]);
 
 	// Mount state for portal
@@ -718,13 +716,13 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 														onVendorToggle={handleVendorToggle}
 														onVendorClick={handleVendorClick}
 														vendorLegitimateInterests={
-															iabState.vendorLegitimateInterests
+															vendorLegitimateInterests
 														}
 														onVendorLegitimateInterestToggle={
 															handleVendorLegitimateInterestToggle
 														}
 														purposeLegitimateInterests={
-															iabState.purposeLegitimateInterests
+															purposeLegitimateInterests
 														}
 														onPurposeLegitimateInterestToggle={
 															handlePurposeLegitimateInterestToggle
@@ -752,14 +750,14 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 														onVendorToggle={handleVendorToggle}
 														onVendorClick={handleVendorClick}
 														vendorLegitimateInterests={
-															iabState.vendorLegitimateInterests
+															vendorLegitimateInterests
 														}
 														onVendorLegitimateInterestToggle={
 															handleVendorLegitimateInterestToggle
 														}
 														purposeLegitimateInterests={
 															row.kind === 'purpose'
-																? iabState.purposeLegitimateInterests
+																? purposeLegitimateInterests
 																: undefined
 														}
 														onPurposeLegitimateInterestToggle={
@@ -966,9 +964,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												selectedVendorId={selectedVendorId}
 												onClearSelection={() => setSelectedVendorId(null)}
 												customVendors={iabState.nonIABVendors}
-												vendorLegitimateInterests={
-													iabState.vendorLegitimateInterests
-												}
+												vendorLegitimateInterests={vendorLegitimateInterests}
 												onVendorLegitimateInterestToggle={
 													handleVendorLegitimateInterestToggle
 												}

@@ -37,7 +37,7 @@
  *   hides the change from other listeners. A commit's follow-up event is
  *   delivered before any transition a listener starts in response.
  */
-import type { ConsentKernel, KernelConfig } from '../types';
+import type { ConsentKernel, ConsentSnapshot, KernelConfig } from '../types';
 import { createChoiceRecorder } from './choice';
 import { createDispatcher } from './dispatch';
 import { createEventBus } from './events';
@@ -124,6 +124,27 @@ export const createKernel = function createKernel(
 		start: lifecycle.start,
 		transport,
 	});
+	// A save records the subject it carries, so the ID stops being
+	// provisional, with or without persistence.
+	// `dismissNotice()` sends nothing, so its acknowledgement records the ID
+	// only where persistence stores it; persistence clears the mark then.
+	let saving = false;
+	eventBus.on('command:save:started', () => {
+		saving = true;
+	});
+	eventBus.on('command:save:completed', () => {
+		saving = false;
+	});
+	const noteRecorded = ({ snapshot }: { snapshot: ConsentSnapshot }) => {
+		records.noteRecordedSubject(snapshot.subject?.subjectId);
+	};
+	eventBus.on('choice:recorded', noteRecorded);
+	eventBus.on('vendors:recorded', noteRecorded);
+	eventBus.on('notice:dismissed', (event) => {
+		if (saving) {
+			noteRecorded(event);
+		}
+	});
 	const choice = createChoiceRecorder({
 		initialDraft: buildDraft(config.initialDraft),
 		outbox,
@@ -143,12 +164,14 @@ export const createKernel = function createKernel(
 			emit: eventBus.emit,
 			on: eventBus.on,
 		},
+		getProvisionalSubject: records.getProvisionalSubject,
 		getRecordsGeneration: runtime.getGeneration,
 		getServerSnapshot: () => serverSnapshot,
 		getSnapshot: runtime.getSnapshot,
 		holdSaves: outbox.hold,
 		hydrate: records.hydrate,
 		markLive: runtime.markLive,
+		markProvisionalSubject: records.markProvisionalSubject,
 		refresh: lifecycle.refresh,
 		set: {
 			...buildSetters(runtime, config),

@@ -34,12 +34,12 @@ const fixture = () => {
 	git('config', 'user.email', 'test@example.com');
 	git('config', 'user.name', 'Test');
 	write('package.json', JSON.stringify({ workspaces: ['packages/*'] }));
-	for (const name of ['core', 'logger', 'react-native', 'web']) {
+	for (const name of ['core', 'logger', 'react', 'web']) {
 		write(
 			`packages/${name}/package.json`,
 			JSON.stringify({
 				dependencies: name === 'core' ? { '@c15t/logger': '*' } : {},
-				devDependencies: name === 'react-native' ? { '@c15t/core': '*' } : {},
+				devDependencies: name === 'react' ? { '@c15t/core': '*' } : {},
 				name: `@c15t/${name}`,
 				scripts: { build: 'build', 'check-types': 'types', test: 'test' },
 				version: '3.0.0-alpha.1',
@@ -55,7 +55,7 @@ const fixture = () => {
 	};
 	write('bun.lock', JSON.stringify(lock));
 	write('.tegami/publish-lock.yaml', 'original');
-	write('packages/react-native/ios/bridge.swift', 'original');
+	write('packages/core/src/extra.ts', 'original');
 	const commit = () => {
 		git('add', '.');
 		git('commit', '--quiet', '-m', 'change');
@@ -80,45 +80,13 @@ const fixture = () => {
 };
 
 describe('affected release selection', () => {
-	it.each([
-		{ device: false, files: ['packages/web/src/index.ts'], mobile: false },
-		{ device: false, files: ['docs/mobile.mdx'], mobile: false },
-		{
-			device: false,
-			files: ['packages/react-native/src/index.ts'],
-			mobile: false,
-		},
-		{ device: false, files: ['packages/core/src/index.ts'], mobile: false },
-		{
-			device: false,
-			files: ['packages/react-native/src/specs/NativeC15t.ts'],
-			mobile: true,
-		},
-		{
-			device: true,
-			files: ['packages/react-native/ios/bridge.swift'],
-			mobile: true,
-		},
-		{ device: true, files: ['native/core-swift/kernel.swift'], mobile: true },
-	])(
-		'selects native=$mobile and device=$device for $files',
-		({ files, mobile, device }) => {
-			const { write, commit, select } = fixture();
-			for (const path of files) {
-				write(path, 'changed');
-			}
-			commit();
-			expect(select()).toMatchObject({ mobile, mobileBrowserOrDevice: device });
-		}
-	);
-
 	it('keeps JavaScript dependents and forward build dependencies for a core change', () => {
 		const { write, commit, select, base, cwd } = fixture();
 		write('packages/core/src/index.ts', 'changed');
 		commit();
 		const plan = select();
 		expect(plan.full).toBe(false);
-		expect(plan.tests.sort()).toEqual(['@c15t/core', '@c15t/react-native']);
+		expect(plan.tests.sort()).toEqual(['@c15t/core', '@c15t/react']);
 		expect(plan.build).toContain('@c15t/logger');
 		expect(plan.tests).not.toContain('@c15t/web');
 		expect(readFileSync(join(cwd, 'outputs'), 'utf8')).toContain(
@@ -126,19 +94,20 @@ describe('affected release selection', () => {
 		);
 	});
 
-	it('includes changes from a failed earlier push and deleted native inputs', () => {
+	it('includes changes from a failed earlier push and deleted files', () => {
 		const { write, commit, select, cwd } = fixture();
-		rmSync(join(cwd, 'packages/react-native/ios/bridge.swift'));
+		rmSync(join(cwd, 'packages/core/src/extra.ts'));
 		commit();
 		write('packages/web/src/index.ts', 'later push');
 		commit();
-		expect(select()).toMatchObject({
-			mobile: true,
-			mobileBrowserOrDevice: true,
-		});
+		expect(select().tests.sort()).toEqual([
+			'@c15t/core',
+			'@c15t/react',
+			'@c15t/web',
+		]);
 	});
 
-	it('builds bumped versions without rerunning runtime or native suites', () => {
+	it('builds bumped versions without rerunning runtime suites', () => {
 		const { write, commit, select, cwd, lock } = fixture();
 		const manifest = JSON.parse(
 			readFileSync(join(cwd, 'packages/core/package.json'), 'utf8')
@@ -156,8 +125,6 @@ describe('affected release selection', () => {
 			docs: true,
 			full: false,
 			integrations: [],
-			mobile: false,
-			mobileBrowserOrDevice: false,
 			tests: [],
 			types: [],
 		});
@@ -172,8 +139,6 @@ describe('affected release selection', () => {
 		commit();
 		expect(select()).toMatchObject({
 			full: true,
-			mobile: true,
-			mobileBrowserOrDevice: true,
 		});
 	});
 
@@ -201,8 +166,6 @@ describe('affected release selection', () => {
 			commit();
 			expect(select(base)).toMatchObject({
 				full: true,
-				mobile: true,
-				mobileBrowserOrDevice: true,
 			});
 		}
 	);
@@ -211,8 +174,6 @@ describe('affected release selection', () => {
 		const { select } = fixture();
 		expect(select(undefined, ['--full'])).toMatchObject({
 			full: true,
-			mobile: true,
-			mobileBrowserOrDevice: true,
 		});
 	});
 });

@@ -42,12 +42,6 @@ export const runConformanceSuite = function runConformanceSuite(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
-	if (driver.framework === 'solid') {
-		api.test('[solid] primitives-only: consent adapter excluded', () => {
-			api.expect(driver.framework).toBe('solid');
-		});
-		return;
-	}
 	runPolicyScenarioConformance(driver, api);
 	runInitVisibilityConformance(driver, api);
 	runProviderConformance(driver, api);

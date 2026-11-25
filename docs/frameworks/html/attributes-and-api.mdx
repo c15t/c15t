@@ -72,7 +72,7 @@ call queue, `data-manual` and the page hooks described below.
 | `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Show these legal links in the banner and the preference dialog. |
 | `data-color-scheme` | `light`, `dark` or `system`. Defaults to `system`. |
 | `data-trigger` | Show the [floating trigger](/docs/frameworks/html/components/trigger) that reopens the preference dialog. |
-| `data-hide-branding` | Hide the "Secured by" tag in the banner and dialog. The IAB banner always keeps it. |
+| `data-hide-branding` | Hide the "Secured by" tag in the banner and dialog. The IAB banner keeps it unless the backend sets `branding: 'none'`. |
 | `data-shadow="false"` | Render the UI into the page instead of a shadow root, so your stylesheet applies. See [customize](/docs/frameworks/html/customize#style-it-with-your-own-stylesheet). |
 | `data-no-ui` | Start the runtime without the stock UI. `c15t.js` still downloads the UI code and CSS; load `c15t.headless.js` to skip them. The UI attributes above are ignored. |
 | `data-manual` | Do not start. Your page calls `c15t.init()` later. See [start c15t yourself](/docs/frameworks/html/api#start-c15t-yourself). |

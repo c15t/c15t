@@ -1,6 +1,6 @@
 # c15t Monorepo
 
-c15t is a developer-first consent management platform (CMP): cookie banners, consent dialogs, preference centers, consent-gated script loading, Google Consent Mode v2, and IAB TCF 2.4 for JavaScript, React, Next.js, Vue, Svelte, and Solid. This repo contains the published npm packages, the MDX source for the c15t.com docs, benchmarks, Storybook apps, and a demo.
+c15t is a developer-first consent management platform (CMP): cookie banners, consent dialogs, preference centers, consent-gated script loading, Google Consent Mode v2, and IAB TCF 2.4 for JavaScript, React, Next.js, Vue, Svelte, Astro, and TanStack Start. This repo contains the published npm packages, the MDX source for the c15t.com docs, benchmarks, Storybook apps, and a demo.
 
 This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guides live in `.agents/skills/` (symlinked into `.claude/skills/`, `.cursor/skills/`, and `.github/skills/`). Third-party skills are managed with the [skills CLI](https://skills.sh) and pinned in `skills-lock.json` — add or refresh them with `bunx skills add <owner>/<repo>` / `bunx skills update -y`, never by hand-editing their files. The first-party skills (`writing-docs`, `releasing`, `creating-a-package`) are maintained in this repo.
 
@@ -18,8 +18,6 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 | `packages/svelte` | `@c15t/svelte` — Svelte components and SvelteKit helpers (`c15t/svelte`) |
 | `packages/astro` | `@c15t/astro` — Astro integration (`c15t/astro`) |
 | `packages/browser` | `@c15t/browser` — script-tag build and stock UI for sites without a framework |
-| `packages/react-native` | `@c15t/react-native` — native iOS and Android consent SDK, released separately |
-| `packages/solid` | `@c15t/solid` — private; re-exports `@c15t/ui` primitives only |
 | `packages/integrations` | `@c15t/integrations` — consent-aware loaders for GTM, GA4, pixels, widgets |
 | `packages/scripts` | `@c15t/scripts` — deprecated v3 compatibility re-exports of `@c15t/integrations`; retire in v4 |
 | `packages/iab` | `@c15t/iab` — IAB TCF 2.4 addon (TC String, GVL, vendor consent) |
@@ -68,7 +66,7 @@ Browser tests (react, nextjs, tanstack-start) need Chromium: `bunx playwright@1.
 
 `check-types` and `test` depend on `build` in `turbo.json` — if types look stale or imports of workspace packages fail, build first.
 
-`bun run test` selects affected packages **and their dependents** against `origin/canary`, counting committed, staged, unstaged, and untracked non-ignored changes. Its Bun wrapper forwards additional Turbo arguments unchanged. Because `c15t` and `@c15t/ui` sit near the root of the graph, a change to either still fans out to most packages; the saving is real for leaf packages (`cli`, `node-sdk`, `dev-tools`, the `vue`/`svelte`/`solid` wrappers) and docs-only work. Use `bun run test:full` before a release or when you want the whole suite. On a stacked branch, override the base with `TURBO_SCM_BASE=origin/<parent> bun run test`, and fetch `origin/canary` in long-lived worktrees so the remote-tracking ref is current. `bun run test:scripts` covers root repository tooling outside the package Turbo graph and runs on every CI event.
+`bun run test` selects affected packages **and their dependents** against `origin/canary`, counting committed, staged, unstaged, and untracked non-ignored changes. Its Bun wrapper forwards additional Turbo arguments unchanged. Because `c15t` and `@c15t/ui` sit near the root of the graph, a change to either still fans out to most packages; the saving is real for leaf packages (`cli`, `node-sdk`, `dev-tools`, the `vue`/`svelte` wrappers) and docs-only work. Use `bun run test:full` before a release or when you want the whole suite. On a stacked branch, override the base with `TURBO_SCM_BASE=origin/<parent> bun run test`, and fetch `origin/canary` in long-lived worktrees so the remote-tracking ref is current. `bun run test:scripts` covers root repository tooling outside the package Turbo graph and runs on every CI event.
 
 Touching `bun.lock` or the root `package.json` marks **every** package affected, so dependency bumps always get a full run — intended, since a dependency change can affect anything. If `--affected` unexpectedly selects everything, check for an uncommitted lockfile change first.
 
@@ -156,10 +154,6 @@ select forward builds, while version-only lockfile updates and publish-lock meta
 do not select runtime suites. Real dependency changes still select full checks.
 Publishing restores CI builds and checks only the packages Tegami will upload.
 Jobs save their completed Turbo tasks under separate cache scopes after their work.
-Affected React Native JavaScript tests run in the package job. Native toolchains
-select native, Codegen, mobile build and benchmark inputs. `mobile-device.yml`
-runs advisory app builds independently on release pushes and is called by PR
-and full validation CI, so release publication does not wait for it.
 `benchmark-regression.yml` runs full runtime comparisons independently on `canary`
 pushes, nightly, and manually. Scheduled runs explicitly check out `canary` and
 activate once the workflow is on the default branch. `validation.yml` runs full

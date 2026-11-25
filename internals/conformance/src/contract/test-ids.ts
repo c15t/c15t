@@ -1,6 +1,6 @@
 /**
  * Canonical data-testid contract. Every test-id emitted by prebuilt UI in any
- * framework (@c15t/react, @c15t/svelte, @c15t/vue, @c15t/solid) MUST appear in
+ * framework (@c15t/react, @c15t/svelte, @c15t/vue) MUST appear in
  * this file. The `testid-lint` rule enforces this at build time.
  *
  * Naming rules:

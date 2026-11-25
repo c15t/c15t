@@ -4,7 +4,7 @@
  * Processes GVL data into UI-ready structures for the consent dialog.
  * This keeps the O(purposes x vendors) derivation out of framework
  * components and makes the same result consumable by React, Vue, Svelte,
- * Solid, and Astro wrappers.
+ * and Astro wrappers.
  *
  * @packageDocumentation
  */
@@ -16,7 +16,10 @@ import type {
 } from '@c15t/core';
 import { AD_TECH_PROVIDER_PURPOSES } from '@c15t/schema/types';
 
-import { applyPublisherRestrictionsToGVL } from './effective-vendor-list';
+import {
+	applyPublisherRestrictionsToGVL,
+	permittedLegitimateInterestPurposes,
+} from './effective-vendor-list';
 import type {
 	HeadlessIABDialogData,
 	HeadlessIABProcessedFeature,
@@ -26,7 +29,7 @@ import type {
 	HeadlessIABProcessedVendor,
 	HeadlessIABStateInput,
 } from './types';
-import { resolveIABVendorUrls } from './vendor-urls';
+import { resolveIABSafeUrl, resolveIABVendorUrls } from './vendor-urls';
 
 const STANDALONE_PURPOSE_ID = 1;
 
@@ -44,10 +47,23 @@ const EMPTY_DIALOG_DATA: HeadlessIABDialogData = {
 
 type GvlVendor = GlobalVendorList['vendors'][number];
 
+/**
+ * Custom vendors with only the legitimate interest purposes TCF permits,
+ * so the dialog never offers an objection on a consent-only purpose.
+ */
 const getCustomVendors = function getCustomVendors(
 	iab: HeadlessIABStateInput
 ): NonIABVendor[] {
-	return iab.nonIABVendors ?? iab.customVendors ?? [];
+	return (iab.nonIABVendors ?? iab.customVendors ?? []).map((vendor) =>
+		vendor.legIntPurposes
+			? {
+					...vendor,
+					legIntPurposes: permittedLegitimateInterestPurposes(
+						vendor.legIntPurposes
+					),
+				}
+			: vendor
+	);
 };
 
 const mapGvlVendor = function mapGvlVendor(
@@ -64,7 +80,9 @@ const mapGvlVendor = function mapGvlVendor(
 		cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 		cookieRefresh: vendor.cookieRefresh,
 		dataRetention: vendor.dataRetention,
-		deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+		deviceStorageDisclosureUrl: resolveIABSafeUrl(
+			vendor.deviceStorageDisclosureUrl
+		),
 		features: vendor.features || [],
 		id: Number(vendorId),
 		isCustom: false,
@@ -98,7 +116,7 @@ const mapCustomVendor = function mapCustomVendor(
 		legIntPurposes: vendor.legIntPurposes || [],
 		legitimateInterestUrl: null,
 		name: vendor.name,
-		policyUrl: vendor.privacyPolicyUrl,
+		policyUrl: resolveIABSafeUrl(vendor.privacyPolicyUrl) ?? '',
 		purposes: vendor.purposes || [],
 		specialFeatures: vendor.specialFeatures || [],
 		specialPurposes: [],

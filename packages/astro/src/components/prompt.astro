@@ -191,6 +191,7 @@ const model = resolvePromptModel({
 			data-position={model.position}
 			data-prompt={model.prompt}
 			data-testid="consent-banner-root"
+			data-c15t-streamed=""
 			data-variant={model.variant}
 			dir={model.textDirection}
 			hidden={hidden ? true : undefined}
@@ -313,6 +314,7 @@ const model = resolvePromptModel({
 					</div>
 				</div>
 			</div>
+			<span data-c15t-stream-end="" hidden></span>
 		</div>
 	)
 }

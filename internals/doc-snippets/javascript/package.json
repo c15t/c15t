@@ -3,8 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"check-types": "tsc --noEmit",
-		"test": "vitest run"
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@c15t/browser": "workspace:*",

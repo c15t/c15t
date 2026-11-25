@@ -216,6 +216,7 @@ export const buildIABPrompt = function buildIABPrompt(
 		{
 			class: model.classes.root,
 			'data-blocking': model.blocking ? 'true' : undefined,
+			'data-c15t-streamed': '',
 			'data-position': model.position,
 			'data-testid': 'iab-consent-banner-root',
 			'data-variant': model.variant,
@@ -230,6 +231,7 @@ export const buildIABPrompt = function buildIABPrompt(
 				{ class: model.classes.cardShell },
 				branding ? [branding, card] : [card]
 			),
+			element('span', { 'data-c15t-stream-end': '', hidden: '' }),
 		]
 	);
 	return hiddenBanner(

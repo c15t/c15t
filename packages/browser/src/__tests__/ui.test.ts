@@ -1,4 +1,4 @@
-import { policyRulePresets } from '@c15t/core';
+import { createOfflineTransport, custom, policyRulePresets } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { classes } from '../generated/styles';
@@ -324,6 +324,74 @@ describe('mountConsentUI', () => {
 		).toContain('c15t.com');
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
+		).toBeNull();
+	});
+
+	it.each(['inth', 'consent'] as const)(
+		'renders the inth mark in the banner and dialog tags for %s branding',
+		async (branding) => {
+			const { root, client } = await mount(
+				{},
+				{
+					mode: custom(
+						createOfflineTransport({ acknowledgeNoRecords: true, branding })
+					),
+				}
+			);
+
+			for (const testId of [
+				'consent-banner-branding',
+				'consent-dialog-branding',
+			]) {
+				if (testId === 'consent-dialog-branding') {
+					client.openDialog();
+				}
+				const tag = query(root, testId);
+				expect(tag.getAttribute('data-branding')).toBe('inth');
+				expect(tag.getAttribute('href')).toContain('inth.com');
+				const wordmark = tag.querySelector(`.${classes.branding.brandingInth}`);
+				const mark = wordmark?.querySelector('svg');
+				expect(mark?.getAttribute('viewBox')).toBe('0 0 88 90');
+				expect(mark?.getAttribute('aria-hidden')).toBeNull();
+				expect(mark?.getAttribute('role')).toBe('img');
+				expect(mark?.getAttribute('aria-label')).toBe('inth');
+				expect(mark?.getAttribute('height')).toBe('1em');
+				expect(wordmark?.textContent).toBe('');
+			}
+		}
+	);
+
+	it('hides the banner and dialog branding tags when branding is none', async () => {
+		const { root, client } = await mount(
+			{},
+			{
+				mode: custom(
+					createOfflineTransport({
+						acknowledgeNoRecords: true,
+						branding: 'none',
+						policyRules: [
+							{
+								...policyRulePresets.europeOptIn(),
+								categories: ['measurement', 'marketing'],
+								match: { isDefault: true },
+								scopeMode: 'strict',
+							},
+						],
+					})
+				),
+			}
+		);
+
+		expect(client.getSnapshot().branding).toBe('none');
+		expect(query(root, 'consent-banner-root')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-banner-branding"]')
+		).toBeNull();
+
+		client.openDialog();
+		expect(query(root, 'consent-dialog-root')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-dialog-branding"]')
 		).toBeNull();
 	});
 

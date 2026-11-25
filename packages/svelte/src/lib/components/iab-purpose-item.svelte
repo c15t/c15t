@@ -86,12 +86,12 @@
 	const getVendorLegitimateInterest = function getVendorLegitimateInterest(
 		vendorId: VendorId
 	): boolean {
-		return vendorLegitimateInterests[String(vendorId)] ?? true;
+		return vendorLegitimateInterests[String(vendorId)] ?? false;
 	};
 
 	// Check if purpose-level LI is allowed (not objected)
 	const isPurposeLIAllowed = $derived(
-		purposeLegitimateInterests[purpose.id] ?? true
+		purposeLegitimateInterests[purpose.id] ?? false
 	);
 
 	// Handler for purpose-level LI objection

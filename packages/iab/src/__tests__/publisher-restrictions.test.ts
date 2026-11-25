@@ -26,6 +26,7 @@ import {
 	PURPOSE_ZERO_RESTRICTION_TC_STRING,
 	UNDEFINED_RESTRICTION_TC_STRING,
 	VENDOR_ZERO_RESTRICTION_TC_STRING,
+	encodeCoreSegment,
 	readWireRestrictions,
 } from './fixtures/publisher-restrictions';
 import {
@@ -206,7 +207,7 @@ describe('publisher restrictions: encoding', () => {
 		);
 	});
 
-	test('a range across IDs missing from the list decodes to every ID in it', async () => {
+	test('vendors with a gap between them stay separate entries', async () => {
 		const sparseGVL = createMockGVL({
 			vendors: { 1: createMockVendor(1), 5: createMockVendor(5) },
 		});
@@ -221,18 +222,51 @@ describe('publisher restrictions: encoding', () => {
 			sparseGVL,
 			{ cmpId: 28 }
 		);
-		// No listed vendor sits between 1 and 5, so one range covers both.
+		// The list is scoped to the publisher's vendors, so 2 to 4 can be
+		// registered vendors that a range from 1 to 5 would restrict.
 		expect(readWireRestrictions(tcString)).toEqual([
-			{ entries: [[1, 5]], purposeId: 2, restrictionType: 0 },
+			{ entries: [1, 5], purposeId: 2, restrictionType: 0 },
 		]);
-		const [restriction] = (await decodeTCString(tcString))
-			.publisherRestrictions;
+		expect((await decodeTCString(tcString)).publisherRestrictions).toEqual([
+			{ purposeId: 2, restrictionType: 0, vendorIds: [1, 5] },
+		]);
+	});
+
+	test('adjacent vendors share a range and a gap splits it', async () => {
+		const tcString = await generateTCString(
+			createMockTCFConsent({
+				publisherRestrictions: [
+					{ purposeId: 2, restrictionType: 0, vendorIds: [1, 2, 3, 5] },
+				],
+			}),
+			createMockGVL({
+				vendors: Object.fromEntries(
+					[1, 2, 3, 5].map((id) => [id, createMockVendor(id)])
+				),
+			}),
+			{ cmpId: 28 }
+		);
+		expect(readWireRestrictions(tcString)).toEqual([
+			{ entries: [[1, 3], 5], purposeId: 2, restrictionType: 0 },
+		]);
+	});
+
+	test('a range a stored string already carries decodes to every ID in it', async () => {
+		// Versions before this fix wrote [1, 5] across a gap as one range.
+		const stored = encodeCoreSegment({
+			purposeConsents: [1, 2],
+			restrictions: [{ entries: [[1, 5]], purposeId: 2, restrictionType: 0 }],
+			vendorConsents: [1, 5],
+		});
+		const [restriction] = (await decodeTCString(stored)).publisherRestrictions;
 		expect(restriction?.vendorIds).toEqual([1, 2, 3, 4, 5]);
 		expect(
 			sameListedRestrictions(
 				[restriction ?? { purposeId: 0, restrictionType: 0, vendorIds: [] }],
 				[{ purposeId: 2, restrictionType: 0, vendorIds: [1, 5] }],
-				sparseGVL.vendors
+				createMockGVL({
+					vendors: { 1: createMockVendor(1), 5: createMockVendor(5) },
+				}).vendors
 			)
 		).toBe(true);
 	});

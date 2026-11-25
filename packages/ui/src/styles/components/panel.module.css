@@ -409,7 +409,7 @@
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;
-		padding: var(--consent-dialog-card-padding);
+		padding: var(--consent-dialog-card-padding-mobile);
 		gap: var(--consent-dialog-header-gap);
 	}
 
@@ -454,7 +454,7 @@
 	   children scroll here. The stock widget relaxes this below and scrolls
 	   its category list instead, so its action row stays in view. */
 	.content:not(:global(.headless)) {
-		padding: var(--consent-dialog-card-padding);
+		padding: var(--consent-dialog-card-padding-mobile);
 		padding-top: 0;
 		gap: var(--consent-dialog-content-gap);
 		flex: 1 1 auto;
@@ -462,6 +462,20 @@
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
+	}
+
+	/* A phone already spends the root's gutter outside the card, so inside
+	   it the card takes the mobile inset, the same edge the branding tag
+	   lines up with. */
+	@media (min-width: 640px) {
+		.header:not(:global(.headless)) {
+			padding: var(--consent-dialog-card-padding);
+		}
+
+		.content:not(:global(.headless)) {
+			padding: var(--consent-dialog-card-padding);
+			padding-top: 0;
+		}
 	}
 
 	.content:not(:global(.headless)):has(

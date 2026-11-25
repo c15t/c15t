@@ -16,6 +16,11 @@
 	--consent-banner-wall-max-width: 30rem;
 	--consent-banner-branding-tag-offset: 2rem;
 
+	/* Spacing. The header and footer share one inset, so the text and the
+	   buttons start on the same edge. */
+	--consent-banner-padding: var(--c15t-space-lg);
+	--consent-banner-padding-mobile: var(--c15t-space-md);
+
 	/* Animation variables. A banner that mounts after the page has painted
 	   fades in on the entry pair; hiding fades out on the exit pair. */
 	--consent-banner-entry-duration: var(--c15t-duration-normal);
@@ -74,6 +79,14 @@
 		-webkit-text-size-adjust: var(--consent-banner-text-size-adjust);
 		-webkit-font-smoothing: antialiased;
 		tab-size: var(--consent-banner-tab-size);
+	}
+
+	/* Each adapter marks the end of its serialized children. Keep a partial
+	   banner from painting and moving as the remaining contents arrive. */
+	.root[data-c15t-streamed]:not(:global(.headless)):not(
+			:has(> [data-c15t-stream-end])
+		) {
+		visibility: hidden;
 	}
 
 	/* The root's padding and the strip beside the branding tag are layout,
@@ -493,7 +506,7 @@
 	.header:not(:global(.headless)) {
 		display: flex;
 		flex-direction: column;
-		padding: 1rem;
+		padding: var(--consent-banner-padding-mobile);
 		color: var(--consent-banner-text-color);
 	}
 
@@ -503,7 +516,7 @@
 
 	@media (min-width: 640px) {
 		.header:not(:global(.headless)) {
-			padding: 1.5rem;
+			padding: var(--consent-banner-padding);
 		}
 	}
 
@@ -518,10 +531,8 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		justify-content: space-between;
-		padding-left: 1.25rem;
-		padding-right: 1.25rem;
-		padding-top: 1rem;
-		padding-bottom: 1rem;
+		padding-block: var(--c15t-space-md);
+		padding-inline: var(--consent-banner-padding-mobile);
 		background-color: var(--consent-banner-footer-background-color);
 	}
 
@@ -532,6 +543,7 @@
 	@media (min-width: 640px) {
 		.footer:not(:global(.headless)) {
 			flex-direction: row;
+			padding-inline: var(--consent-banner-padding);
 		}
 	}
 

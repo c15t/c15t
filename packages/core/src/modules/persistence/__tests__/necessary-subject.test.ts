@@ -30,8 +30,8 @@ import {
 } from './record-writes';
 
 /**
- * Expire every cookie. A clear keeps `<key>-sid`, so removing only the
- * records would carry one test's subject ID into the next.
+ * Expire every cookie, so no record or epoch carries one test's subject ID
+ * into the next.
  */
 const expireCookies = function expireCookies(): void {
 	for (const part of document.cookie.split(';')) {
@@ -83,10 +83,12 @@ test.each(['all', 'none'] as const)(
 		reader.clear();
 		reader.dispose();
 		restored.dispose();
-		// A clear removes the acknowledgement and keeps the subject ID.
+		// A clear removes the acknowledgement, the only record that stored
+		// the subject ID, so the next page load starts a new one.
 		const cleared = createConsentKernel({ consentCategories: ['necessary'] });
 		const clearedHandle = createPersistence({ kernel: cleared });
-		expect(cleared.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
+		expect(cleared.getSnapshot().subject?.subjectId).toMatch(/^sub_/u);
+		expect(cleared.getSnapshot().subject?.subjectId).not.toBe('canonical');
 		expect(cleared.getSnapshot().noticeDismissal).toBeNull();
 		clearedHandle.dispose();
 		cleared.dispose();
@@ -149,9 +151,10 @@ test('a response arriving after another handle clears does not restore the visit
 	await vi.advanceTimersByTimeAsync(0);
 	const restored = createConsentKernel({ consentCategories: ['necessary'] });
 	const reader = createPersistence({ kernel: restored });
-	// The acknowledgement stays cleared. The ID is the visitor's, and a
-	// clear keeps it, so the server's name for it carries over.
-	expect(restored.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
+	// The acknowledgement stays cleared, and no record stores the server's
+	// name for the ID, so the next page load starts a new one.
+	expect(restored.getSnapshot().subject?.subjectId).toMatch(/^sub_/u);
+	expect(restored.getSnapshot().subject?.subjectId).not.toBe('canonical');
 	expect(restored.getSnapshot().noticeDismissal).toBeNull();
 	reader.dispose();
 	restored.dispose();
@@ -273,7 +276,7 @@ test.each(['consent', 'vendors'] as const)(
 );
 
 test.each([undefined, 'custom-consent'])(
-	'cookie-only identity survives reload and clear with storage key %s',
+	'cookie-only identity survives reload, and a clear removes it, with storage key %s',
 	async (storageKey) => {
 		const storageConfig = { storageKey };
 		const kernel = createConsentKernel({
@@ -300,13 +303,14 @@ test.each([undefined, 'custom-consent'])(
 		const reader = createPersistence({ kernel: restored, storageConfig });
 		expect(restored.getSnapshot().subject?.subjectId).toBe('cookie-visitor');
 		reader.clear();
-		// Only `<key>-sid` still names the visitor after the clear.
+		// Nothing stored names the visitor after the clear.
 		const cleared = readStoredRecordsFromCookieHeader(
 			document.cookie,
 			storageConfig,
 			Date.now()
 		);
-		expect(cleared.subject).toEqual({ subjectId: 'cookie-visitor' });
+		expect(cleared.subject).toBeNull();
+		expect(document.cookie).not.toContain('cookie-visitor');
 		expect(cleared.noticeDismissal).toBeNull();
 		expect(
 			getRawCookieValue(`${resolveStorageKeys(storageConfig).notice}-subject`)
@@ -681,13 +685,10 @@ test.each(['notice-subject', 'all'] as const)(
 		handle.dispose();
 		kernel.dispose();
 		expect(getRawCookieValue(keys.noticeSubject)).toContain(`sid=${startup}`);
-		expect(getRawCookieValue(keys.subject)).toBe(
-			dropped === 'all' ? startup : 'canonical'
-		);
+		expect(getRawCookieValue(keys.subject)).toBeNull();
 
-		// The server renders from the cookies alone. The records win there,
-		// so the render still names the startup ID, but a subject cookie
-		// already present is never replaced.
+		// The server renders from the cookies alone, so the render still
+		// names the startup ID, and it sets no cookie.
 		const subject = resolveRequestSubject({
 			now: Date.now(),
 			request: { cookie: document.cookie, url: 'https://example.com/' },
@@ -712,11 +713,8 @@ test.each(['notice-subject', 'all'] as const)(
 		});
 		expect(seeded.getSnapshot().subject?.subjectId).toBe('canonical');
 		expect(seeded.getSnapshot().explicitChoice).toBeNull();
-		expect(localStorage.getItem(keys.subject)).toBe('canonical');
-		// Startup leaves a subject cookie it cannot tell is stale alone.
-		expect(getRawCookieValue(keys.subject)).toBe(
-			dropped === 'all' ? startup : 'canonical'
-		);
+		expect(localStorage.getItem(keys.subject)).toBeNull();
+		expect(getRawCookieValue(keys.subject)).toBeNull();
 		seededHandle.dispose();
 		seeded.dispose();
 
@@ -1142,6 +1140,7 @@ test.each([
 			undefined,
 			now
 		);
+		// A copy c15t 3.2 stored before any choice. Nothing reads it now.
 		localStorage.setItem(keys.subject, 'sub_a');
 		document.cookie = `${keys.subject}=sub_a; path=/`;
 		const sent: unknown[] = [];
@@ -1186,7 +1185,15 @@ test.each([
 			other === 'a consent record with the same subject'
 				? linked
 				: { subjectId: 'sub_a' };
-		expect(reloaded.getSnapshot().subject).toEqual(expected);
+		// Only the consent record still stores the ID. Without it a reload
+		// starts a new one, with no linked account.
+		const kept = other === 'a consent record with the same subject';
+		const reloadedSubject = reloaded.getSnapshot().subject;
+		expect(reloadedSubject?.subjectId).toMatch(/^sub_/u);
+		expect(reloadedSubject?.subjectId === 'sub_a').toBe(kept);
+		expect(reloadedSubject?.externalId).toBe(
+			kept ? linked.externalId : undefined
+		);
 		const after = kernel.getSnapshot();
 		expect(after.subject).toEqual(expected);
 		expect(after.explicitChoice).toEqual(before.explicitChoice);
@@ -1479,8 +1486,9 @@ test.each([
 });
 
 // Removing the consent receipt is the one way back. With no other record
-// carrying a subject, the linked account goes with it and the ID stays, as
-// a clear leaves it, whichever source gave the account.
+// carrying a subject, the linked account goes with it and the running tab
+// keeps the ID in memory, as a clear leaves it, whichever source gave the
+// account. Nothing stores it, so a reload starts a new one.
 test.each([
 	'a server gave after the last read',
 	'the tab stored on the receipt',
@@ -1518,10 +1526,7 @@ test.each([
 		const { subject: before } = tab.getSnapshot();
 		expect(before?.externalId).toBe('account-c');
 		// The receipt is the only record: no acknowledgement, no vendors.
-		expect(Object.keys(localStorage).sort()).toEqual([
-			keys.consent,
-			keys.subject,
-		]);
+		expect(Object.keys(localStorage)).toEqual([keys.consent]);
 
 		localStorage.removeItem(keys.consent);
 		document.cookie = `${keys.consent}=; max-age=0; path=/`;
@@ -1532,9 +1537,11 @@ test.each([
 		expect(tab.getSnapshot().explicitChoice).toBeNull();
 		const reloaded = identityTab({ ...options }, []);
 		createPersistence({ kernel: reloaded }).dispose();
-		expect(reloaded.getSnapshot().subject).toEqual({
-			subjectId: before?.subjectId,
-		});
+		expect(reloaded.getSnapshot().subject?.subjectId).toMatch(/^sub_/u);
+		expect(reloaded.getSnapshot().subject?.subjectId).not.toBe(
+			before?.subjectId
+		);
+		expect(reloaded.getSnapshot().subject?.externalId).toBeUndefined();
 		reloaded.dispose();
 		handle.dispose();
 		tab.dispose();
