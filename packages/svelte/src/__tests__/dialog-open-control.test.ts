@@ -108,4 +108,43 @@ describe('ConsentDialog showCloseButton', () => {
 		// Nothing was recorded, so the policy still owes a choice.
 		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
 	});
+
+	test('falls back to English when common.close is missing or blank', async () => {
+		const fallbackOptions = {
+			...options,
+			prefetch: {
+				...policyFixture(),
+				initialTranslations: {
+					language: 'de',
+					translations: {
+						common: {
+							acceptAll: 'Alle akzeptieren',
+							close: '   ',
+							customize: 'Anpassen',
+							rejectAll: 'Alle ablehnen',
+							save: 'Speichern',
+							securedBy: 'Gesichert durch',
+						},
+						consentManagerDialog: {
+							description: 'Beschreibung',
+							title: 'Datenschutz',
+						},
+						consentTypes: {},
+						cookieBanner: {
+							description: 'Banner',
+							title: 'Cookies',
+						},
+					},
+				},
+			},
+		} as ConsentManagerOptions;
+		render(Fixture, {
+			open: true,
+			options: fallbackOptions,
+			showCloseButton: true,
+		});
+		await waitFor(() => expect(query(CLOSE)).not.toBeNull());
+
+		expect(query(CLOSE)?.getAttribute('aria-label')).toBe('Close');
+	});
 });

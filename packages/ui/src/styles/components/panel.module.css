@@ -414,18 +414,19 @@
 	/* The optional close button sits in the header's top corner, level
 	   with the title. The header's end padding keeps the title and the
 	   description clear of it. */
-	.header:not(:global(.headless)):has(> .closeButton) {
+	.header:not(:global(.headless)):has(> .closeButton:not(:global(.headless))) {
 		position: relative;
 		padding-inline-end: calc(
-			var(--consent-dialog-card-padding) + 1rem + 2 * var(--c15t-space-xs)
+			var(--consent-dialog-card-padding-mobile) + 1rem + 2 *
+				var(--c15t-space-xs)
 		);
 	}
 
 	.header:not(:global(.headless)) > .closeButton:not(:global(.headless)) {
 		position: absolute;
-		top: calc(var(--consent-dialog-card-padding) - var(--c15t-space-xs));
+		top: calc(var(--consent-dialog-card-padding-mobile) - var(--c15t-space-xs));
 		inset-inline-end: calc(
-			var(--consent-dialog-card-padding) - var(--c15t-space-xs)
+			var(--consent-dialog-card-padding-mobile) - var(--c15t-space-xs)
 		);
 		margin: 0;
 	}
@@ -461,6 +462,18 @@
 
 	:global(.c15t-dark) .closeButton:not(:global(.headless)):hover {
 		color: var(--consent-dialog-foreground-color-dark);
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.closeButton:not(:global(.headless)):hover {
+			background-color: transparent;
+			color: var(--consent-dialog-muted-color);
+		}
+
+		:global(.c15t-dark) .closeButton:not(:global(.headless)):hover {
+			color: var(--consent-dialog-muted-color-dark);
+		}
 	}
 
 	.title:not(:global(.headless)) {
@@ -516,6 +529,21 @@
 	@media (min-width: 640px) {
 		.header:not(:global(.headless)) {
 			padding: var(--consent-dialog-card-padding);
+		}
+
+		.header:not(:global(.headless)):has(
+				> .closeButton:not(:global(.headless))
+			) {
+			padding-inline-end: calc(
+				var(--consent-dialog-card-padding) + 1rem + 2 * var(--c15t-space-xs)
+			);
+		}
+
+		.header:not(:global(.headless)) > .closeButton:not(:global(.headless)) {
+			top: calc(var(--consent-dialog-card-padding) - var(--c15t-space-xs));
+			inset-inline-end: calc(
+				var(--consent-dialog-card-padding) - var(--c15t-space-xs)
+			);
 		}
 
 		.content:not(:global(.headless)) {

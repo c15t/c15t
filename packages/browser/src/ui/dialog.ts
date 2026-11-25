@@ -1,4 +1,7 @@
-import { resolveConsentPresentation } from '@c15t/core';
+import {
+	defaultTranslationConfig,
+	resolveConsentPresentation,
+} from '@c15t/core';
 import type { ConsentSnapshot } from '@c15t/core';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
@@ -151,7 +154,11 @@ export const createDialog = function createDialog(
 											h(
 												'button',
 												{
-													'aria-label': t.common.close,
+													'aria-label':
+														t.common.close?.trim() ||
+														defaultTranslationConfig.translations.en?.common
+															?.close ||
+														'Close',
 													class: noStyle ? '' : styles.closeButton,
 													'data-testid': 'consent-dialog-close',
 													onclick: () => ctx.client.closeDialog(),

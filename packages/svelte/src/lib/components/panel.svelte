@@ -62,6 +62,11 @@
 			defaultTranslationConfig
 		)
 	);
+	const closeLabel = $derived(
+		translations.common?.close?.trim() ||
+			defaultTranslationConfig.translations.en?.common?.close ||
+			'Close'
+	);
 	const textDirection = $derived(
 		getTextDirection(consent.state.translationConfig?.defaultLanguage)
 	);
@@ -276,7 +281,7 @@
 								type="button"
 								class={closeButtonStyle.className || ''}
 								style={toStyleAttribute(closeButtonStyle.style)}
-								aria-label={translations.common.close}
+								aria-label={closeLabel}
 								data-testid="consent-dialog-close"
 								onclick={handleClose}
 							>

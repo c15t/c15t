@@ -95,7 +95,8 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 			{...buttonProps}
 			type="button"
 			aria-label={
-				common.close || defaultTranslationConfig.translations.en.common.close
+				common.close?.trim() ||
+				defaultTranslationConfig.translations.en.common.close
 			}
 			data-testid="consent-dialog-close"
 			onClick={(event) => {

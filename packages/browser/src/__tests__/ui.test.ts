@@ -805,6 +805,25 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it('falls back to English when common.close is blank', async () => {
+		const { root, client } = await mount(
+			{ dialog: { showCloseButton: true } },
+			{
+				i18n: {
+					translations: {
+						en: {
+							common: { close: '   ' },
+						},
+					},
+				},
+			}
+		);
+		client.openDialog();
+
+		const close = query<HTMLButtonElement>(root, 'consent-dialog-close');
+		expect(close.getAttribute('aria-label')).toBe('Close');
+	});
+
 	it('closes the preference centre on Escape pressed outside it', async () => {
 		const { root, client } = await mount(
 			{},
