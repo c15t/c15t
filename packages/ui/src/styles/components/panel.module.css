@@ -446,6 +446,11 @@
 			color var(--c15t-duration-fast) var(--c15t-easing-out);
 	}
 
+	.closeButton:not(:global(.headless)) > svg {
+		width: 1rem;
+		height: 1rem;
+	}
+
 	.closeButton:not(:global(.headless)):hover {
 		background-color: var(--c15t-surface-hover);
 		color: var(--consent-dialog-foreground-color);

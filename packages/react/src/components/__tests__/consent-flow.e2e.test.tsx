@@ -647,6 +647,71 @@ describe('Consent Flow E2E Tests', () => {
 			expect(query('consent-dialog-title')?.textContent).toBe('Your privacy');
 		});
 
+		test('ConsentDialog.Header with asChild and falsy children renders nothing', async () => {
+			const consoleError = vi
+				.spyOn(console, 'error')
+				.mockImplementation(() => undefined);
+			try {
+				render(
+					<ConsentProvider options={defaultOptions}>
+						<ConsentDialog.Root open={true}>
+							<ConsentDialog.Card>
+								<ConsentDialog.Header
+									asChild
+									showCloseButton
+								>
+									{false}
+								</ConsentDialog.Header>
+							</ConsentDialog.Card>
+						</ConsentDialog.Root>
+					</ConsentProvider>
+				);
+
+				await vi.waitFor(() => {
+					expect(query('consent-dialog-card')).toBeInTheDocument();
+				});
+				expect(query('consent-dialog-header')).not.toBeInTheDocument();
+				expect(query('consent-dialog-close')).not.toBeInTheDocument();
+				expect(consoleError).not.toHaveBeenCalled();
+			} finally {
+				consoleError.mockRestore();
+			}
+		});
+
+		test('uses localized common.close from initialTranslations', async () => {
+			render(
+				<ConsentProvider
+					options={{
+						...defaultOptions,
+						prefetch: {
+							...policyFixture(),
+							initialTranslations: {
+								language: 'fr',
+								translations: {
+									common: { close: 'Fermer' },
+									consentManagerDialog: {},
+									consentTypes: {},
+									cookieBanner: {},
+								},
+							},
+						},
+					}}
+				>
+					<ConsentDialog
+						open={true}
+						showCloseButton
+					/>
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-close')).toBeInTheDocument();
+			});
+			expect(query('consent-dialog-close')?.getAttribute('aria-label')).toBe(
+				'Fermer'
+			);
+		});
+
 		test('leaves nothing open once the visitor has chosen', async () => {
 			render(
 				<ConsentProvider options={defaultOptions}>

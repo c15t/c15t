@@ -21,9 +21,10 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const createCloseIcon = function createCloseIcon(): SVGSVGElement {
 	const icon = svg('0 0 24 24', [], {
 		fill: 'none',
+		height: '1rem',
 		stroke: 'currentColor',
 		'stroke-width': 2,
-		style: 'height:1rem;width:1rem',
+		width: '1rem',
 	});
 	const path = document.createElementNS(SVG_NS, 'path');
 	path.setAttribute('d', 'M18 6 6 18M6 6l12 12');

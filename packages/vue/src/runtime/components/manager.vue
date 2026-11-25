@@ -274,7 +274,8 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 							>
 								<svg
 									aria-hidden="true"
-									style="width: 1rem; height: 1rem"
+									width="1rem"
+									height="1rem"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"

@@ -95,7 +95,7 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 			{...buttonProps}
 			type="button"
 			aria-label={
-				common.close?.trim() ||
+				common?.close?.trim() ||
 				defaultTranslationConfig.translations.en.common.close
 			}
 			data-testid="consent-dialog-close"
@@ -106,7 +106,8 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 		>
 			<svg
 				aria-hidden="true"
-				style={{ height: '1rem', width: '1rem' }}
+				width="1rem"
+				height="1rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -156,17 +157,26 @@ const ConsentDialogHeader = createForwardRef<
 		const closeButton = <ConsentDialogCloseButton noStyle={props.noStyle} />;
 		// With `asChild` the header is its one child element, so the button
 		// goes inside that element; two children would make `Slot` render
-		// nothing.
-		content =
-			props.asChild && isValidElement<{ children?: ReactNode }>(children) ? (
-				// oxlint-disable-next-line react/no-clone-element -- Keeps the child's ref and key for `Slot` to merge; rebuilding it with createElement would drop the ref.
-				cloneElement(children, undefined, children.props.children, closeButton)
-			) : (
+		// nothing, and a falsy child must stay falsy so `Slot` returns null
+		// instead of cloning props onto a Fragment.
+		if (props.asChild) {
+			content = isValidElement<{ children?: ReactNode }>(children)
+				? // oxlint-disable-next-line react/no-clone-element -- Keeps the child's ref and key for `Slot` to merge; rebuilding it with createElement would drop the ref.
+					cloneElement(
+						children,
+						undefined,
+						children.props.children,
+						closeButton
+					)
+				: children;
+		} else {
+			content = (
 				<>
 					{children}
 					{closeButton}
 				</>
 			);
+		}
 	}
 	return (
 		<Box

@@ -286,7 +286,8 @@
 								onclick={handleClose}
 							>
 								<CloseIcon
-									style="height:1rem;width:1rem"
+									width="1rem"
+									height="1rem"
 									aria-hidden={true}
 								/>
 							</button>

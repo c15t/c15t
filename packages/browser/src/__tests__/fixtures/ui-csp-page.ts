@@ -24,17 +24,19 @@ document.addEventListener('securitypolicyviolation', (event) => {
 });
 
 const options = readScriptOptions(document.getElementById('c15t-loader'));
-const nonce =
-	new URLSearchParams(location.search).get('nonce') === 'off'
-		? undefined
-		: options.nonce;
+const search = new URLSearchParams(location.search);
+const nonce = search.get('nonce') === 'off' ? undefined : options.nonce;
 const client = createConsentClient(
 	{
 		...options,
 		mode: 'offline',
 		nonce,
 		overrides: { country: 'DE' },
-		ui: { disableAnimation: true },
+		ui: {
+			dialog:
+				search.get('close') === 'on' ? { showCloseButton: true } : undefined,
+			disableAnimation: true,
+		},
 	},
 	{ mountUI: mountConsentUI }
 );

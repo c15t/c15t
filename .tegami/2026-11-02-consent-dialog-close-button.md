@@ -21,8 +21,8 @@ the dialog.
 
 It is off by default, so existing dialogs look the same.
 
-- React and Next.js: `<ConsentDialog showCloseButton />`. In a composed
-  dialog, `<ConsentDialog.Header showCloseButton>` renders it after the
+- React, Next.js and TanStack Start: `<ConsentDialog showCloseButton />`. In a
+  composed dialog, `<ConsentDialog.Header showCloseButton>` renders it after the
   header's children.
 - Vue and Nuxt: `dialogShowCloseButton: true` in the plugin options.
 - Svelte and SvelteKit: `<ConsentDialog showCloseButton />`.

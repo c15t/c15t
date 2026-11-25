@@ -143,12 +143,12 @@ group: reference
   | --- | --- | --- |
   | `Root` | The dialog in a portal on `document.body`, with its open state, backdrop, focus trap, scroll lock and Escape to close. | `open`, `models` (default `['opt-in', 'opt-out', 'none']`), `overlay` (a node, or `false` for none), `noStyle`, `disableAnimation`, `scrollLock`, `trapFocus`, `uiSource` (default `'dialog'`) |
   | `Card` | The panel `div`. | `className`, `style`, `noStyle` |
-  | `Header` | A `div` for the title and copy. | `asChild` |
+  | `Header` | A `div` for the title and copy. | `showCloseButton`, `asChild` |
   | `HeaderTitle` | An `h2` with `id="consent-dialog-title"`. | children replace the text |
   | `HeaderDescription` | A `div` with `id="consent-dialog-description"` and the legal links. | `legalLinks`, `asChild` |
   | `Content` | A `div` for `ConsentWidget`. | `asChild` |
   | `Footer` | A `div` with the branding tag, unless you pass children or `hideBranding`. | `hideBranding`, `asChild` |
-  | `ConsentCustomizationCard` | The stock card with all of the above. | `legalLinks`, `hideBranding`, `noStyle` |
+  | `ConsentCustomizationCard` | The stock card with all of the above. | `legalLinks`, `hideBranding`, `showCloseButton`, `noStyle` |
   | `Overlay` | The backdrop. `Root` already renders it. | none |
 
   {/* example: fragment */}

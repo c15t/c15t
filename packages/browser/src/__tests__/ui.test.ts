@@ -794,6 +794,7 @@ describe('mountConsentUI', () => {
 		expect(close.getAttribute('aria-label')).toBe('Close');
 		expect(close.getAttribute('part')).toBe('consentDialogCloseButton');
 		expect(close.classList).toContain('brand-close');
+		expect(close.querySelector('svg')?.getAttribute('style')).toBeNull();
 		expect(query(root, 'consent-dialog-header').contains(close)).toBe(true);
 
 		close.click();
