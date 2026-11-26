@@ -133,7 +133,10 @@ a warning; move it to `paths.origin` when you upgrade.
 instead. Set it only when your proxy overwrites those headers.
 
 In `hosted()` mode, the backend's `/init` gets the resolved location,
-language and GPC, the `user-agent` and, while the visitor has no stored
+language and GPC, the `user-agent`, speculative prefetch headers
+(`sec-purpose`, `purpose`, `x-purpose`, `x-moz`, `next-router-prefetch` and
+`x-middleware-prefetch`) so the backend skips session reporting on prefetches,
+and, while the visitor has no stored
 choice, the experiment arm. A backend on another origin, over `https` or a
 loopback host, also gets the consent cookie (`cookieName`, never the rest of
 the cookie jar) and any `forwardHeaders`. Nothing identifying crosses plain

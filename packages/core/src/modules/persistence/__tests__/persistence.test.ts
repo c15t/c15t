@@ -542,6 +542,105 @@ describe('persistence: a server seed that missed a clear', () => {
 		expect(categories?.experience).toBeUndefined();
 		handle.dispose();
 	});
+
+	test('adopts the new subject when another tab cleared and saved under a different ID', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW + 1000);
+
+		vi.setSystemTime(NOW + 2000);
+		const otherTab = createConsentKernel({ now: NOW + 2000 });
+		const otherHandle = createPersistence({ kernel: otherTab });
+		await otherTab.commands.identify({ externalId: 'bob' });
+		await otherTab.commands.save({ marketing: false });
+		flushWrites();
+		const newSubject = otherTab.getSnapshot().subject;
+		otherHandle.dispose();
+
+		expect(newSubject?.subjectId).toBeTruthy();
+		expect(newSubject?.subjectId).not.toBe(seed.subject?.subjectId);
+
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...seed,
+				subject: { ...seed.subject, externalId: 'alice' },
+			},
+			now: NOW + 2000,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+		).toBe(false);
+		expect(kernel.getSnapshot().subject).toEqual(newSubject);
+		handle.dispose();
+	});
+
+	test('voids a seeded grant confirmed in the exact millisecond of a cross-tab clear', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW);
+
+		const kernel = createConsentKernel({
+			initialRecords: seed,
+			now: NOW,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		handle.dispose();
+	});
+
+	test('keeps the seeded subject ID when a mixed seed has a decision that outlives the clear', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW + 1000);
+
+		vi.setSystemTime(NOW + 2000);
+		const otherTab = createConsentKernel({ now: NOW + 2000 });
+		const otherHandle = createPersistence({ kernel: otherTab });
+		await otherTab.commands.identify({ externalId: 'bob' });
+		await otherTab.commands.save({ marketing: false });
+		flushWrites();
+		const otherSubject = otherTab.getSnapshot().subject;
+		otherHandle.dispose();
+
+		const marketingDecision = seed.choice?.categories.marketing;
+		if (!marketingDecision) {
+			throw new Error('Expected seeded marketing decision');
+		}
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...seed,
+				choice: {
+					categories: {
+						...seed.choice?.categories,
+						measurement: {
+							...marketingDecision,
+							confirmedAt: NOW + 1500,
+							value: false,
+						},
+					},
+					version: 3,
+				},
+				subject: { ...seed.subject, externalId: 'alice' },
+			},
+			now: NOW + 2000,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		expect(kernel.getSnapshot().subject?.subjectId).toBe(
+			seed.subject?.subjectId
+		);
+		expect(kernel.getSnapshot().subject?.subjectId).not.toBe(
+			otherSubject?.subjectId
+		);
+		expect(kernel.getSnapshot().subject).not.toHaveProperty('externalId');
+		handle.dispose();
+	});
 });
 
 describe('persistence: dispose', () => {

@@ -36,7 +36,9 @@ policy for the browser. `local()` resolves it at build time, because it
 needs no request.
 
 In `hosted()` mode the render's `/init` request carries the resolved
-location, language and GPC, the `user-agent`, the mode's configured consent
+location, language and GPC, the `user-agent`, speculative prefetch headers
+(`sec-purpose`, `purpose`, `x-purpose`, `x-moz`, `next-router-prefetch` and
+`x-middleware-prefetch`), the mode's configured consent
 headers and, while the visitor has no stored choice, the experiment arm. Over
 `https` or to a loopback host it also carries the consent cookie, never the
 rest of the cookie jar; over plain HTTP to any other host it carries no

@@ -565,12 +565,15 @@ export const mountPersistence = function mountPersistence(
 	 * Another tab can clear after the server read the cookies. The browser's
 	 * clear epoch then voids the seeded records from before it, as it voids
 	 * stored ones, and a record it voids yields to what storage holds. A
-	 * seeded decision from the clearing millisecond is kept: the seed does
-	 * not say whether its writer had seen the clear. Seeded decisions that
-	 * outlive the clear stay the seed, so a stored grant still cannot
-	 * replace them. From another handle's queue that missed the clear, only
-	 * records made since count. The seeded subject keeps its ID alone, as after any
-	 * clear.
+	 * seeded decision from the clearing millisecond is also voided because the
+	 * seed does not say whether its writer had seen the clear; any post-clear
+	 * choice stored at that millisecond still arrives from `records.choice`.
+	 * Seeded decisions that outlive the clear stay the seed, so a stored grant
+	 * still cannot replace them. From another handle's queue that missed the
+	 * clear, only records made since count. When the clear voided every seeded
+	 * decision and storage holds a subject recorded after the clear, startup
+	 * adopts that stored subject; otherwise the seeded subject keeps its ID
+	 * alone, as after any clear.
 	 *
 	 * The read also becomes what the writer starts from: the kernel's
 	 * records stay the seed's, and storage is what it was read as here.
@@ -579,6 +582,7 @@ export const mountPersistence = function mountPersistence(
 	 * Returns the subject the stored records carry, `null` for none.
 	 */
 	let seedMissedClear = false;
+	let seedClearedAll = false;
 	const applyNewerStoredRecords =
 		function applyNewerStoredRecords(): ConsentSubject | null {
 			const at = now();
@@ -594,7 +598,7 @@ export const mountPersistence = function mountPersistence(
 			const choice = choiceSinceEpoch(
 				snapshot.explicitChoice,
 				read.epoch,
-				true
+				false
 			);
 			const choicePatch = seededChoicePatch(
 				snapshot.explicitChoice,
@@ -623,6 +627,7 @@ export const mountPersistence = function mountPersistence(
 				notice !== snapshot.noticeDismissal,
 				vendors !== snapshot.vendorChoice,
 			].includes(true);
+			seedClearedAll = seedMissedClear && !choice && !notice && !vendors;
 			const subject = seedMissedClear
 				? seededSubjectCut(snapshot.subject)
 				: undefined;
@@ -851,12 +856,16 @@ export const mountPersistence = function mountPersistence(
 			// do not hold, so it did not come from them: it stands, whole.
 			return [subject, false];
 		}
-		if (!subject?.subjectId || fromCookiesAlone(subject.subjectId)) {
+		if (
+			!subject?.subjectId ||
+			seedClearedAll ||
+			fromCookiesAlone(subject.subjectId)
+		) {
 			// Hydration is deferred: take the subject it will bring, whole. A
-			// seed from a consent cookie older than storage, such as one whose
-			// rewrite the browser dropped, yields to the subject storage
-			// agrees on, linked identity included: the seed's belongs to the
-			// ID it names.
+			// seed from a consent cookie older than storage (or whose decisions
+			// were all voided by a cross-tab clear) yields to the subject
+			// storage agrees on, linked identity included: the seed's belongs
+			// to the ID it names.
 			return [recorded, false];
 		}
 		return [subject, false];

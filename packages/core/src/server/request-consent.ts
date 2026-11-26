@@ -45,6 +45,7 @@ import {
 	isSpeculativeRequest,
 	journeyDomainFrom,
 	POLICY_CONTRACT_VERSION,
+	SPECULATION_HEADERS,
 } from '@c15t/schema/types';
 import type {
 	ConsentManifest,
@@ -384,6 +385,19 @@ const readHeader = function readHeader(
 		headers as Record<string, string | string[] | undefined>
 	).find(([key]) => key.toLowerCase() === lower)?.[1];
 	return Array.isArray(value) ? value[0] : value;
+};
+
+const readSpeculationHeaders = function readSpeculationHeaders(
+	headers: RequestHeaderSource | undefined
+): Record<string, string> {
+	const forwarded: Record<string, string> = {};
+	for (const name of SPECULATION_HEADERS) {
+		const value = readHeader(headers, name);
+		if (value) {
+			forwarded[name] = value;
+		}
+	}
+	return forwarded;
 };
 
 const toHeaders = function toHeaders(
@@ -1035,6 +1049,7 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 			if (userAgent) {
 				headers['user-agent'] = userAgent;
 			}
+			Object.assign(headers, readSpeculationHeaders(options.request.headers));
 			const identity = identityHeaders(target);
 			// A remote `x-forwarded-for` is the trusted hop chain, not a
 			// credential; the cookie and named headers are.
