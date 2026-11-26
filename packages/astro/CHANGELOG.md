@@ -1,3 +1,30 @@
+## @c15t/astro@3.3.0
+
+### Prevent partially parsed consent banners from shifting
+
+Keep styled React, Vue/Nuxt, Svelte and Astro consent banners hidden until
+their serialized contents finish parsing in browsers that support CSS
+`:has()`. Vue/Nuxt, Svelte and Astro IAB banners now do the same, as React's
+already did. Completed banners appear without waiting for hydration.
+
+Banner roots now end with a hidden `[data-c15t-stream-end]` element.
+Selectors such as `:last-child` and Tailwind `last:` on the root's children
+match that marker. Target the content's part, class or test ID instead.
+
+### Stop storing `c15t-sid` before a choice
+
+c15t no longer writes the `c15t-sid` cookie or localStorage key on first load.
+The subject ID is stored with the visitor's first saved record, and a leftover
+`c15t-sid` is removed on start. `identify()` before the first save is sent
+with that save.
+
+`resolveRequestSubject()` is deprecated, returns `null` without a saved
+consent record cookie, and no longer returns a cookie to set. Each adapter's
+`subjectCookie` option (along with the cookie-writing `storage` and
+`trustForwardedHeaders` middleware options) does nothing. v4 removes them.
+
+If your cookie policy lists `c15t-sid`, remove it.
+
 ## @c15t/astro@3.2.0
 
 ### Diagnose slow Astro consent setup
