@@ -1,3 +1,49 @@
+## c15t@3.3.0-canary.0 (canary)
+
+### Add an optional close button to the preference dialog
+
+The stock preference dialog can now show a close button in its header, like
+the IAB dialog. It closes the dialog without saving, the same as Escape: the
+banner comes back if the policy still owes a choice. On touch screens it is
+the only way out besides a consent choice, since the backdrop does not close
+the dialog.
+
+It is off by default, so existing dialogs look the same.
+
+- React, Next.js and TanStack Start: `<ConsentDialog showCloseButton />`. In a
+  composed dialog, `<ConsentDialog.Header showCloseButton>` renders it after the
+  header's children.
+- Vue and Nuxt: `dialogShowCloseButton: true` in the plugin options.
+- Svelte and SvelteKit: `<ConsentDialog showCloseButton />`.
+- Script tag: `ui: { dialog: { showCloseButton: true } }`.
+
+The button is labelled with the `common.close` translation and has
+`data-testid="consent-dialog-close"`. Style it with the `dialog.closeButton`
+component slot or the `consentDialogCloseButton` theme slot.
+
+### Stop storing `c15t-sid` before a choice
+
+c15t no longer writes the `c15t-sid` cookie or localStorage key on first load.
+The subject ID is stored with the visitor's first saved record, and a leftover
+`c15t-sid` is removed on start. `identify()` before the first save is sent
+with that save.
+
+`resolveRequestSubject()` is deprecated, returns `null` without a saved
+consent record cookie, and no longer returns a cookie to set. Each adapter's
+`subjectCookie` option (along with the cookie-writing `storage` and
+`trustForwardedHeaders` middleware options) does nothing. v4 removes them.
+
+If your cookie policy lists `c15t-sid`, remove it.
+
+### Fix the IAB banner and dialog
+
+- The script-tag UI shows a registered vendor's data categories.
+- The script-tag IAB banner shows the partner count once.
+- In Vue, the partners link opens the dialog on the vendor list.
+- A failed IAB save is reported once. `saveIABConsentSurface` resolves
+  `{ ok: false }` instead of rejecting.
+- Vue records no IAB choice when no CMP is mounted.
+
 ## c15t@3.2.0
 
 ### Diagnose slow Astro consent setup

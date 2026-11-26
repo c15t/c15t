@@ -1,3 +1,22 @@
+## @c15t/scripts@3.1.3-canary.0 (canary)
+
+### Add Notra web analytics integration
+
+`notraAnalytics` from `@c15t/integrations/notra-analytics` loads Notra's
+`notra.js` after `measurement` consent. It loads the builds that
+`@usenotra/sdk` 2.0.0 pins, with subresource integrity, and takes the same
+`errors`, `hash` and `endpoint` settings as the SDK's `<NotraAnalytics />`.
+`notra.js` has no stop call, so keep the default page reload when consent is
+withdrawn, and add the network blocker rule from the docs to stop its last
+report as the page unloads. The CLI can add it during setup.
+
+### Add Capless analytics integration
+
+`caplessAnalytics` from `@c15t/integrations/capless-analytics` loads Capless
+analytics and session replay after `measurement` consent. Capless cannot stop a
+running replay, so keep the default page reload when consent is withdrawn. The
+CLI can add it during setup.
+
 ## @c15t/scripts@3.1.0
 
 ### Add Gainsight PX consent integration

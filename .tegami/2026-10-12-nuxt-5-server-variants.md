@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/vue": minor
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Support Nuxt 5 nightly server builds

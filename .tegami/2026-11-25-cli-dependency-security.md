@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/cli': patch
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Update zod and postcss in the CLI

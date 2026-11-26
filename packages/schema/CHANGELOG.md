@@ -1,3 +1,44 @@
+## @c15t/schema@3.2.0-canary.0 (canary)
+
+### Add an optional close button to the preference dialog
+
+The stock preference dialog can now show a close button in its header, like
+the IAB dialog. It closes the dialog without saving, the same as Escape: the
+banner comes back if the policy still owes a choice. On touch screens it is
+the only way out besides a consent choice, since the backdrop does not close
+the dialog.
+
+It is off by default, so existing dialogs look the same.
+
+- React, Next.js and TanStack Start: `<ConsentDialog showCloseButton />`. In a
+  composed dialog, `<ConsentDialog.Header showCloseButton>` renders it after the
+  header's children.
+- Vue and Nuxt: `dialogShowCloseButton: true` in the plugin options.
+- Svelte and SvelteKit: `<ConsentDialog showCloseButton />`.
+- Script tag: `ui: { dialog: { showCloseButton: true } }`.
+
+The button is labelled with the `common.close` translation and has
+`data-testid="consent-dialog-close"`. Style it with the `dialog.closeButton`
+component slot or the `consentDialogCloseButton` theme slot.
+
+### Fix IAB TCF signals and vendor disclosures
+
+- Restricting two vendors no longer restricts the vendors between them.
+- Purposes that allow consent only (1, 3, 4, 5 and 6) no longer get a
+  legitimate interest signal from a custom vendor.
+- Legitimate interest switches show what Save records.
+- Vendor links render only for absolute `http` and `https` URLs.
+- Vendor disclosures show the standard TCF Features text.
+
+### Fix the vendor list fallback, prefetch detection and option warnings
+
+- A cached Global Vendor List is served when a refresh fails, and a failed
+  fetch is retried after 60 seconds.
+- Prefetch requests are detected from more headers and forwarded by hosted SSR
+  renders and same-origin consent proxies, so they no longer count as visits
+  in session reports.
+- Changing any read-once provider option after mount warns in development.
+
 ## @c15t/schema@3.1.3
 
 ### Consent provider works again in browsers before Safari 15.4
