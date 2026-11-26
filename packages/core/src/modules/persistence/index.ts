@@ -28,17 +28,16 @@
  *   flushes any queued write first.
  * - Every runtime has a subject ID from startup, before the visitor
  *   decides anything. Startup takes the one the records carry, else the
- *   one the server named, else the one stored under `<key>-sid`, else a
- *   new one. A server seed that only repeats what the cookies say yields
- *   to the records as storage holds them. When no stored record carries
- *   the ID and `<key>-sid` (cookie and localStorage) does not hold it yet,
- *   it is stored there at once; this is the only startup write. Startup
- *   never rewrites a `<key>-sid` copy the records disagree with.
- *   `<key>-sid` is never read as a choice, so an ID alone still shows the
- *   banner. Until a save uses it, an ID this runtime made follows one
- *   another tab stores. Every later subject change is stored there too,
- *   and `clear()` keeps it. Only `set.subjectId(null)` replaces it with a
- *   new one. `keepSubject` and external permissions turn all of this off.
+ *   one the server named, else a new one. A server seed that only repeats
+ *   what the cookies say yields to the records as storage holds them. An
+ *   ID no record carries lives in memory only: nothing is stored before
+ *   the visitor acts, and each page load gets a new one until a save
+ *   records it. Until a save uses it, an ID this runtime made follows one
+ *   the records another tab stores carry. `clear()` keeps the ID in memory.
+ *   Only `set.subjectId(null)` replaces it with a new one. `keepSubject`
+ *   and external permissions turn all of this off.
+ * - Startup removes a `<key>-sid` copy that c15t 3.2 stored before any
+ *   choice. It is the only startup write, and only when such a copy exists.
  * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
  *   Vendor and notice records follow `subject:resolved` too, since they
  *   carry the subject for a visitor with no category choice yet.
@@ -76,7 +75,7 @@
  *   synchronously. Script-tag builds bundle it and swap in
  *   `writer-loader-static.ts`.
  * - `clear()` needs no write code: it clears the kernel's records and
- *   storage except `<key>-sid`, and stores the clear epoch, before it
+ *   storage, and stores the clear epoch, before it
  *   returns, so a reload right after it cannot restore a cleared grant. It
  *   cancels queued writes first, so a pending flush cannot recreate what
  *   was just cleared. Its `records:cleared` event makes the kernel drop its

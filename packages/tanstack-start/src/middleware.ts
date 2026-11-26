@@ -1,16 +1,10 @@
 import type { StorageConfig } from '@c15t/core';
-import {
-	DEFAULT_CONSENT_ROUTE_PREFIX,
-	resolveRequestSubject,
-} from '@c15t/core/server';
 import { extractConsentRequestInputs } from '@c15t/schema/types';
 import type { ConsentRequestHeaderInputs as ConsentRequestInputs } from '@c15t/schema/types';
 import { createMiddleware } from '@tanstack/react-start';
 
-import { isPrerendering } from './libs/prerendering';
 import {
 	rememberConsentInputs,
-	rememberSubjectCookieHeader,
 	renderedForVisitor,
 	servedByConsentRoute,
 } from './libs/request-inputs';
@@ -47,10 +41,8 @@ export interface ConsentRequestMiddlewareOptions {
 	normalizeHeaders?: boolean;
 
 	/**
-	 * The client's `storageConfig`, so the subject cookie this sets matches
-	 * the one the browser would: `storageKey` names it (`<storageKey>-sid`),
-	 * and `defaultDomain`, `crossSubdomain` and `defaultExpiryDays` set its
-	 * domain and lifetime. Set it only if you changed those client-side.
+	 * @deprecated c15t no longer sets a subject cookie, so the middleware
+	 * reads nothing from this. Removed in v4.
 	 */
 	storage?: Pick<
 		StorageConfig,
@@ -58,21 +50,14 @@ export interface ConsentRequestMiddlewareOptions {
 	>;
 
 	/**
-	 * Read the request's scheme and host from `forwarded` and
-	 * `x-forwarded-*` headers when deciding the subject cookie's `Secure`
-	 * flag and cross-subdomain domain. Any client can send those headers, so
-	 * set this only behind a proxy that sets them and drops incoming ones.
-	 *
-	 * @default false
+	 * @deprecated c15t no longer sets a subject cookie, so the middleware
+	 * reads nothing from this. Removed in v4.
 	 */
 	trustForwardedHeaders?: boolean;
 
 	/**
-	 * Set `false` when `ConsentRoot` runs with `persistence={false}` or a
-	 * `consentSource`, so no `c15t-sid` cookie is set. A subject ID or
-	 * choice the visitor's cookies already hold is still read.
-	 *
-	 * @default true
+	 * @deprecated c15t no longer sets a subject cookie, so this does
+	 * nothing. Removed in v4.
 	 */
 	subjectCookie?: boolean;
 }
@@ -107,18 +92,6 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
 		// what the package's own header readers consult first, so overrides
 		// survive even when the headers cannot be rewritten.
 	}
-};
-
-/**
- * Whether `pathname` is the consent route at `prefix` or a path under it.
- * The consent route renders no page, and its manifest is public data a
- * shared cache keeps, so it gets no subject cookie.
- */
-const isConsentRoute = function isConsentRoute(
-	pathname: string,
-	prefix: string
-): boolean {
-	return pathname === prefix || pathname.startsWith(`${prefix}/`);
 };
 
 /**
@@ -191,71 +164,39 @@ const privateCacheControl = function privateCacheControl(
 };
 
 /**
- * `result` ready to send with the subject cookie `header`.
+ * `result` kept out of shared caches when its render read the visitor's
+ * cookies, so the HTML holds that visitor's consent state.
  *
  * A shared cache may store any response without an unqualified `private`
  * or `no-store` (RFC 9111, section 3). A CDN reads a cache field targeted
  * at it in place of `Cache-Control`, and falls back to `Cache-Control`
- * without one (RFC 9213). Therefore:
- * - a response whose `resolveConsent` read the visitor's cookies holds that
- *   visitor's consent state and subject ID. It is made `private`, and its
- *   targeted fields are removed so every CDN reads that;
- * - a response with no such render that some shared cache may store, by
- *   stating caching in `Cache-Control` (`public`, `s-maxage`, `max-age`,
- *   `no-cache` or `Expires`) or in a targeted field, is a shared resource
- *   and gets no cookie;
- * - any other response gets the cookie and is made `private`.
- *
- * A response the consent route served, at whatever path it is mounted, is
- * sent as it is: its manifest is public data and init is private, and
- * neither is a page.
+ * without one (RFC 9213). So such a response is made `private`, and its
+ * targeted fields are removed so every CDN reads that. Any other response,
+ * and one the consent route served at whatever path it is mounted, is sent
+ * as it is.
  *
  * The handler's response can have immutable headers, so changes go on a
  * copy.
  */
-const withSetCookie = function withSetCookie<
+const keepVisitorRenderPrivate = function keepVisitorRenderPrivate<
 	Result extends { response: Response },
->(result: Result, header: string | undefined, request: Request): Result {
-	if (servedByConsentRoute(request)) {
+>(result: Result, request: Request): Result {
+	if (servedByConsentRoute(request) || !renderedForVisitor(request)) {
 		return result;
 	}
 	const { headers } = result.response;
 	const directives = cacheDirectives(headers.get('cache-control'));
 	const guarded = keepsOutOfSharedCaches(directives);
-	const personal = renderedForVisitor(request);
 	const targeted = targetedCacheFields(result.response);
-	const statesCaching =
-		directives.has('public') ||
-		directives.has('s-maxage') ||
-		directives.has('max-age') ||
-		directives.has('no-cache') ||
-		headers.has('expires');
-	// RFC 9213 fields take `private` and `no-store` as `Cache-Control`
-	// does. Fastly documents only freshness directives in
-	// `Surrogate-Control`, so any of it may let the CDN store the response.
-	const cdnMayStore = targeted.some(
-		(name) =>
-			name === 'surrogate-control' ||
-			!keepsOutOfSharedCaches(cacheDirectives(headers.get(name)))
-	);
-	if (!personal && (cdnMayStore || (!guarded && statesCaching))) {
-		return result;
-	}
-	const unchanged = guarded ? !header : !(header || personal);
-	if (unchanged && !(personal && targeted.length > 0)) {
+	if (guarded && targeted.length === 0) {
 		return result;
 	}
 	const response = new Response(result.response.body, result.response);
 	if (!guarded) {
 		response.headers.set('cache-control', privateCacheControl(directives));
 	}
-	if (personal) {
-		for (const name of targeted) {
-			response.headers.delete(name);
-		}
-	}
-	if (header) {
-		response.headers.append('set-cookie', header);
+	for (const name of targeted) {
+		response.headers.delete(name);
 	}
 	return { ...result, response };
 };
@@ -269,10 +210,9 @@ const withSetCookie = function withSetCookie<
  * `sec-gpc` request headers, and exposes the same values as
  * `context.consent` for server routes and server functions.
  *
- * A visitor with no subject ID gets one in a `c15t-sid` cookie on the
- * response, and `resolveConsent` in the same request reads it, so the server
- * render and the browser start with the same ID. Prerenders and prefetches
- * get none.
+ * A page whose `resolveConsent` read the visitor's cookies holds that
+ * visitor's consent state, so its response is sent `private`, without the
+ * cache fields a CDN reads in place of `Cache-Control`.
  *
  * Register it once for every request in `src/start.ts`:
  *
@@ -318,27 +258,10 @@ export const consentRequestMiddleware = function consentRequestMiddleware(
 		if (options.normalizeHeaders !== false) {
 			writeNormalizedHeaders(request.headers, inputs, options.language);
 		}
-		const subject =
-			options.subjectCookie === false ||
-			isConsentRoute(
-				new URL(request.url).pathname,
-				DEFAULT_CONSENT_ROUTE_PREFIX
-			)
-				? null
-				: resolveRequestSubject({
-						request: { headers: request.headers, url: request.url },
-						shared: isPrerendering(),
-						storage: options.storage,
-						trustForwardedHeaders: options.trustForwardedHeaders,
-					});
-		if (subject?.setCookie) {
-			rememberSubjectCookieHeader(request, subject.cookie);
-		}
-		return withSetCookie(
+		return keepVisitorRenderPrivate(
 			await next({
 				context: { consent: inputs } satisfies ConsentRequestContext,
 			}),
-			subject?.setCookie?.header,
 			request
 		);
 	});

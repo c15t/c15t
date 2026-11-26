@@ -44,6 +44,15 @@ denied until then. c15t also removes the superseded TC String from the
 `euconsent-v2` cookie and localStorage entry, so vendors reading standard
 storage do not pick it up. An unchanged configuration restores the stored TC
 String without asking.
+
+A restriction in the TC String covers only the vendor IDs you list. Adjacent IDs
+share one range entry, and any gap starts a new entry, even when the vendor list
+leaves out the vendors in that gap. Earlier versions of `@c15t/iab` joined two
+restricted vendors across such a gap, so restricting vendors 21 and 52 wrote the
+range 21 to 52. A string saved that way still restores. If you then add a vendor
+from inside the range, such as vendor 30, the stored restrictions no longer
+match, so the banner opens once. The string saved after that lists only the
+vendors you restricted.
 When reading a string written under TCF policy version 2 or 3, c15t accepts
 type `2` for purposes 3 to 6, which those versions allowed. Strings c15t
 writes always follow the current policy.

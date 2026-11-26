@@ -290,7 +290,7 @@ describe('initOutputSchema', () => {
 			translations: {
 				language: 'en',
 				translations: {
-					common: { dismiss: 'Dismiss' },
+					common: { close: 'Fermer', dismiss: 'Dismiss' },
 					consentManagerDialog: {},
 					consentTypes: {},
 					cookieBanner: { noticeTitle: 'Privacy notice' },
@@ -299,6 +299,7 @@ describe('initOutputSchema', () => {
 			},
 		});
 		const parsed = output.translations.translations;
+		expect(parsed.common.close).toBe('Fermer');
 		expect(parsed.common.dismiss).toBe('Dismiss');
 		expect(parsed.cookieBanner.noticeTitle).toBe('Privacy notice');
 		expect(parsed.rights?.optOut).toBe('Opt out');

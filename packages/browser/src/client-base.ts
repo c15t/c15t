@@ -382,6 +382,9 @@ export const createConsentClientWith = function createConsentClientWith(
 	 * UI has no opt-in fallback: without the CMP and its vendor list it shows
 	 * the error, so this reports one and confirms nothing.
 	 */
+	const emitError = (error: unknown): void => {
+		emit('error', error instanceof Error ? error : new Error(String(error)));
+	};
 	const saveIAB = async (blanket?: 'acceptAll' | 'rejectAll') => {
 		const handle = runtime.iab;
 		const snapshot = kernel.getSnapshot();
@@ -391,14 +394,18 @@ export const createConsentClientWith = function createConsentClientWith(
 			) {
 				throw new Error('IAB privacy settings are not ready.');
 			}
-			return await saveIABConsentSurface(kernel, () => {
-				if (blanket) {
-					handle[blanket]();
-				}
-				return handle.save();
-			});
+			return await saveIABConsentSurface(
+				kernel,
+				() => {
+					if (blanket) {
+						handle[blanket]();
+					}
+					return handle.save();
+				},
+				emitError
+			);
 		} catch (error) {
-			emit('error', error instanceof Error ? error : new Error(String(error)));
+			emitError(error);
 			return { ok: false };
 		}
 	};

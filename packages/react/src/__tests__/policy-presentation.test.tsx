@@ -299,8 +299,8 @@ it('hydrates prepared server HTML without a prompt flash, callback, request or r
 	expect(onChoiceRecorded).not.toHaveBeenCalled();
 	expect(onPermissionsChanged).not.toHaveBeenCalled();
 	expect(init).not.toHaveBeenCalled();
-	// A first visit stores its new subject ID and nothing else.
-	expect(setItem.mock.calls.filter(([key]) => key !== 'c15t-sid')).toEqual([]);
+	// A first visit stores nothing.
+	expect(setItem).not.toHaveBeenCalled();
 	expect(errors).not.toHaveBeenCalled();
 	root.unmount();
 	host.remove();

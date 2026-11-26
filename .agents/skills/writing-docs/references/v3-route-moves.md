@@ -76,10 +76,10 @@ overview keeps the event controls.
 | `/docs/guides/shared-consent-controls` | `/docs/integrations/overview` | Removed with the existing-CMP guide; the overview covers sending events only to allowed integrations |
 | `/docs/integrations/existing-cmp` | `/docs/integrations/overview` | Removed |
 
-React Native is not published with v3, so its pages were removed, not moved.
+This repository does not ship React Native, so its pages were removed, not moved.
 No page covers their task. Redirect each route to `/docs/frameworks` so old
 links land on the framework list. Do not mention React Native, Expo or
-`@c15t/react-native` in the published docs until the package ships.
+`@c15t/react-native` in the published docs.
 
 | Old route | Redirect to | Reason |
 | --- | --- | --- |

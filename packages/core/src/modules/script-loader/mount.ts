@@ -711,7 +711,9 @@ export const mountScript = function mountScript(
 
 	const target =
 		pendingResource?.target ??
-		(script.target === 'body' ? document.body : document.head);
+		(script.target === 'body'
+			? (document.body ?? document.head)
+			: document.head);
 
 	if (batch) {
 		const pending: PendingMount = {

@@ -2,7 +2,8 @@
  * @vitest-environment jsdom
  *
  * The subject ID persistence gives a browser runtime at startup, before
- * the visitor decides anything, and how it lives in `<key>-sid`.
+ * the visitor decides anything. It lives in memory until a save records
+ * it; the `<key>-sid` copy c15t 3.2 stored is removed.
  */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
@@ -77,26 +78,37 @@ const storedSid = function storedSid() {
 	};
 };
 
-test('a first visit gets a subject ID at startup without recording a choice', () => {
+/** Every cookie and localStorage key on the page. */
+const storedKeys = function storedKeys() {
+	return {
+		cookies: document.cookie
+			.split('; ')
+			.filter(Boolean)
+			.map((pair) => pair.split('=')[0]),
+		local: Object.keys(localStorage),
+	};
+};
+
+test('a first visit gets a subject ID at startup and stores nothing', () => {
 	const { kernel } = boot();
 	const snapshot = kernel.getSnapshot();
-	const subjectId = subjectIdOf(kernel);
 
-	expect(subjectId).toMatch(/^sub_/u);
+	expect(subjectIdOf(kernel)).toMatch(/^sub_/u);
 	expect(snapshot.explicitChoice).toBeNull();
 	expect(snapshot.activeUI).toBe('banner');
-	expect(storedSid()).toEqual({ cookie: subjectId, local: subjectId });
+	expect(storedSid()).toEqual({ cookie: null, local: null });
+	expect(storedKeys()).toEqual({ cookies: [], local: [] });
 	expect(hasStoredConsentRecord()).toBe(false);
 });
 
-test('a reload keeps the ID, and the ID alone still shows the banner', () => {
+test('a reload before any save starts with a new ID', () => {
 	const first = boot();
 	const subjectId = subjectIdOf(first.kernel);
 	first.handle.dispose();
 
 	const { kernel, handle } = boot();
-	expect(subjectIdOf(kernel)).toBe(subjectId);
-	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(subjectIdOf(kernel)).toMatch(/^sub_/u);
+	expect(subjectIdOf(kernel)).not.toBe(subjectId);
 	expect(kernel.getSnapshot().activeUI).toBe('banner');
 	expect(handle.hydrate()).toBe(false);
 });
@@ -113,46 +125,68 @@ test('a save keeps the startup ID and records it', async () => {
 		subjectId,
 	});
 	expect(hasStoredConsentRecord()).toBe(true);
+	expect(storedSid()).toEqual({ cookie: null, local: null });
+	expect(subjectIdOf(boot().kernel)).toBe(subjectId);
 });
 
-test('a clear keeps the ID through a reload', async () => {
+test.each([
+	['cookie and localStorage', true, true],
+	['cookie', true, false],
+	['localStorage', false, true],
+] as const)(
+	'startup removes a %s copy c15t 3.2 stored and does not take its ID',
+	(_, inCookie, inLocal) => {
+		if (inCookie) {
+			document.cookie = `${SID_KEY}=sub_legacy; path=/`;
+		}
+		if (inLocal) {
+			localStorage.setItem(SID_KEY, 'sub_legacy');
+		}
+
+		const { kernel } = boot();
+
+		expect(subjectIdOf(kernel)).toMatch(/^sub_/u);
+		expect(subjectIdOf(kernel)).not.toBe('sub_legacy');
+		expect(storedSid()).toEqual({ cookie: null, local: null });
+	}
+);
+
+test('startup leaves storage alone when no c15t 3.2 copy exists', () => {
+	const setCookie = vi.spyOn(document, 'cookie', 'set');
+	const setItem = vi.spyOn(Storage.prototype, 'setItem');
+	const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
+	try {
+		boot();
+		expect(setCookie).not.toHaveBeenCalled();
+		expect(setItem).not.toHaveBeenCalled();
+		expect(removeItem).not.toHaveBeenCalled();
+	} finally {
+		setCookie.mockRestore();
+		setItem.mockRestore();
+		removeItem.mockRestore();
+	}
+});
+
+test('a clear keeps the ID in memory, removes a c15t 3.2 copy, and a reload starts over', async () => {
 	const first = boot();
 	const subjectId = subjectIdOf(first.kernel);
 	await first.kernel.commands.save({ measurement: true });
 	vi.advanceTimersByTime(0);
+	document.cookie = `${SID_KEY}=sub_legacy; path=/`;
+	localStorage.setItem(SID_KEY, 'sub_legacy');
 
 	first.handle.clear();
 	expect(first.kernel.getSnapshot().explicitChoice).toBeNull();
 	expect(subjectIdOf(first.kernel)).toBe(subjectId);
+	expect(storedSid()).toEqual({ cookie: null, local: null });
 	first.handle.dispose();
 
 	const { kernel } = boot();
-	expect(subjectIdOf(kernel)).toBe(subjectId);
+	expect(subjectIdOf(kernel)).not.toBe(subjectId);
 	expect(kernel.getSnapshot().activeUI).toBe('banner');
 });
 
-test.each([
-	['cookie', () => expire(SID_KEY)],
-	['localStorage', () => localStorage.removeItem(SID_KEY)],
-] as const)(
-	'a lost %s copy of the ID comes back at startup and on focus',
-	(_, lose) => {
-		const first = boot();
-		const subjectId = subjectIdOf(first.kernel);
-		first.handle.dispose();
-
-		lose();
-		const { kernel } = boot();
-		expect(subjectIdOf(kernel)).toBe(subjectId);
-		expect(storedSid()).toEqual({ cookie: subjectId, local: subjectId });
-
-		lose();
-		window.dispatchEvent(new Event('focus'));
-		expect(storedSid()).toEqual({ cookie: subjectId, local: subjectId });
-	}
-);
-
-test('removing the ID starts a new one', () => {
+test('removing the ID starts a new one and stores nothing', () => {
 	const { kernel } = boot();
 	const subjectId = subjectIdOf(kernel);
 
@@ -161,7 +195,7 @@ test('removing the ID starts a new one', () => {
 	const next = subjectIdOf(kernel);
 	expect(next).toMatch(/^sub_/u);
 	expect(next).not.toBe(subjectId);
-	expect(storedSid()).toEqual({ cookie: next, local: next });
+	expect(storedKeys()).toEqual({ cookies: [], local: [] });
 });
 
 test.each([
@@ -184,66 +218,9 @@ test.each([
 		const { kernel } = boot();
 		expect(subjectIdOf(kernel)).toBe(replaced);
 		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
-		expect(storedSid()).toEqual({ cookie: replaced, local: replaced });
+		expect(storedSid()).toEqual({ cookie: null, local: null });
 	}
 );
-
-test('an ID that is not a generated one survives a clear and a reload', () => {
-	const first = boot();
-	first.kernel.set.subjectId('canonical id/1');
-	first.handle.clear();
-	first.handle.dispose();
-
-	expect(subjectIdOf(boot().kernel)).toBe('canonical id/1');
-});
-
-test('an ID with surrounding spaces is read back exactly as stored', () => {
-	const first = boot();
-	first.kernel.set.subjectId(' sub_padded ');
-	first.handle.dispose();
-
-	expect(subjectIdOf(boot().kernel)).toBe(' sub_padded ');
-});
-
-test.each([
-	['longer than 256 characters', `sub_${'a'.repeat(300)}`],
-	['with a control character', 'sub_line\nbreak'],
-	['with a lone surrogate', 'sub_\uD800'],
-])('an ID the app names %s survives a reload', (_, subjectId) => {
-	const first = boot();
-	first.kernel.set.subjectId(subjectId);
-	first.handle.dispose();
-
-	expect(subjectIdOf(boot().kernel)).toBe(subjectId);
-});
-
-test('a refused cookie write does not bring the old ID back', () => {
-	const first = boot();
-	const old = subjectIdOf(first.kernel);
-	const cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
-	// The browser drops the new `-sid` cookie, as it would one over its size
-	// limit, and still applies deletions.
-	Object.defineProperty(document, 'cookie', {
-		configurable: true,
-		get: () => cookie?.get?.call(document),
-		set: (value: string) => {
-			if (value.startsWith(`${SID_KEY}=sub_`)) {
-				return;
-			}
-			cookie?.set?.call(document, value);
-		},
-	});
-	try {
-		first.kernel.set.subjectId('sub_next');
-		first.handle.dispose();
-	} finally {
-		Reflect.deleteProperty(document, 'cookie');
-	}
-
-	expect(old).not.toBe('sub_next');
-	expect(storedSid()).toEqual({ cookie: null, local: 'sub_next' });
-	expect(subjectIdOf(boot().kernel)).toBe('sub_next');
-});
 
 test('a seed from a stale consent cookie keeps the newer stored ID', async () => {
 	const first = boot();
@@ -280,11 +257,39 @@ test('a seed from a stale consent cookie keeps the newer stored ID', async () =>
 	disposers.push(createPersistence({ kernel, skipHydration: true }).dispose);
 
 	expect(subjectIdOf(kernel)).toBe('sub_next');
-	expect(storedSid()).toEqual({ cookie: 'sub_next', local: 'sub_next' });
+});
+
+// A seed that names another ID than the stored records and did not come
+// from the cookies, such as a backend's, knows something storage does not.
+// Its ID stands, linked account included. A seed read from the cookies
+// alone yields to storage (the test above).
+test('a seed from a backend that names another ID keeps it over the stored records', async () => {
+	const first = boot();
+	await first.kernel.commands.save({ measurement: true });
+	vi.advanceTimersByTime(0);
+	const stored = subjectIdOf(first.kernel);
+	const choice = first.kernel.getSnapshot().explicitChoice;
+	first.handle.dispose();
+
+	const seed = {
+		externalId: 'account-a',
+		identityProvider: 'app',
+		subjectId: 'sub_backend',
+	};
+	const kernel = createConsentKernel({
+		initialPolicyResolution: matchedResolution(optInRule()),
+		initialRecords: { choice, subject: seed },
+		now: NOW,
+	});
+	disposers.push(createPersistence({ kernel, skipHydration: true }).dispose);
+
+	expect(stored).not.toBe('sub_backend');
+	expect(kernel.getSnapshot().subject).toEqual(seed);
 });
 
 // The same stale consent cookie, carried through a server render: the
-// server reads the cookies alone and must not store the old ID again.
+// server reads the cookies alone and its render names the old ID, but the
+// browser starts with the newer one localStorage holds.
 test.each(['consent', 'all'] as const)(
 	'a server render after a dropped %s cookie rewrite does not bring the old ID back',
 	async (dropped) => {
@@ -311,18 +316,16 @@ test.each(['consent', 'all'] as const)(
 			drop.mockRestore();
 		}
 
-		// The records win on the server, so its render still names the old
-		// ID, but it never replaces the subject cookie the request holds.
-		const subject = resolveRequestSubject({
-			now: NOW,
-			request: { cookie: document.cookie, url: 'https://example.com/' },
-		});
-		expect(subject?.subjectId).toBe(old);
-		expect(subject?.setCookie).toBeNull();
+		expect(
+			resolveRequestSubject({
+				now: NOW,
+				request: { cookie: document.cookie, url: 'https://example.com/' },
+			})
+		).toEqual({ cookie: document.cookie, setCookie: null, subjectId: old });
 		const { state } = readRequestConsent({
 			adapter: '@c15t/test',
 			now: NOW,
-			request: { cookie: subject?.cookie, headers: new Headers() },
+			request: { cookie: document.cookie, headers: new Headers() },
 		});
 		expect(state.initialRecords?.subject?.subjectId).toBe(old);
 
@@ -336,55 +339,47 @@ test.each(['consent', 'all'] as const)(
 		expect(
 			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
 		).toBe(true);
-		expect(storedSid()).toEqual({
-			cookie: dropped === 'all' ? old : 'sub_next',
-			local: 'sub_next',
-		});
+		expect(storedSid()).toEqual({ cookie: null, local: null });
 		expect(subjectIdOf(boot().kernel)).toBe('sub_next');
 	}
 );
 
-test('an unused ID follows the one another tab stored and names the one it replaced', () => {
-	const { kernel } = boot();
-	const subjectId = subjectIdOf(kernel);
-	const resolved = vi.fn();
-	kernel.events.on('subject:resolved', resolved);
+test.each([
+	['', false],
+	[', after identify() held it back', true],
+] as const)(
+	'an unused ID follows the one another tab saves and names the one it replaced%s',
+	async (_, identified) => {
+		const { kernel } = boot();
+		const subjectId = subjectIdOf(kernel);
+		const resolved = vi.fn();
+		kernel.events.on('subject:resolved', resolved);
+		if (identified) {
+			// A generated ID is not linked before a save, so it stays unused.
+			await kernel.commands.identify({ externalId: 'user-1' });
+		}
+		const other = boot();
+		const saved = subjectIdOf(other.kernel);
+		expect(saved).not.toBe(subjectId);
 
-	localStorage.setItem(SID_KEY, 'sub_other_tab');
-	document.cookie = `${SID_KEY}=sub_other_tab; path=/`;
-	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
+		await other.kernel.commands.save({ measurement: true });
+		await vi.advanceTimersByTimeAsync(0);
+		window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY_V2 }));
+		await vi.dynamicImportSettled();
+		await vi.advanceTimersByTimeAsync(0);
 
-	expect(subjectIdOf(kernel)).toBe('sub_other_tab');
-	expect(resolved).toHaveBeenCalledWith(
-		expect.objectContaining({
-			previousSubjectId: subjectId,
-			type: 'subject:resolved',
-		})
-	);
-});
-
-test('an ID the app names does not follow another tab', () => {
-	const { kernel } = boot();
-	kernel.set.subjectId('sub_app');
-
-	localStorage.setItem(SID_KEY, 'sub_other_tab');
-	document.cookie = `${SID_KEY}=sub_other_tab; path=/`;
-	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
-
-	expect(subjectIdOf(kernel)).toBe('sub_app');
-});
-
-test('an ID a save used does not follow another tab', async () => {
-	const { kernel } = boot();
-	const subjectId = subjectIdOf(kernel);
-	await kernel.commands.save({ measurement: true });
-	vi.advanceTimersByTime(0);
-
-	localStorage.setItem(SID_KEY, 'sub_other_tab');
-	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
-
-	expect(subjectIdOf(kernel)).toBe(subjectId);
-});
+		expect(subjectIdOf(kernel)).toBe(saved);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+		expect(resolved).toHaveBeenCalledWith(
+			expect.objectContaining({
+				previousSubjectId: subjectId,
+				type: 'subject:resolved',
+			})
+		);
+	}
+);
 
 test('a runtime that keeps its subject neither creates nor stores one', () => {
 	const kernel = createConsentKernel({ now: NOW });
@@ -394,69 +389,21 @@ test('a runtime that keeps its subject neither creates nor stores one', () => {
 	expect(storedSid()).toEqual({ cookie: null, local: null });
 });
 
-test('a runtime that keeps its subject does not take the stored ID', () => {
+test('a runtime that keeps its subject neither takes nor removes a c15t 3.2 copy', () => {
 	localStorage.setItem(SID_KEY, 'sub_stored');
 	document.cookie = `${SID_KEY}=sub_stored; path=/`;
 	const kernel = createConsentKernel({ now: NOW });
 	disposers.push(createPersistence({ keepSubject: true, kernel }).dispose);
 
+	// It only reads, like the script-loader preload's handle. The handle
+	// that owns the subject removes the copy.
 	expect(kernel.getSnapshot().subject).toBeNull();
+	expect(storedSid()).toEqual({ cookie: 'sub_stored', local: 'sub_stored' });
 });
 
-/** Boots a second tab that raced the first: it read no stored ID. */
-const bootRacingTab = function bootRacingTab() {
-	localStorage.removeItem(SID_KEY);
-	expire(SID_KEY);
-	return boot();
-};
-
-test('a tab whose ID is used stores it again, and an unused tab takes it', async () => {
-	const first = boot();
-	const used = subjectIdOf(first.kernel);
-	const second = bootRacingTab();
-	expect(subjectIdOf(second.kernel)).not.toBe(used);
-	await first.kernel.commands.identify({ externalId: 'user-1' });
-
-	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
-
-	expect(subjectIdOf(first.kernel)).toBe(used);
-	expect(subjectIdOf(second.kernel)).toBe(used);
-	expect(storedSid()).toEqual({ cookie: used, local: used });
-});
-
-test('a tab whose saved records carry its ID stores it over another stored ID', async () => {
-	const { kernel } = boot();
-	const used = subjectIdOf(kernel);
-	await kernel.commands.save({ measurement: true });
-	vi.advanceTimersByTime(0);
-	localStorage.setItem(SID_KEY, 'sub_other_tab');
-	document.cookie = `${SID_KEY}=sub_other_tab; path=/`;
-
-	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
-
-	expect(subjectIdOf(kernel)).toBe(used);
-	expect(storedSid()).toEqual({ cookie: used, local: used });
-});
-
-test('two tabs whose IDs are both used stop overwriting each other', async () => {
-	const first = boot();
-	const second = bootRacingTab();
-	await first.kernel.commands.identify({ externalId: 'user-1' });
-	await second.kernel.commands.identify({ externalId: 'user-1' });
-	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
-	const setCookie = vi.spyOn(document, 'cookie', 'set');
-
-	window.dispatchEvent(new StorageEvent('storage', { key: SID_KEY }));
-
-	expect(setCookie).not.toHaveBeenCalledWith(
-		expect.stringMatching(new RegExp(`^${SID_KEY}=`, 'u'))
-	);
-	setCookie.mockRestore();
-});
-
-// An ID or linked account with no URI encoding has no cookie copy, as
-// `<key>-sid` has none: each record's cookie is skipped like a write the
-// cookie refused, and localStorage keeps the whole record.
+// An ID or linked account with no URI encoding has no cookie copy: each
+// record's cookie is skipped like a write the cookie refused, and
+// localStorage keeps the whole record.
 test.each(
 	(
 		['a necessary-only save', 'a choice', 'a vendor-only save'] as const

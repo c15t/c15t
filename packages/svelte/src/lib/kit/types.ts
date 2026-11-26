@@ -38,34 +38,33 @@ export interface C15tLocals {
 	 */
 	cookieName?: string;
 	/**
-	 * The handle's `storage` cookie attributes, for a `loadConsent` call
-	 * that sets the subject cookie under its own `cookieName`.
+	 * @deprecated c15t no longer sets a subject cookie, so the handle never
+	 * sets this. Removed in v4.
 	 */
 	storage?: Pick<
 		StorageConfig,
 		'crossSubdomain' | 'defaultDomain' | 'defaultExpiryDays'
 	>;
 	/**
-	 * The handle's `trustForwardedHeaders`, so that cookie is `Secure` behind
-	 * the same TLS-terminating proxy.
+	 * @deprecated c15t no longer sets a subject cookie, so the handle never
+	 * sets this. Removed in v4.
 	 */
 	trustForwardedHeaders?: boolean;
 	/**
-	 * The request `Cookie` header with the subject ID the handle just set,
-	 * which the browser does not send until its next request. `loadConsent`
-	 * reads it in place of the request's own.
+	 * @deprecated c15t no longer sets a subject cookie, so the handle never
+	 * sets this. Removed in v4. Read the request's own `Cookie` header.
 	 */
 	cookie?: string;
+	/**
+	 * @deprecated c15t no longer sets a subject cookie, so the handle never
+	 * sets this. Removed in v4.
+	 */
+	subjectCookie?: false;
 	/**
 	 * Set while SvelteKit prerenders: the page is shared between visitors,
 	 * so `loadConsent` makes no upstream call and carries no visitor state.
 	 */
 	shared?: true;
-	/**
-	 * The handle's `subjectCookie: false`, so a call that reads another
-	 * cookie name sets no subject cookie either.
-	 */
-	subjectCookie?: false;
 }
 
 /** Normalized consent request context. Re-exported for `App.Locals` users. */

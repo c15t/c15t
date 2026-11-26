@@ -58,11 +58,6 @@ describe('completed CI task caches', () => {
 				`browser-\${{ matrix.integration.kind }}`,
 				'bun scripts/ci-browser.ts',
 			],
-			[
-				'mobile',
-				`mobile-\${{ matrix.kind }}`,
-				'bun run --cwd benchmarks/mobile bench:ci',
-			],
 		]) {
 			const { steps } = ci.jobs[job ?? ''];
 			const work = steps.findIndex(

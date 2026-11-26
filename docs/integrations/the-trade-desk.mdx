@@ -1,8 +1,8 @@
 ---
 title: The Trade Desk
 description: Load The Trade Desk with c15t after marketing consent and verify its loader, storage and revocation behavior.
-seoTitle: The Trade Desk consent with c15t
-seoDescription: Load The Trade Desk Universal Pixel only after marketing consent. Learn what theTradeDeskPixel queues, which cookies remain and how to verify it.
+seoTitle: The Trade Desk consent integration for c15t
+seoDescription: Load The Trade Desk Universal Pixel only after marketing consent. Set up the c15t helper with your advertiser ID and verify in DevTools.
 icon: radar
 group: integrations
 ---
@@ -13,6 +13,10 @@ allowed before it defines the pixel globals and adds the loader.
 
 The Trade Desk has no API to stop its SDK. When the visitor withdraws, the
 helper leaves the SDK on the page, and c15t's default page reload removes it.
+
+<Signpost href="https://inth.com/integrations/the-trade-desk" label="Setup guide">
+  This page is the code reference for `theTradeDeskPixel`. To set up the cookie banner for The Trade Desk, use the Inth guide.
+</Signpost>
 
 ## Configure The Trade Desk
 

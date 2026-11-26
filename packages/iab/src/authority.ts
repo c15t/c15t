@@ -1,5 +1,6 @@
 import type { ConsentSnapshot, KernelIABAuthority } from '@c15t/core';
 
+import { permittedLegitimateInterestPurposes } from './headless/effective-vendor-list';
 import { additionalConsentFor } from './tcf/additional-consent';
 import type { PublisherRestriction } from './tcf/iab-tcf-types';
 import { sameListedRestrictions } from './tcf/publisher-restrictions';
@@ -233,6 +234,43 @@ export interface AuthorityCheck {
 	restrictionsChanged: boolean;
 }
 
+/** Whether a receipt map grants an ID as its own property. */
+const grants = (map: Record<string, boolean>, id: string): boolean =>
+	map[id] === true && Object.prototype.hasOwnProperty.call(map, id);
+
+/**
+ * Copies each listed custom vendor's receipt choices into the restored
+ * vectors. Numeric registered vendors are represented only by the TC string.
+ */
+const restoreCustomChoices = function restoreCustomChoices(
+	snapshot: ConsentSnapshot,
+	customConsents: Record<string, boolean>,
+	customLegitimateInterests: Record<string, boolean>,
+	vendorConsents: Record<string, boolean>,
+	vendorLegitimateInterests: Record<string, boolean>
+): void {
+	for (const vendor of snapshot.iab?.customVendors ?? []) {
+		const id = String(vendor.id);
+		if (
+			Object.prototype.hasOwnProperty.call(snapshot.iab?.gvl?.vendors ?? {}, id)
+		) {
+			continue;
+		}
+		Object.defineProperty(vendorConsents, id, {
+			enumerable: true,
+			value: grants(customConsents, id),
+		});
+		// A receipt saved by an earlier release can hold legitimate interest
+		// for a vendor whose only declared purposes allow consent alone.
+		Object.defineProperty(vendorLegitimateInterests, id, {
+			enumerable: true,
+			value:
+				grants(customLegitimateInterests, id) &&
+				permittedLegitimateInterestPurposes(vendor.legIntPurposes).length > 0,
+		});
+	}
+};
+
 /**
  * `validateAuthority`, also reporting whether the receipt failed only
  * because the configured publisher restrictions changed.
@@ -273,32 +311,13 @@ export const checkAuthority = async function checkAuthority(
 		}
 		const vendorConsents = { ...decoded.vendorConsents };
 		const vendorLegitimateInterests = { ...decoded.vendorLegitimateInterests };
-		const { customConsents } = receipt;
-		const customLI = receipt.customLegitimateInterests;
-		for (const vendor of snapshot.iab.customVendors) {
-			const id = String(vendor.id);
-			// Numeric registered vendors are represented only by the TC string.
-			if (
-				Object.prototype.hasOwnProperty.call(
-					snapshot.iab.gvl?.vendors ?? {},
-					id
-				)
-			) {
-				continue;
-			}
-			Object.defineProperty(vendorConsents, id, {
-				enumerable: true,
-				value:
-					customConsents[id] === true &&
-					Object.prototype.hasOwnProperty.call(customConsents, id),
-			});
-			Object.defineProperty(vendorLegitimateInterests, id, {
-				enumerable: true,
-				value:
-					customLI[id] === true &&
-					Object.prototype.hasOwnProperty.call(customLI, id),
-			});
-		}
+		restoreCustomChoices(
+			snapshot,
+			receipt.customConsents,
+			receipt.customLegitimateInterests,
+			vendorConsents,
+			vendorLegitimateInterests
+		);
 		const authority: KernelIABAuthority = {
 			...adTechProviderAuthority(
 				receipt.adTechProviderConsents,

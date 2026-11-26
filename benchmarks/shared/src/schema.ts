@@ -20,7 +20,6 @@ export type BenchmarkFramework =
 	| 'nextjs'
 	| 'tanstack-start'
 	| 'svelte'
-	| 'solid'
 	| 'vue'
 	| 'astro'
 	| 'backend';

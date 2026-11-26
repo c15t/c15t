@@ -3,6 +3,7 @@ import type { PresentationAction } from '@c15t/core';
 import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 import {
 	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
 	resolveIABBannerSummary,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
@@ -10,7 +11,7 @@ import type {
 	HeadlessIABDisplayRow,
 	HeadlessIABDisplayStackRow,
 } from '@c15t/iab/headless';
-import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
 import '@c15t/ui/styles/components/iab-consent-dialog.css';
@@ -26,6 +27,7 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
+import { useIabPreferenceTab } from '../composables/iab-preference-tab';
 import {
 	useConsentKernel,
 	useConsentKernelContext,
@@ -65,6 +67,7 @@ const config = useConsentConfig();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
+const preferenceTab = useIabPreferenceTab();
 const kernel = useConsentKernel();
 const saveIab = useConsentIabSave();
 // The dialog closes in the click task; see `saveIABConsentSurface`.
@@ -168,6 +171,21 @@ const vendorData = computed(() =>
 		? applyPublisherRestrictionsToGVL(gvl.value, publisherRestrictions.value)
 		: null
 );
+const introduced = computed(() =>
+	gvl.value
+		? introducedLegitimateInterest(gvl.value, publisherRestrictions.value)
+		: { purposes: [], vendors: [] }
+);
+const purposeLegitimateInterests = computed(() => ({
+	...Object.fromEntries(introduced.value.purposes.map((id) => [id, true])),
+	...iabSelection.value.purposeLegitimateInterests,
+}));
+const vendorLegitimateInterests = computed(() => ({
+	...Object.fromEntries(
+		introduced.value.vendors.map((id) => [String(id), true])
+	),
+	...iabSelection.value.vendorLegitimateInterests,
+}));
 
 const isStackRow = function isStackRow(
 	row: HeadlessIABDisplayRow | HeadlessIABDisplayStackRow
@@ -322,41 +340,41 @@ watch(
 );
 
 // The tabs primitive owns `activeTab`; this mirrors it back into the
-// shared selection so a reopened dialog lands where the visitor left it.
+// shared tab so a reopened dialog lands where the visitor left it.
 watch(activeTab, (tab) => {
-	iabSelection.value.preferenceCenterTab = tab;
+	preferenceTab.value = tab;
 });
 
 const closeDialog = function closeDialog() {
 	activeUI.value = null;
 };
 
-const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
-	if (isDialogDismissKey(event.key)) {
-		event.preventDefault();
-		closeDialog();
-	}
-};
+watch(
+	() => showDialog.value,
+	(open, _previous, onCleanup) => {
+		if (!open || typeof document === 'undefined') {
+			return;
+		}
+		onCleanup(onDialogDismiss(document.documentElement, closeDialog));
+	},
+	{ immediate: true }
+);
 
 const onAction = async function onAction(action: PresentationAction) {
-	try {
-		if (action === 'save') {
-			// The switches already wrote the selection; this encodes it.
-			await save(
-				{ ...iabSelection.value, preferenceCenterTab: activeTab.value },
-				activeTab.value
-			);
-			return;
-		}
-		if (action === 'accept') {
-			await save('all', activeTab.value);
-			return;
-		}
-		if (action === 'reject') {
-			await save('none', activeTab.value);
-		}
-	} catch {
-		// Leave the prompt available so a failed vendor-list load can be retried.
+	if (action === 'save') {
+		// The switches already wrote the selection; this encodes it.
+		await save(
+			{ ...iabSelection.value, preferenceCenterTab: activeTab.value },
+			activeTab.value
+		);
+		return;
+	}
+	if (action === 'accept') {
+		await save('all', activeTab.value);
+		return;
+	}
+	if (action === 'reject') {
+		await save('none', activeTab.value);
 	}
 };
 
@@ -449,7 +467,6 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 						:aria-label="iabT?.preferenceCenter?.title"
 						aria-describedby="iab-consent-dialog-description"
 						tabindex="-1"
-						@keydown="onDialogKeydown"
 					>
 						<div
 							v-bind="
@@ -581,11 +598,9 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 												:stack="row"
 												:consents="iabSelection.purposeConsents"
 												:vendor-consents="iabSelection.vendorConsents"
-												:vendor-legitimate-interests="
-													iabSelection.vendorLegitimateInterests
-												"
+												:vendor-legitimate-interests="vendorLegitimateInterests"
 												:purpose-legitimate-interests="
-													iabSelection.purposeLegitimateInterests
+													purposeLegitimateInterests
 												"
 												@toggle="
 													(purposeId, value) =>
@@ -612,9 +627,7 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 													iabSelection.specialFeatureOptIns[row.id] ?? false
 												"
 												:vendor-consents="iabSelection.vendorConsents"
-												:vendor-legitimate-interests="
-													iabSelection.vendorLegitimateInterests
-												"
+												:vendor-legitimate-interests="vendorLegitimateInterests"
 												@toggle="
 													(value) => setSpecialFeatureOptIn(row.id, value)
 												"
@@ -635,11 +648,9 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 													iabSelection.purposeConsents[row.id] ?? false
 												"
 												:vendor-consents="iabSelection.vendorConsents"
-												:vendor-legitimate-interests="
-													iabSelection.vendorLegitimateInterests
-												"
+												:vendor-legitimate-interests="vendorLegitimateInterests"
 												:purpose-legitimate-interests="
-													iabSelection.purposeLegitimateInterests
+													purposeLegitimateInterests
 												"
 												@toggle="(value) => setPurposeConsent(row.id, value)"
 												@vendor-toggle="
@@ -831,9 +842,7 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 											:vendor-consents="iabSelection.vendorConsents"
 											:selected-vendor-id="selectedVendorId"
 											:custom-vendors="customVendors"
-											:vendor-legitimate-interests="
-												iabSelection.vendorLegitimateInterests
-											"
+											:vendor-legitimate-interests="vendorLegitimateInterests"
 											@vendor-toggle="
 												(vendorId, value) => setVendorConsent(vendorId, value)
 											"

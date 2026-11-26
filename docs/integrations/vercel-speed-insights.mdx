@@ -1,8 +1,8 @@
 ---
 title: Vercel Speed Insights
 description: Load the Vercel Speed Insights collector only after measurement consent with the c15t vercelSpeedInsights helper, drop Web Vitals reports on revocation, and check it in DevTools.
-seoTitle: Vercel Speed Insights cookie consent with c15t
-seoDescription: Load Vercel Speed Insights only with measurement consent. The c15t vercelSpeedInsights helper drops every Web Vitals report after a withdrawal.
+seoTitle: Vercel Speed Insights consent integration for c15t
+seoDescription: Load Vercel Speed Insights only after measurement consent. Set up the c15t helper, configure options and verify web vitals in DevTools.
 icon: vercel-analytics
 group: integrations
 ---
@@ -13,6 +13,10 @@ to Vercel. It registers a `beforeSend` callback that drops every Web Vitals
 report while `measurement` has no consent. If the visitor withdraws consent,
 c15t removes the script element. The collector keeps running, so the callback
 drops its reports. By default, c15t also reloads the page.
+
+<Signpost href="https://inth.com/integrations/vercel-speed-insights" label="Setup guide">
+  This page is the code reference for `vercelSpeedInsights`. To set up the cookie banner for Vercel Speed Insights, use the Inth guide.
+</Signpost>
 
 ## Configure Vercel Speed Insights
 

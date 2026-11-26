@@ -9,7 +9,7 @@ import {
 } from '@c15t/schema/types';
 import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, expect, onTestFinished, test, vi } from 'vitest';
 import {
 	createApp,
 	createSSRApp,
@@ -32,6 +32,7 @@ const nuxt = vi.hoisted(() => ({
 		options: Record<string, unknown>;
 		value: unknown;
 	}[],
+	eventFetch: true,
 	experiment: undefined as
 		| { arm?: string; arms: Record<string, object>; id: string }
 		| undefined,
@@ -46,6 +47,17 @@ const nuxt = vi.hoisted(() => ({
 vi.mock('#imports', async () => {
 	// Deep, like Nuxt's payload state (`toRef(reactive(payload.state), key)`).
 	const { ref: makeRef } = await import('vue');
+	const fetchRoute = (_input: string, init?: RequestInit) => {
+		const headers = Object.fromEntries(new Headers(init?.headers));
+		nuxt.fetchHeaders.push(headers);
+		expect(headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
+		nuxt.requests += 1;
+		return Promise.resolve(
+			new Response(JSON.stringify(nuxt.response), {
+				headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
+			})
+		);
+	};
 	return {
 		defineNuxtPlugin: (plugin: unknown) => plugin,
 		useAppConfig: () => ({
@@ -64,21 +76,9 @@ vi.mock('#imports', async () => {
 			return cookie;
 		},
 		useHead: () => undefined,
-		// Nitro's in-process fetch on the event answers the app's own routes.
-		useRequestEvent: () => ({
-			context: {},
-			fetch: (_input: string, init?: RequestInit) => {
-				const headers = Object.fromEntries(new Headers(init?.headers));
-				nuxt.fetchHeaders.push(headers);
-				expect(headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
-				nuxt.requests += 1;
-				return Promise.resolve(
-					new Response(JSON.stringify(nuxt.response), {
-						headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
-					})
-				);
-			},
-		}),
+		useRequestEvent: () =>
+			nuxt.eventFetch ? { context: {}, fetch: fetchRoute } : { context: {} },
+		useRequestFetch: () => ({ native: fetchRoute }),
 		useRequestHeaders: () => nuxt.headers,
 		useRequestURL: () => new URL('https://app.example/'),
 		// `mode` comes from nuxt.config.ts, through the public runtime config.
@@ -101,12 +101,27 @@ vi.mock('#imports', async () => {
 	};
 });
 
+const expectCompleteBanner = (scope: ParentNode) => {
+	const root = scope.querySelector('[data-testid="consent-banner-root"]');
+	const card = root?.querySelector('[data-testid="consent-banner-card"]');
+	const marker = root?.querySelector<HTMLSpanElement>(
+		':scope > span[data-c15t-stream-end]'
+	);
+	expect(root?.getAttribute('data-c15t-streamed')).toBe('');
+	expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
+	expect(marker?.hidden).toBe(true);
+	expect(root?.lastChild).toBe(marker);
+	expect(marker?.previousElementSibling?.contains(card ?? null)).toBe(true);
+	return { card, marker, root };
+};
+
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	nuxt.state.clear();
 	nuxt.cookies = [];
 	nuxt.consentSource = undefined;
+	nuxt.eventFetch = true;
 	nuxt.experiment = undefined;
 	nuxt.fetchHeaders = [];
 	document.body.replaceChildren();
@@ -233,6 +248,10 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	const writes = vi.spyOn(Storage.prototype, 'setItem');
 	const beforeCookie = document.cookie;
 	const warnings: string[] = [];
+	const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+	const consoleWarnings = vi
+		.spyOn(console, 'warn')
+		.mockImplementation(() => {});
 	let mounted: (() => void) | undefined;
 	const clientApp = createSSRApp(Probe);
 	clientApp.config.warnHandler = (message) => warnings.push(message);
@@ -247,6 +266,9 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	const container = document.createElement('div');
 	container.innerHTML = html;
 	document.body.append(container);
+	onTestFinished(() => container.remove());
+	const { root, card, marker } = expectCompleteBanner(container);
+	expect(card?.textContent).toContain('Privacy notice');
 	clientApp.mount(container);
 	await nextTick();
 	try {
@@ -262,16 +284,17 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		expect(container.querySelector('output')?.textContent).toBe(
 			JSON.stringify({ gpc: true, now, prompt: expected.promptRequirement })
 		);
-		expect(
-			document.querySelector('[data-testid="consent-banner-root"]')
-		).not.toBeNull();
-		const notice = document.querySelector(
-			'[data-testid="consent-banner-card"]'
-		);
+		const hydrated = expectCompleteBanner(document);
+		expect(hydrated.root).toBe(root);
+		expect(hydrated.marker).toBe(marker);
+		const notice = hydrated.card;
+		expect(notice).toBe(card);
 		expect(notice?.getAttribute('role')).toBe('region');
 		expect(notice?.getAttribute('aria-modal')).toBeNull();
 		expect(document.body.style.overflow).not.toBe('hidden');
 		expect(warnings).toEqual([]);
+		expect(consoleWarnings).not.toHaveBeenCalled();
+		expect(errors).not.toHaveBeenCalled();
 		expect(writes).not.toHaveBeenCalled();
 		expect(document.cookie).toBe(beforeCookie);
 		mounted?.();
@@ -406,6 +429,28 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');
 });
 
+test('the server render uses Nuxt request fetch when the event has none', async () => {
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+			payload: { prerenderedAt?: number; serverRendered?: boolean };
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	nuxt.eventFetch = false;
+	nuxt.headers = { cookie: '' };
+	nuxt.manifest = true;
+	nuxt.requests = 0;
+	vi.stubGlobal('window', undefined);
+	vi.stubGlobal('document', undefined);
+	await plugin({
+		hook: () => undefined,
+		payload: {},
+		vueApp: createSSRApp(defineComponent({ render: () => null })),
+	});
+	expect(nuxt.requests).toBe(1);
+});
+
 test('an `ssr: false` route asks for the policy before the app mounts', async () => {
 	nuxt.manifest = false;
 	nuxt.headers = {};
@@ -515,7 +560,7 @@ test('an `ssr: false` route that resolves in the browser starts once the app mou
 	expect(hooks).toContain('app:mounted');
 });
 
-test('the server render gives a new visitor a subject ID the browser starts with', async () => {
+test('the server render sets no subject cookie for a new visitor', async () => {
 	const { default: plugin } = await vi.importActual<{
 		default: (app: {
 			vueApp: App;
@@ -569,81 +614,16 @@ test('the server render gives a new visitor a subject ID the browser starts with
 			runWithContext: (run) => run(),
 			vueApp: app,
 		});
-		const html = await renderToString(app);
+		await renderToString(app);
 		const subjectId = context.snapshot.value.subject?.subjectId;
 		const { explicitChoice } = context.snapshot.value;
 		context.dispose();
 		vi.unstubAllGlobals();
-		return { explicitChoice, html, subjectId };
+		return { explicitChoice, subjectId };
 	};
 
 	const first = await renderOnServer({ cookie: 'theme=dark' });
-	expect(first.subjectId).toMatch(/^sub_/u);
+	expect(first.subjectId).toBeUndefined();
 	expect(first.explicitChoice).toBeNull();
-	expect(nuxt.cookies).toEqual([
-		{
-			name: 'c15t-sid',
-			options: {
-				encode: expect.any(Function),
-				httpOnly: false,
-				maxAge: 365 * 86_400,
-				path: '/',
-				sameSite: 'lax',
-				secure: true,
-			},
-			value: first.subjectId,
-		},
-	]);
-
-	// The response holds the raw ID, the same bytes the render's request had.
-	const encode = nuxt.cookies[0]?.options.encode as (value: string) => string;
-	expect(encode(first.subjectId as string)).toBe(first.subjectId);
-
-	// The browser now holds the cookie the response set.
-	const payload = JSON.stringify(
-		[...nuxt.state].map(([key, value]) => [key, value.value])
-	);
-	nuxt.state = new Map(
-		(JSON.parse(payload) as [string, unknown][]).map(([key, value]) => [
-			key,
-			ref(value),
-		])
-	);
-	nuxt.headers = {};
-	document.cookie = `c15t-sid=${first.subjectId}; path=/`;
-	const clientApp = createSSRApp(Probe);
-	await plugin({
-		hook: () => undefined,
-		payload: { serverRendered: true },
-		runWithContext: (run) => run(),
-		vueApp: clientApp,
-	});
-	const container = document.createElement('div');
-	container.innerHTML = first.html;
-	document.body.append(container);
-	clientApp.mount(container);
-	await nextTick();
-	try {
-		expect(context.snapshot.value.subject?.subjectId).toBe(first.subjectId);
-		expect(context.snapshot.value.explicitChoice).toBeNull();
-		expect(
-			document.querySelector('[data-testid="consent-banner-root"]')
-		).not.toBeNull();
-	} finally {
-		clientApp.unmount();
-		document.cookie = 'c15t-sid=; path=/; max-age=0';
-	}
-
-	const returning = await renderOnServer({
-		cookie: `c15t-sid=${first.subjectId}`,
-	});
-	expect(returning.subjectId).toBe(first.subjectId);
-	expect(nuxt.cookies).toEqual([]);
-
-	const prefetch = await renderOnServer({
-		cookie: '',
-		'sec-purpose': 'prefetch',
-	});
-	expect(prefetch.subjectId).toBeUndefined();
 	expect(nuxt.cookies).toEqual([]);
 });

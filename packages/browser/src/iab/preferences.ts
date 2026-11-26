@@ -3,6 +3,7 @@ import {
 	applyPublisherRestrictionsToGVL,
 	countIABPartners,
 	introducedLegitimateInterest,
+	permittedLegitimateInterestPurposes,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
 import type { HeadlessIABDisplayRow } from '@c15t/iab/headless';
@@ -379,7 +380,14 @@ export const createIABPreferences = (
 					).vendors
 				: {}
 		),
-		...(snapshot.iab?.customVendors ?? []),
+		// A custom vendor can list consent-only purposes for legitimate
+		// interest; those get neither an objection nor a disclosure.
+		...(snapshot.iab?.customVendors ?? []).map((vendor) => ({
+			...vendor,
+			legIntPurposes: permittedLegitimateInterestPurposes(
+				vendor.legIntPurposes
+			),
+		})),
 	];
 	const list = h('div', { class: css(styles.vendorListContent) });
 	// Google Additional Consent providers: few, outside the TCF, and listed

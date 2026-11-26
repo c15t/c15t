@@ -35,6 +35,7 @@ import {
 	AMPLITUDE_QUEUE_METHODS,
 	amplitude,
 } from '../src/vendors/analytics/amplitude';
+import { caplessAnalytics } from '../src/vendors/analytics/capless-analytics';
 import { clay } from '../src/vendors/analytics/clay';
 import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
@@ -57,6 +58,7 @@ import { marketoMunchkin } from '../src/vendors/analytics/marketo';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
+import { notraAnalytics } from '../src/vendors/analytics/notra-analytics';
 import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
 import { eloquaTracking } from '../src/vendors/analytics/oracle-eloqua';
 import { pendo } from '../src/vendors/analytics/pendo';
@@ -763,6 +765,41 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		runtimeReplacedGlobals: ['vector'],
 		tier: 'full',
 		vendor: 'vector',
+	},
+	{
+		bootstrapCheck: () => {
+			const stub = window.capless;
+			return check(
+				typeof stub === 'function' &&
+					Array.isArray(stub.q) &&
+					stub.q.length === 1 &&
+					stub.q[0]?.[0] === 'optin',
+				'capless stub queues optin before c.js loads'
+			);
+		},
+		createScript: () => caplessAnalytics({ projectKey: 'cs_c15t_live_probe' }),
+		loaderUrlSubstring: 'c.capless.sh/c.js',
+		notes:
+			'c.js loads for any key; collection requests are blocked, so this does not verify that the key is accepted.',
+		runtimeCheck: () =>
+			check(
+				typeof window.capless === 'function' &&
+					window.capless.q === undefined &&
+					document.cookie === '' &&
+					localStorage.getItem('_cpo') === '0',
+				'c.js replaced the stub, replayed optin and set no cookies'
+			),
+		runtimeReplacedGlobals: ['capless'],
+		tier: 'full',
+		vendor: 'capless-analytics',
+	},
+	{
+		createScript: () => notraAnalytics({ webKey: 'nwk.c15t_live_probe' }),
+		loaderUrlSubstring: 'static.usenotra.com/notra.',
+		notes:
+			'notra.js defines no global and exits in an automated browser, so no runtime check can tell that it ran. The probe covers consent gating and that the pinned file name still loads.',
+		tier: 'loader-only',
+		vendor: 'notra-analytics',
 	},
 	{
 		bootstrapCheck: () =>

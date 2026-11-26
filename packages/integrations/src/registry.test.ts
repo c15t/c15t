@@ -30,6 +30,7 @@ import { xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalyticsManifest } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalyticsManifest } from './vendors/analytics/ahrefs-analytics';
 import { amplitudeManifest } from './vendors/analytics/amplitude';
+import { caplessAnalyticsManifest } from './vendors/analytics/capless-analytics';
 import { clayManifest } from './vendors/analytics/clay';
 import { clearbitManifest } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalyticsManifest } from './vendors/analytics/cloudflare-web-analytics';
@@ -49,6 +50,7 @@ import { marketoManifest } from './vendors/analytics/marketo';
 import { matomoAnalyticsManifest } from './vendors/analytics/matomo-analytics';
 import { clarityManifest } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalyticsManifest } from './vendors/analytics/mixpanel-analytics';
+import { notraAnalyticsManifest } from './vendors/analytics/notra-analytics';
 import { oneDollarStatsManifest } from './vendors/analytics/one-dollar-stats';
 import { eloquaTrackingManifest } from './vendors/analytics/oracle-eloqua';
 import { pendoManifest } from './vendors/analytics/pendo';
@@ -146,6 +148,8 @@ const vendorManifests = [
 	sentryManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
+	caplessAnalyticsManifest,
+	notraAnalyticsManifest,
 	statableAnalyticsManifest,
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,

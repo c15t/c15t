@@ -8,6 +8,7 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/integrations": "workspace:*",
+		"@shopify/hydrogen": "2026.10.0",
 		"@tanstack/react-router": "1.170.44",
 		"@tanstack/react-start": "1.169.1",
 		"c15t": "workspace:*",

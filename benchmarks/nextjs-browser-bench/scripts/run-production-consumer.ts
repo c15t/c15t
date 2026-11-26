@@ -107,6 +107,7 @@ import {
 import {
 	assertVisitBannerState,
 	coldStateMetadata,
+	storedConsentReadyExpression,
 } from '@c15t/benchmarking/visit-definitions';
 import {
 	serverHtmlMetadata,
@@ -750,6 +751,12 @@ const recordChoice = async function recordChoice(
 		const page = await context.newPage();
 		await page.goto(`${server.baseUrl}${route}`);
 		await waitForProbe(page, 'banner');
+		const saved = page.waitForResponse(
+			(response) =>
+				response.request().method() === 'POST' &&
+				new URL(response.url()).pathname.endsWith('/subjects') &&
+				response.ok()
+		);
 		await page.click(`[data-testid="consent-banner-${action}-button"]`);
 		await page.waitForFunction(
 			() => {
@@ -763,14 +770,10 @@ const recordChoice = async function recordChoice(
 			undefined,
 			{ timeout: 30_000 }
 		);
-		await page.waitForFunction(
-			() =>
-				document.cookie
-					.split(';')
-					.some((entry) => entry.trim().startsWith('c15t=')),
-			undefined,
-			{ timeout: 10_000 }
-		);
+		await saved;
+		await page.waitForFunction(storedConsentReadyExpression, undefined, {
+			timeout: 10_000,
+		});
 		return await context.storageState();
 	} finally {
 		await context.close();

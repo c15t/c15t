@@ -1,6 +1,7 @@
 ---
 title: Scripts
 description: Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
+seoTitle: Load HTML vendor scripts after consent with c15t
 group: frameworks
 ---
 
@@ -90,7 +91,7 @@ element again when the visitor withdraws it.
 | `callbackOnly` | `true` or a zero-argument predicate returning `true` adds no element and only runs callbacks. Predicates also run for diagnostics and server startup; keep them free of side effects and safe on the server. |
 | `alwaysLoad` | Load whatever the consent state. Use it only for tags that manage consent themselves. |
 | `persistAfterConsentRevoked` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
-| `target` | `'head'` (default) or `'body'`. |
+| `target` | `'head'` (default) or `'body'`. Falls back to `<head>` if `<body>` does not exist yet. |
 | `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. Without its own `nonce`, the script gets the c15t tag's nonce. |
 | `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |
 | `vendor` | A vendor ID for vendor-level consent. See [vendor consent](/docs/frameworks/html/vendor-consent). |

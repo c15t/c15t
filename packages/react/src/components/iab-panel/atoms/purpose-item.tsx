@@ -54,7 +54,7 @@ const VendorRow: FC<VendorRowProps> = ({
 	onToggle,
 	onClick,
 	isLegitimateInterest = false,
-	isLegitimateInterestAllowed = true,
+	isLegitimateInterestAllowed = false,
 	onLegitimateInterestToggle,
 }) => {
 	const iab = useIABTranslations();
@@ -172,10 +172,10 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	const getVendorConsent = (vendorId: VendorId) =>
 		vendorConsents[String(vendorId)] ?? false;
 	const getVendorLegitimateInterest = (vendorId: VendorId) =>
-		vendorLegitimateInterests[String(vendorId)] ?? true;
+		vendorLegitimateInterests[String(vendorId)] ?? false;
 
 	// Check if purpose-level LI is allowed (not objected)
-	const isPurposeLIAllowed = purposeLegitimateInterests[purpose.id] ?? true;
+	const isPurposeLIAllowed = purposeLegitimateInterests[purpose.id] ?? false;
 
 	// Handler for purpose-level LI objection - also objects to all LI vendors for this purpose
 	const handlePurposeLIObjection = () => {

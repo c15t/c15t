@@ -41,7 +41,7 @@ same props, except that `state` replaces `mode` and `prefetch`.
 
 "Read once" options are read when the provider is created. Changing them later
 has no effect until the provider remounts, and outside production a change to
-`mode`, `i18n` or `experiment` logs a warning. Options that update after mount
+any of them except `prefetch` logs a warning. Options that update after mount
 are compared with their previous values, so a new `options` object that only
 changes `theme` sends no request. The provider has no `policyRules`
 option. For local policy rules, pass `local({ policyRules })` as `mode`.

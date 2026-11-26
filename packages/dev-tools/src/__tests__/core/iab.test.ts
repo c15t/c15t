@@ -34,6 +34,19 @@ const mount = (kernel: ConsentKernel) => {
 	cleanups.push(tools.destroy);
 	return tools;
 };
+/** Purpose 2 allows legitimate interest; purpose 1 does not. */
+const gvlWithPurposeTwo: GlobalVendorList = {
+	...minimalGVL,
+	purposes: {
+		...minimalGVL.purposes,
+		2: {
+			description: 'Advertising presented to you can be based on limited data.',
+			id: 2,
+			illustrations: [],
+			name: 'Use limited data to select advertising',
+		},
+	},
+};
 const attachIAB = (
 	kernel: ConsentKernel,
 	gvl: GlobalVendorList = minimalGVL
@@ -43,7 +56,7 @@ const attachIAB = (
 		customVendors: [
 			{
 				id: 'internal-analytics',
-				legIntPurposes: [1],
+				legIntPurposes: [2],
 				name: 'Internal Analytics',
 				privacyPolicyUrl: 'https://example.test/privacy',
 				purposes: [1],
@@ -125,10 +138,18 @@ describe('IAB DevTools', () => {
 				},
 				{
 					id: 'li-only',
-					legIntPurposes: [1],
+					legIntPurposes: [2],
 					name: 'Interest',
 					privacyPolicyUrl: 'https://example.test/privacy',
 					purposes: [],
+				},
+				{
+					// TCF allows purpose 1 only with consent.
+					id: 'consent-only-li',
+					legIntPurposes: [1],
+					name: 'Consent-only interest',
+					privacyPolicyUrl: 'https://example.test/privacy',
+					purposes: [1],
 				},
 			],
 			gvl: {
@@ -154,7 +175,7 @@ describe('IAB DevTools', () => {
 			);
 			expect(kernel.getSnapshot().iab?.vendorConsents[id]).not.toBe(true);
 		}
-		for (const id of ['1', 'consent-only']) {
+		for (const id of ['1', 'consent-only', 'consent-only-li']) {
 			expect(
 				tools.element?.querySelector(`[data-focus-key="iab:vendors:${id}:li"]`)
 			).toBeNull();
@@ -166,14 +187,17 @@ describe('IAB DevTools', () => {
 			1: true,
 			2: false,
 			'consent-only': true,
+			'consent-only-li': true,
 			'li-only': false,
 		});
 		expect(kernel.getSnapshot().iab?.vendorLegitimateInterests).toMatchObject({
 			1: false,
 			2: true,
 			'consent-only': false,
+			'consent-only-li': false,
 			'li-only': true,
 		});
+		expect(kernel.getSnapshot().iab?.purposeLegitimateInterests[1]).toBe(false);
 		iab.rejectAll();
 		expect(kernel.getSnapshot().iab?.vendorConsents['consent-only']).toBe(
 			false
@@ -184,7 +208,7 @@ describe('IAB DevTools', () => {
 	});
 	it('uses the existing module to edit vendors, purposes, legitimate interests, and features', () => {
 		const kernel = makeKernel();
-		attachIAB(kernel);
+		attachIAB(kernel, gvlWithPurposeTwo);
 		const tools = mount(kernel);
 		const otherKernel = makeKernel();
 		expect(getIABControls(otherKernel)).toBeUndefined();
@@ -202,9 +226,13 @@ describe('IAB DevTools', () => {
 
 		selectGroup(tools, 'purposes');
 		toggle(tools, 'iab:purposes:1:consent').click();
-		toggle(tools, 'iab:purposes:1:li').click();
+		toggle(tools, 'iab:purposes:2:li').click();
 		expect(kernel.getSnapshot().iab?.purposeConsents[1]).toBe(true);
-		expect(kernel.getSnapshot().iab?.purposeLegitimateInterests[1]).toBe(true);
+		expect(kernel.getSnapshot().iab?.purposeLegitimateInterests[2]).toBe(true);
+		// TCF allows purpose 1 only with consent, so it has no objection switch.
+		expect(
+			tools.element?.querySelector('[data-focus-key="iab:purposes:1:li"]')
+		).toBeNull();
 		selectGroup(tools, 'features');
 		toggle(tools, 'iab:features:1:consent').click();
 		expect(kernel.getSnapshot().iab?.specialFeatureOptIns[1]).toBe(true);

@@ -43,6 +43,8 @@ interface Row {
 	trigger: HTMLElement;
 	arrow: SVGSVGElement;
 	content: HTMLElement;
+	restriction: HTMLElement;
+	restrictionId: string;
 	switchButton: HTMLButtonElement;
 	vendorList: VendorList | null;
 }
@@ -157,6 +159,34 @@ const patchSwitch = function patchSwitch(row: Row, checked: boolean): void {
 	);
 };
 
+const isRestricted = function isRestricted(
+	snapshot: ConsentSnapshot,
+	name: AllConsentNames
+): boolean {
+	if (name === 'necessary') {
+		return false;
+	}
+	return (
+		snapshot.explicitChoice?.categories[name]?.value === true &&
+		(snapshot.restrictions[name]?.length ?? 0) > 0
+	);
+};
+
+const patchRestriction = function patchRestriction(
+	row: Row,
+	restricted: boolean
+): void {
+	if (restricted) {
+		row.switchButton.setAttribute('aria-describedby', row.restrictionId);
+		if (!row.restriction.isConnected) {
+			row.item.insertBefore(row.restriction, row.content);
+		}
+		return;
+	}
+	row.switchButton.removeAttribute('aria-describedby');
+	row.restriction.remove();
+};
+
 const patchOpen = function patchOpen(row: Row, open: boolean): void {
 	const state = open ? 'open' : 'closed';
 	row.item.setAttribute('data-state', state);
@@ -233,9 +263,12 @@ export const createWidget = function createWidget(
 	};
 
 	/** Show or hide the review notice and bring every switch up to date. */
-	const patchAll = function patchAll(): void {
+	const patchAll = function patchAll(
+		snapshot: ConsentSnapshot = ctx.client.kernel.getSnapshot()
+	): void {
 		for (const row of rows) {
 			patchSwitch(row, isChecked(row.name));
+			patchRestriction(row, isRestricted(snapshot, row.name));
 		}
 		patchVendors();
 		review?.toggleAttribute('hidden', !draft.getState().isStale);
@@ -330,6 +363,16 @@ export const createWidget = function createWidget(
 						),
 		});
 		const content = buildContent(copy, ids, noStyle, vendorList);
+		const restrictionId = `c15t-restriction-${name}`;
+		const restriction = h(
+			'p',
+			{
+				class: noStyle ? '' : accordion.restriction,
+				'data-testid': `consent-widget-restriction-${name}`,
+				id: restrictionId,
+			},
+			'Your saved choice is restricted by the current privacy settings.'
+		);
 		const item = h(
 			'div',
 			{
@@ -358,12 +401,15 @@ export const createWidget = function createWidget(
 			content,
 			item,
 			name,
+			restriction,
+			restrictionId,
 			switchButton,
 			trigger,
 			vendorList,
 		};
 		patchOpen(row, openItem === name);
 		patchSwitch(row, isChecked(name));
+		patchRestriction(row, isRestricted(snapshot, name));
 		return row;
 	};
 
@@ -453,7 +499,7 @@ export const createWidget = function createWidget(
 			list.append(row.item);
 		}
 		element.append(review, list, buildFooter(snapshot, t));
-		patchAll();
+		patchAll(snapshot);
 		const branding = slot(
 			renderBranding({
 				branding: snapshot.branding,
@@ -498,7 +544,7 @@ export const createWidget = function createWidget(
 				rebuild(snapshot);
 				return;
 			}
-			patchAll();
+			patchAll(snapshot);
 		},
 	};
 };

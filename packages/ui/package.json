@@ -290,9 +290,9 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@rslib/core": "0.23.2",
-		"postcss": "8.5.10",
+		"postcss": "8.5.33",
 		"typed-css-modules": "0.9.1",
 		"typescript": "7.0.2",
-		"vitest": "4.1.10"
+		"vitest": "4.1.12"
 	}
 }

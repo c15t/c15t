@@ -1,4 +1,5 @@
-import { policyRulePresets } from '@c15t/core';
+import { createOfflineTransport, custom, policyRulePresets } from '@c15t/core';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { classes } from '../generated/styles';
@@ -324,6 +325,74 @@ describe('mountConsentUI', () => {
 		).toContain('c15t.com');
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
+		).toBeNull();
+	});
+
+	it.each(['inth', 'consent'] as const)(
+		'renders the inth mark in the banner and dialog tags for %s branding',
+		async (branding) => {
+			const { root, client } = await mount(
+				{},
+				{
+					mode: custom(
+						createOfflineTransport({ acknowledgeNoRecords: true, branding })
+					),
+				}
+			);
+
+			for (const testId of [
+				'consent-banner-branding',
+				'consent-dialog-branding',
+			]) {
+				if (testId === 'consent-dialog-branding') {
+					client.openDialog();
+				}
+				const tag = query(root, testId);
+				expect(tag.getAttribute('data-branding')).toBe('inth');
+				expect(tag.getAttribute('href')).toContain('inth.com');
+				const wordmark = tag.querySelector(`.${classes.branding.brandingInth}`);
+				const mark = wordmark?.querySelector('svg');
+				expect(mark?.getAttribute('viewBox')).toBe('0 0 88 90');
+				expect(mark?.getAttribute('aria-hidden')).toBeNull();
+				expect(mark?.getAttribute('role')).toBe('img');
+				expect(mark?.getAttribute('aria-label')).toBe('inth');
+				expect(mark?.getAttribute('height')).toBe('1em');
+				expect(wordmark?.textContent).toBe('');
+			}
+		}
+	);
+
+	it('hides the banner and dialog branding tags when branding is none', async () => {
+		const { root, client } = await mount(
+			{},
+			{
+				mode: custom(
+					createOfflineTransport({
+						acknowledgeNoRecords: true,
+						branding: 'none',
+						policyRules: [
+							{
+								...policyRulePresets.europeOptIn(),
+								categories: ['measurement', 'marketing'],
+								match: { isDefault: true },
+								scopeMode: 'strict',
+							},
+						],
+					})
+				),
+			}
+		);
+
+		expect(client.getSnapshot().branding).toBe('none');
+		expect(query(root, 'consent-banner-root')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-banner-branding"]')
+		).toBeNull();
+
+		client.openDialog();
+		expect(query(root, 'consent-dialog-root')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-dialog-branding"]')
 		).toBeNull();
 	});
 
@@ -705,6 +774,81 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it('renders no close button in the preference centre by default', async () => {
+		const { root, client } = await mount();
+		client.openDialog();
+
+		expect(query(root, 'consent-dialog-header')).toBeTruthy();
+		expect(
+			root.querySelector('[data-testid="consent-dialog-close"]')
+		).toBeNull();
+	});
+
+	it('closes the preference centre from showCloseButton without recording consent', async () => {
+		const { root, client } = await mount({
+			dialog: { showCloseButton: true },
+			theme: { slots: { consentDialogCloseButton: 'brand-close' } },
+		});
+		client.openDialog();
+
+		const close = query<HTMLButtonElement>(root, 'consent-dialog-close');
+		expect(close.getAttribute('aria-label')).toBe('Close');
+		expect(close.getAttribute('part')).toBe('consentDialogCloseButton');
+		expect(close.classList).toContain('brand-close');
+		expect(close.querySelector('svg')?.getAttribute('style')).toBeNull();
+		const header = query(root, 'consent-dialog-header');
+		expect(header.contains(close)).toBe(true);
+		expect(header.hasAttribute('data-has-close-button')).toBe(true);
+
+		close.click();
+
+		expect(client.getSnapshot().activeUI).toBe('banner');
+		expect(client.hasConsented()).toBe(false);
+		expect(
+			root.querySelector('[data-testid="consent-dialog-root"]')
+		).toBeNull();
+	});
+
+	it('omits data-has-close-button when the close-button slot sets noStyle', async () => {
+		const { root, client } = await mount({
+			dialog: { showCloseButton: true },
+			theme: {
+				slots: {
+					consentDialogCloseButton: {
+						className: 'custom-close',
+						noStyle: true,
+					},
+				},
+			},
+		});
+		client.openDialog();
+
+		const close = query<HTMLButtonElement>(root, 'consent-dialog-close');
+		expect(close.classList).toContain('custom-close');
+		expect(
+			query(root, 'consent-dialog-header').hasAttribute('data-has-close-button')
+		).toBe(false);
+	});
+
+	it('falls back to English when common.close is blank', async () => {
+		const { root, client } = await mount(
+			{ dialog: { showCloseButton: true } },
+			{
+				i18n: {
+					translations: {
+						en: {
+							common: { close: '   ' },
+						},
+					},
+				},
+			}
+		);
+		client.openDialog();
+
+		const close = query<HTMLButtonElement>(root, 'consent-dialog-close');
+		expect(close.getAttribute('aria-label')).toBe('Close');
+	});
+
 	it('closes the preference centre on Escape pressed outside it', async () => {
 		const { root, client } = await mount(
 			{},
@@ -722,6 +866,28 @@ describe('mountConsentUI', () => {
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
 		).toBeNull();
+	});
+
+	it('closes only the topmost stacked dialog on Escape', async () => {
+		const { client } = await mount();
+		client.openDialog();
+
+		let topClosed = false;
+		const stopTop = onDialogDismiss(document.documentElement, () => {
+			topClosed = true;
+			stopTop();
+		});
+
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+		expect(topClosed).toBe(true);
+		expect(client.getSnapshot().activeUI).toBe('dialog');
+
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+		expect(client.getSnapshot().activeUI).toBe('banner');
 	});
 
 	it('stamps the configured nonce on the injected style element', async () => {

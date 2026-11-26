@@ -66,6 +66,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "attentiveTag({ siteSlug: 'YOUR_SITESLUG' })",
 		importName: 'attentiveTag',
 	},
+	'capless-analytics': {
+		example: "caplessAnalytics({ projectKey: 'cs_your_project_key' })",
+		importName: 'caplessAnalytics',
+	},
 	clay: { example: "clay({ siteId: 'YOUR_SITE_ID' })", importName: 'clay' },
 	clearbit: {
 		example: "clearbit({ publishableKey: 'pk_XXXXXXXXXX' })",
@@ -204,6 +208,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	'mixpanel-analytics': {
 		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
 		importName: 'mixpanelAnalytics',
+	},
+	'notra-analytics': {
+		example: "notraAnalytics({ webKey: 'nwk.your_web_key' })",
+		importName: 'notraAnalytics',
 	},
 	'one-dollar-stats': {
 		example: 'oneDollarStats()',

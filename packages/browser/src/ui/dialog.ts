@@ -1,26 +1,46 @@
-import { resolveConsentPresentation } from '@c15t/core';
+import {
+	defaultTranslationConfig,
+	resolveConsentPresentation,
+} from '@c15t/core';
 import type { ConsentSnapshot } from '@c15t/core';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
 import { classes } from '../generated/styles';
 import type { ConsentDialogOptions } from '../types';
 import { renderBranding } from './branding';
 import { resolveCopy } from './copy';
-import { h, readDurationMs, supportsStartingStyle } from './dom';
+import { h, readDurationMs, supportsStartingStyle, svg } from './dom';
 import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 import { createWidget } from './widget';
 
 const DEFAULT_DURATION_MS = 200;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** The X the React, Vue and Svelte close buttons draw. */
+const createCloseIcon = function createCloseIcon(): SVGSVGElement {
+	const icon = svg('0 0 24 24', [], {
+		fill: 'none',
+		height: '1rem',
+		stroke: 'currentColor',
+		'stroke-width': 2,
+		width: '1rem',
+	});
+	const path = document.createElementNS(SVG_NS, 'path');
+	path.setAttribute('d', 'M18 6 6 18M6 6l12 12');
+	icon.append(path);
+	return icon;
+};
 
 /**
  * The preference centre dialog.
  *
  * Opens when the kernel says `activeUI === 'dialog'`. Modal: focus is
  * trapped, the page stops scrolling. Escape closes it wherever focus is,
- * as in the React and Vue dialogs. Like the stock dialogs of the other
- * adapters it has no close button, and clicking the backdrop does not
- * close it: the visitor leaves through a choice or Escape.
+ * as in the React and Vue dialogs. Clicking the backdrop does not close
+ * it. The visitor leaves through a choice, Escape, or the close button
+ * that `showCloseButton` adds to the header.
  *
  * @param ctx - The mount context.
  * @param options - Dialog options.
@@ -48,13 +68,49 @@ export const createDialog = function createDialog(
 		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
-	const onKeyDown = function onKeyDown(event: KeyboardEvent): void {
-		// The dialog's own handler runs first for keys pressed inside it and
-		// marks the event handled, so the document listener skips it.
-		if (event.key === 'Escape' && !event.defaultPrevented) {
+	const forwardShadowEscape = function forwardShadowEscape(
+		event: KeyboardEvent
+	): void {
+		if (
+			event.key === 'Escape' &&
+			!event.defaultPrevented &&
+			!event.composed &&
+			content?.getRootNode() !== document
+		) {
 			event.preventDefault();
-			ctx.client.closeDialog();
+			document.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Escape',
+				})
+			);
 		}
+	};
+
+	const renderCloseButton = function renderCloseButton(
+		closeLabel: string | undefined
+	): HTMLElement | null {
+		if (!options.showCloseButton) {
+			return null;
+		}
+		return slot(
+			h(
+				'button',
+				{
+					'aria-label':
+						closeLabel?.trim() ||
+						defaultTranslationConfig.translations.en?.common?.close ||
+						'Close',
+					class: noStyle ? '' : styles.closeButton,
+					'data-testid': 'consent-dialog-close',
+					onclick: () => ctx.client.closeDialog(),
+					type: 'button',
+				},
+				createCloseIcon()
+			),
+			'consentDialogCloseButton'
+		);
 	};
 
 	const build = function build(snapshot: ConsentSnapshot): void {
@@ -62,6 +118,14 @@ export const createDialog = function createDialog(
 		const { t } = copy;
 		widget = createWidget(ctx, { hideBranding: true });
 		widget.sync(snapshot);
+
+		const closeButton = renderCloseButton(t.common.close);
+		const hasStyledCloseButton =
+			closeButton !== null &&
+			!noStyle &&
+			Boolean(styles.closeButton) &&
+			closeButton.classList.contains(styles.closeButton) &&
+			!closeButton.classList.contains('headless');
 
 		content = slot(
 			h(
@@ -81,7 +145,7 @@ export const createDialog = function createDialog(
 					'data-testid': 'consent-dialog-root',
 					dir: copy.dir,
 					lang: copy.language,
-					onkeydown: onKeyDown as EventListener,
+					onkeydown: forwardShadowEscape as EventListener,
 					role: 'dialog',
 				},
 				slot(
@@ -97,6 +161,9 @@ export const createDialog = function createDialog(
 								'div',
 								{
 									class: noStyle ? '' : styles.header,
+									'data-has-close-button': hasStyledCloseButton
+										? ''
+										: undefined,
 									'data-testid': 'consent-dialog-header',
 								},
 								slot(
@@ -130,7 +197,8 @@ export const createDialog = function createDialog(
 										})
 									),
 									'consentDialogDescription'
-								)
+								),
+								closeButton
 							),
 							'consentDialogHeader'
 						),
@@ -245,10 +313,9 @@ export const createDialog = function createDialog(
 			content.classList.add(styles.contentEntering);
 		}
 		ctx.root.append(overlay, positioner);
-		// A non-blocking dialog does not trap focus, so Escape pressed on the
-		// page must still reach it.
-		document.addEventListener('keydown', onKeyDown);
-		cleanups.push(() => document.removeEventListener('keydown', onKeyDown));
+		// Shared document-level Escape stack: closes only the topmost dialog,
+		// and still reaches a non-blocking dialog that does not trap focus.
+		cleanups.push(onDialogDismiss(positioner, () => ctx.client.closeDialog()));
 		const { blocking } = resolveConsentPresentation({
 			policy: snapshot.policyRule,
 			presentation: ctx.client.presentation,

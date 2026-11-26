@@ -54,9 +54,9 @@ export interface ResolvedStorageKeys {
 	 */
 	cookieMiss: string;
 	/**
-	 * The visitor's subject ID on its own, stored from first load so it
-	 * exists before any choice. Never removed by a clear, and never read as
-	 * a recorded choice.
+	 * Where c15t 3.2 stored the visitor's subject ID before any choice.
+	 * Nothing writes or reads it now; startup and `clear()` remove a copy
+	 * an earlier version left.
 	 */
 	subject: string;
 }

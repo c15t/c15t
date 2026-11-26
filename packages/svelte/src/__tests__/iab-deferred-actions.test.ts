@@ -91,6 +91,10 @@ test.each(
 		if (component === 'iab-consent-dialog') {
 			kernel?.set.activeUI('dialog');
 		}
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* asserted below */
+		});
+		onTestFinished(() => consoleError.mockRestore());
 		button()?.click();
 		// The surface closes on the click and comes back because the vendor
 		// list failed before anything was recorded.
@@ -99,6 +103,7 @@ test.each(
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
+		expect(consoleError).toHaveBeenCalledOnce();
 		expect(kernel?.getSnapshot().activeUI).toBe(
 			component === 'iab-consent-banner' ? 'banner' : 'dialog'
 		);

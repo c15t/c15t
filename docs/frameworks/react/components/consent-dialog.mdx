@@ -1,6 +1,7 @@
 ---
 title: ConsentDialog
 description: Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
+seoTitle: 'React ConsentDialog: c15t cookie preference center'
 group: frameworks
 ---
 
@@ -20,6 +21,16 @@ To hide the "Secured by" tag in the dialog card, pass `hideBranding`:
 
 ```tsx
 <ConsentDialog hideBranding />;
+```
+
+On touch screens the dialog has no Escape key, and the backdrop does not
+close it. To give visitors a way out that records no choice, pass
+`showCloseButton`. An X button appears in the top corner of the header:
+
+{/* example: fragment */}
+
+```tsx
+<ConsentDialog showCloseButton />;
 ```
 
 To open it from your own component, set the active surface:

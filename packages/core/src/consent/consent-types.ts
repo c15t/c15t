@@ -2,6 +2,9 @@
  * @packageDocumentation
  * Provides types and constants for managing GDPR-compliant consent categories and their configurations.
  */
+import type { ResolvedPolicyRule } from '@c15t/schema/types';
+
+import type { OptionalConsentCategory } from '../consent-record/types';
 
 /**
  * Defines all possible consent categories that can be managed within the application.
@@ -261,6 +264,29 @@ export const displayedCategories = function displayedCategories(
 };
 
 /**
+ * A category's value before any choice: on under opt-out and `none`, which
+ * allow it, else on when the rule preselects it.
+ *
+ * It lives beside {@link displayedCategories}, which a first load already
+ * holds, so a preference surface that reads it loads no extra file.
+ *
+ * @param rule - The policy rule's model and preselected categories.
+ * @param category - The optional consent category to evaluate.
+ * @returns `true` when the policy defaults the category on.
+ * @public
+ */
+export const policyDefault = function policyDefault(
+	rule: Pick<ResolvedPolicyRule, 'model' | 'preselectedCategories'>,
+	category: OptionalConsentCategory
+): boolean {
+	return (
+		rule.model === 'opt-out' ||
+		rule.model === 'none' ||
+		rule.preselectedCategories.includes(category)
+	);
+};
+
+/**
  * Information about the consent granted
  */
 export interface ConsentInfo {
@@ -275,7 +301,8 @@ export interface ConsentInfo {
 	 *
 	 * @remarks
 	 * This is the primary identifier for the device/browser.
-	 * Generated client-side using generateSubjectId() and stored in cookie.
+	 * Generated client-side using generateSubjectId(). Stored with the
+	 * consent records once the visitor's first save writes them.
 	 * New in v2.0 - replaces the server-generated consentId.
 	 *
 	 * @example 'sub_2VZxR7YmNpKq3WfLs8TgHd'

@@ -2,8 +2,8 @@
  * Story pairing.
  *
  * React titles live under `COMPONENTS - REACT/...`; Svelte under
- * `COMPONENTS - SVELTE/...`; Vue under `COMPONENTS - VUE/...`; Solid
- * under `COMPONENTS - SOLID/...`; Astro under `COMPONENTS - ASTRO/...`.
+ * `COMPONENTS - SVELTE/...`; Vue under `COMPONENTS - VUE/...`; Astro under
+ * `COMPONENTS - ASTRO/...`.
  * Pairing strips the `{FRAMEWORK}` segment so `COMPONENTS - REACT/Button`
  * pairs with `COMPONENTS - SVELTE/Button`, `COMPONENTS - VUE/Button`, etc.
  */
@@ -25,7 +25,7 @@ export interface PairedStory {
 }
 
 const FRAMEWORK_SEGMENT =
-	/^components\s*-\s*(?<capture1>react|svelte|vue|solid|astro)\//iu;
+	/^components\s*-\s*(?<capture1>react|svelte|vue|astro)\//iu;
 
 /**
  * Extract the framework code from a Storybook title, or null if the title
@@ -70,7 +70,7 @@ export const pairStories = function pairStories(
  *
  * A pair with fewer entries than the run enables is not automatically
  * wrong: the Storybook apps do not carry the same catalogue (React ships
- * 17 story files, Solid 5, Astro 4), so most pairs are legitimately
+ * 17 story files, Astro 4), so most pairs are legitimately
  * partial. What matters is that the gap is visible in the report rather
  * than silently absent, and that both comparisons compute it the same way.
  */

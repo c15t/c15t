@@ -1,0 +1,46 @@
+name: Canary docs
+
+# Redeploys canary.c15t.com after each push to canary.
+#
+# This repository holds no credential for the docs deploy. The job sends only
+# its GitHub OIDC token to the Inth API, which starts the deploy only when the
+# token's claims are exactly: this repository and owner (by id), event_name
+# `push`, ref `refs/heads/canary`, and the full workflow_ref
+# `c15t/c15t/.github/workflows/canary-docs.yml@refs/heads/canary`. A copy of
+# this file on another branch or a pull request run gets a token it refuses.
+# The deploy reads canary's tip itself, so nothing else is sent.
+#
+# Renaming this file stops the redeploys until the API's check changes too.
+
+on:
+  push:
+    branches: ['canary']
+
+permissions: {}
+
+concurrency:
+  group: canary-docs
+  cancel-in-progress: true
+
+jobs:
+  redeploy:
+    name: Redeploy canary.c15t.com
+    if: github.repository == 'c15t/c15t'
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    permissions:
+      id-token: write # mints the OIDC token the Inth API checks; nothing else
+    steps:
+      - name: Ask the docs deploy to rebuild canary
+        env:
+          AUDIENCE: inth-c15t-canary-docs
+          RELAY_URL: https://api.inth.com/webhooks/c15t/canary-docs
+        run: |
+          set -euo pipefail
+          token=$(curl -fsS \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE" | jq -r .value)
+          echo "::add-mask::$token"
+          curl -fsS --retry 3 --retry-connrefused -X POST \
+            -H "Authorization: Bearer $token" \
+            "$RELAY_URL"

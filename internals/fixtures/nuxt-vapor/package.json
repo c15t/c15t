@@ -15,7 +15,7 @@
 		"@effect/sql-pglite": "4.0.0",
 		"@electric-sql/pglite": "0.4.2",
 		"c15t": "workspace:*",
-		"nuxt": "4.6.0",
+		"nuxt": "4.6.4",
 		"pg": "^8.20.0",
 		"vue": "3.6.0-rc.10"
 	},

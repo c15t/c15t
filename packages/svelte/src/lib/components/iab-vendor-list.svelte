@@ -1,6 +1,10 @@
 <script lang="ts">
 	import type { AdTechProvider, GlobalVendorList } from '@c15t/core';
-	import { resolveIABVendorUrls } from '@c15t/iab/headless';
+	import {
+		permittedLegitimateInterestPurposes,
+		resolveIABSafeUrl,
+		resolveIABVendorUrls,
+	} from '@c15t/iab/headless';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import switchStyles from '@c15t/ui/styles/components/switch';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
@@ -82,7 +86,9 @@
 				(vendor as unknown as { dataDeclaration?: number[] }).dataDeclaration ||
 				[],
 			dataRetention: vendor.dataRetention,
-			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+			deviceStorageDisclosureUrl: resolveIABSafeUrl(
+				vendor.deviceStorageDisclosureUrl
+			),
 			features: vendor.features || [],
 			id: Number(id),
 			isCustom: false,
@@ -108,10 +114,10 @@
 			features: cv.features || [],
 			id: cv.id,
 			isCustom: true,
-			legIntPurposes: cv.legIntPurposes || [],
+			legIntPurposes: permittedLegitimateInterestPurposes(cv.legIntPurposes),
 			legitimateInterestUrl: null,
 			name: cv.name,
-			policyUrl: cv.privacyPolicyUrl,
+			policyUrl: resolveIABSafeUrl(cv.privacyPolicyUrl) ?? '',
 			purposes: cv.purposes || [],
 			specialFeatures: cv.specialFeatures || [],
 			specialPurposes: [],
@@ -368,7 +374,7 @@
 					).length}
 					{@const hasLegitimateInterest = vendor.legIntPurposes.length > 0}
 					{@const isLegitimateInterestAllowed =
-						vendorLegitimateInterests[vendorKey] ?? true}
+						vendorLegitimateInterests[vendorKey] ?? false}
 					{@const standardRetentionDays = vendor.dataRetention?.stdRetention}
 					{@const maxAgeText = getMaxAgeText(vendor)}
 
@@ -451,17 +457,19 @@
 						>
 							<!-- Links -->
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
-								<a
-									href={vendor.policyUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									class={noStyle ? '' : styles.vendorLink || ''}
-								>
-									<ExternalLinkIcon
-										class={noStyle ? '' : styles.vendorLinkIcon || ''}
-									/>
-									{iabT.preferenceCenter.vendorList.privacyPolicy}
-								</a>
+								{#if vendor.policyUrl}
+									<a
+										href={vendor.policyUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class={noStyle ? '' : styles.vendorLink || ''}
+									>
+										<ExternalLinkIcon
+											class={noStyle ? '' : styles.vendorLinkIcon || ''}
+										/>
+										{iabT.preferenceCenter.vendorList.privacyPolicy}
+									</a>
+								{/if}
 								{#if vendor.legitimateInterestUrl}
 									<a
 										href={vendor.legitimateInterestUrl}
@@ -699,9 +707,27 @@
 										{#each vendorFeatures as f (f.id)}
 											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>
 												{f.name}
+												{#if f.description}
+													<span
+														class={noStyle
+															? ''
+															: styles.vendorListMetaText || ''}
+													>
+														{f.description}
+													</span>
+												{/if}
 											</li>
 										{/each}
 									</ul>
+									<!-- TCF policy check 14: Features always carry the standard explanation. -->
+									<p
+										class={noStyle ? '' : styles.vendorListMetaText || ''}
+										data-testid={`vendor-${vendor.id}-features-standard-text`}
+									>
+										{vendorData?.standardTexts?.features ||
+											iabT.preferenceCenter.features?.description ||
+											''}
+									</p>
 								</div>
 							{/if}
 						</PreferenceItem.Content>
@@ -732,7 +758,7 @@
 					{@const vendorFeatures = getVendorFeatures(vendor.id)}
 					{@const hasLegitimateInterest = vendor.legIntPurposes.length > 0}
 					{@const isLegitimateInterestAllowed =
-						vendorLegitimateInterests[vendorKey] ?? true}
+						vendorLegitimateInterests[vendorKey] ?? false}
 					{@const maxAgeText = getMaxAgeText(vendor)}
 
 					<PreferenceItem.Root
@@ -792,17 +818,19 @@
 							{noStyle}
 						>
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
-								<a
-									href={vendor.policyUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									class={noStyle ? '' : styles.vendorLink || ''}
-								>
-									<ExternalLinkIcon
-										class={noStyle ? '' : styles.vendorLinkIcon || ''}
-									/>
-									{iabT.preferenceCenter.vendorList.privacyPolicy}
-								</a>
+								{#if vendor.policyUrl}
+									<a
+										href={vendor.policyUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class={noStyle ? '' : styles.vendorLink || ''}
+									>
+										<ExternalLinkIcon
+											class={noStyle ? '' : styles.vendorLinkIcon || ''}
+										/>
+										{iabT.preferenceCenter.vendorList.privacyPolicy}
+									</a>
+								{/if}
 							</div>
 
 							<div class={noStyle ? '' : styles.vendorBadges || ''}>
@@ -901,9 +929,27 @@
 										{#each vendorFeatures as f (f.id)}
 											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>
 												{f.name}
+												{#if f.description}
+													<span
+														class={noStyle
+															? ''
+															: styles.vendorListMetaText || ''}
+													>
+														{f.description}
+													</span>
+												{/if}
 											</li>
 										{/each}
 									</ul>
+									<!-- TCF policy check 14: Features always carry the standard explanation. -->
+									<p
+										class={noStyle ? '' : styles.vendorListMetaText || ''}
+										data-testid={`vendor-${vendor.id}-features-standard-text`}
+									>
+										{vendorData?.standardTexts?.features ||
+											iabT.preferenceCenter.features?.description ||
+											''}
+									</p>
 								</div>
 							{/if}
 						</PreferenceItem.Content>

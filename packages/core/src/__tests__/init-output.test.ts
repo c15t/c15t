@@ -5,6 +5,7 @@
 import { enTranslations } from '@c15t/translations';
 import { describe, expect, test } from 'vitest';
 
+import { buildInitialSnapshot } from '../kernel/snapshot';
 import {
 	initOutputToKernelConfig,
 	kernelConfigToInitResponse,
@@ -93,17 +94,23 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		expect(merged).not.toHaveProperty('initialHasConsented');
 	});
 
-	test("branding 'none' is filtered — KernelBranding has no 'none'", () => {
-		const merged = mergeInitResponseIntoKernelConfig(
-			{},
-			// oxlint-disable-next-line typescript/no-explicit-any -- backend can send 'none'
-			{ branding: 'none' as any }
+	test("branding 'none' reaches the snapshot so stock UI can hide its tag", () => {
+		const merged = mergeInitResponseIntoKernelConfig({}, { branding: 'none' });
+		expect(merged.initialBranding).toBe('none');
+		expect(buildInitialSnapshot(merged).branding).toBe('none');
+
+		const fromInit = initOutputToKernelConfig(
+			{ ...BASE_PAYLOAD, branding: 'none', policyResolution: POLICY },
+			{}
 		);
-		expect(merged.initialBranding).toBeUndefined();
+		expect(fromInit.initialBranding).toBe('none');
+		expect(buildInitialSnapshot(fromInit).branding).toBe('none');
+
 		expect(
 			mergeInitResponseIntoKernelConfig({}, { branding: 'c15t' })
 				.initialBranding
 		).toBe('c15t');
+		expect(buildInitialSnapshot({}).branding).toBeNull();
 	});
 
 	test('hosting survives a prefetch round trip', () => {

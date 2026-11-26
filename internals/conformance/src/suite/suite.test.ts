@@ -518,23 +518,6 @@ describe('suite execution contract', () => {
 			expect(names.filter((name) => name === scenario.id)).toHaveLength(1);
 		}
 	});
-
-	test('Solid has one explicit primitives-only exclusion', async () => {
-		const bodies: (() => void | Promise<void>)[] = [];
-		const names: string[] = [];
-		runConformanceSuite(unsupported('solid'), {
-			...api,
-			describe: (_name, body) => body(),
-			test: (name, body) => {
-				names.push(name);
-				bodies.push(body);
-			},
-		});
-		expect(names).toEqual([
-			'[solid] primitives-only: consent adapter excluded',
-		]);
-		await Promise.all(bodies.map((body) => body()));
-	});
 });
 
 test.each([

@@ -71,7 +71,7 @@ export const rootDomainOf = function rootDomainOf(hostname: string): string {
  * @example
  * ```typescript
  * // Enable cross-subdomain consent
- * createPersistence({ kernel, storageConfig: { domain: getRootDomain() } });
+ * createPersistence({ kernel, storageConfig: { defaultDomain: getRootDomain() } });
  * ```
  *
  * @public

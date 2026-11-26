@@ -25,8 +25,13 @@ import {
 	STORAGE_KEY_V2,
 	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../../libs/storage-keys';
+import { readStoredRecordsFromCookieHeader } from '../hydrate';
 import { createPersistence } from '../index';
-import { clearStoredConsentRecords } from './record-writes';
+import {
+	clearStoredConsentRecords,
+	writeStoredNoticeDismissal,
+	writeStoredVendorChoice,
+} from './record-writes';
 
 /**
  * Run the macrotask write scheduler without firing the kernel's expiry
@@ -130,8 +135,8 @@ describe('persistence: write path', () => {
 		kernel.set.draft({ marketing: true });
 		flushWrites();
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
-		// Only the subject ID startup stored, which records no choice.
-		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-sid`]);
+		// Startup stores nothing, not even the subject ID.
+		expect(cookieNames()).toEqual([]);
 	});
 
 	test('writes the v3 envelope after save()', async () => {
@@ -225,7 +230,6 @@ describe('persistence: write path', () => {
 		expect(cookieNames()).toEqual([
 			`${STORAGE_KEY_V2}-notice`,
 			`${STORAGE_KEY_V2}-notice-subject`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
 
 		const read = createConsentKernel({
@@ -255,8 +259,8 @@ describe('persistence: write path', () => {
 
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
-		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-sid`]);
-		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-sid`]);
+		expect(Object.keys(localStorage)).toEqual([]);
+		expect(cookieNames()).toEqual([]);
 
 		// The browser stops sending the signal: the restriction goes with it.
 		kernel.set.privacySignals({ gpc: false });
@@ -318,22 +322,18 @@ describe('persistence: clear', () => {
 		const snap = kernel.getSnapshot();
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.noticeDismissal).toBeNull();
-		// The subject ID stays, so the visitor can still be reached.
+		// The subject ID stays in memory, so the visitor can still be reached.
 		expect(snap.subject).toEqual({ subjectId });
 		expect(snap.promptRequirement).toEqual({
 			kind: 'notice',
 			reason: 'missing',
 		});
-		// Only the subject ID and the clear epoch stay behind, so no record
-		// comes back. The live signal alone keeps masking the permission.
+		// Only the clear epoch stays behind, so no record comes back. The
+		// live signal alone keeps masking the permission.
 		expect(Object.keys(localStorage).sort()).toEqual([
 			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
-		expect(cookieNames()).toEqual([
-			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
-		]);
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-epoch`]);
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.restrictions.marketing).toEqual(['gpc']);
 	});
@@ -351,20 +351,295 @@ describe('persistence: clear', () => {
 			STORAGE_KEY_V2,
 			`${STORAGE_KEY_V2}-notice`,
 			`${STORAGE_KEY_V2}-notice-subject`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
 
 		handle.clear();
 		flushWrites();
 		expect(Object.keys(localStorage).sort()).toEqual([
 			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
 		]);
-		expect(cookieNames()).toEqual([
-			`${STORAGE_KEY_V2}-epoch`,
-			`${STORAGE_KEY_V2}-sid`,
-		]);
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-epoch`]);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+	});
+
+	test('removes IAB addon records including addtl_consent', () => {
+		const kernel = createConsentKernel({ now: NOW });
+		const handle = createPersistence({ kernel });
+		localStorage.setItem('c15t-iab-authority-v1', 'receipt');
+		localStorage.setItem('euconsent-v2', 'tc-string');
+		localStorage.setItem('addtl_consent', '2~89.2577~dv.');
+		document.cookie = 'euconsent-v2=tc-string; path=/';
+		document.cookie = 'addtl_consent=2~89.2577~dv.; path=/';
+
+		handle.clear();
+		flushWrites();
+
+		expect(localStorage.getItem('c15t-iab-authority-v1')).toBeNull();
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(localStorage.getItem('addtl_consent')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+		expect(document.cookie).not.toContain('addtl_consent=');
+		handle.dispose();
+	});
+
+	test('voids server-seeded records read before another tab cleared', async () => {
+		const pre = createConsentKernel({ now: NOW });
+		const seed = createPersistence({ kernel: pre });
+		await pre.commands.save({ marketing: true });
+		flushWrites();
+		seed.dispose();
+		writeStoredVendorChoice(
+			{ confirmedAt: NOW, denied: ['meta-pixel'], version: 1 },
+			undefined,
+			NOW
+		);
+		writeStoredNoticeDismissal(
+			{ dismissedAt: NOW, fingerprint: 'notice', version: 1 },
+			undefined,
+			NOW
+		);
+		const initialRecords = readStoredRecordsFromCookieHeader(
+			document.cookie,
+			undefined,
+			NOW
+		);
+		expect(initialRecords).toMatchObject({
+			choice: { categories: { marketing: { value: true } } },
+			noticeDismissal: { dismissedAt: NOW },
+			vendorChoice: { denied: ['meta-pixel'] },
+		});
+
+		vi.setSystemTime(NOW + 1000);
+		const other = createConsentKernel({ now: NOW + 1000 });
+		const otherHandle = createPersistence({ kernel: other });
+		otherHandle.clear();
+		flushWrites();
+		otherHandle.dispose();
+
+		const kernel = createConsentKernel({ initialRecords, now: NOW + 1000 });
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(kernel.getSnapshot()).toMatchObject({
+			explicitChoice: null,
+			noticeDismissal: null,
+			vendorChoice: null,
+		});
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		handle.dispose();
+	});
+});
+
+describe('persistence: a server seed that missed a clear', () => {
+	/** Saves `values` at `at` and returns the records a server would read. */
+	const savedRecords = async (
+		at: number,
+		values: Parameters<
+			ReturnType<typeof createConsentKernel>['commands']['save']
+		>[0]
+	) => {
+		vi.setSystemTime(at);
+		const kernel = createConsentKernel({ now: at });
+		const handle = createPersistence({ kernel });
+		await kernel.commands.save(values);
+		flushWrites();
+		handle.dispose();
+		return readStoredRecordsFromCookieHeader(document.cookie, undefined, at);
+	};
+
+	/** The clear another tab made. */
+	const clearInAnotherTab = (at: number): void => {
+		vi.setSystemTime(at);
+		const other = createConsentKernel({ now: at });
+		const handle = createPersistence({ kernel: other });
+		handle.clear();
+		flushWrites();
+		handle.dispose();
+	};
+
+	test('cuts the seeded subject to its ID', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW + 1000);
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...seed,
+				subject: { ...seed.subject, externalId: 'user-1' },
+			},
+			now: NOW + 1000,
+		});
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+		expect(kernel.getSnapshot().subject?.externalId).toBe('user-1');
+
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(kernel.getSnapshot().subject?.subjectId).toBeTruthy();
+		expect(kernel.getSnapshot().subject).not.toHaveProperty('externalId');
+		handle.dispose();
+	});
+
+	test('keeps a seeded denial that outlives the clear over a stored grant', async () => {
+		const before = await savedRecords(NOW + 100, { measurement: true });
+		clearInAnotherTab(NOW + 200);
+		const after = await savedRecords(NOW + 300, { marketing: false });
+		await savedRecords(NOW + 400, { marketing: true });
+
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...after,
+				choice: {
+					categories: {
+						...before.choice?.categories,
+						...after.choice?.categories,
+					},
+					version: 3,
+				},
+			},
+			now: NOW + 400,
+		});
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		const categories = kernel.getSnapshot().explicitChoice?.categories;
+		expect(categories?.marketing?.value).toBe(false);
+		expect(categories?.measurement).toBeUndefined();
+		handle.dispose();
+	});
+	test('takes a stored grant for a seeded category the clear voided', async () => {
+		const before = await savedRecords(NOW + 100, { measurement: true });
+		clearInAnotherTab(NOW + 200);
+		const after = await savedRecords(NOW + 300, { marketing: false });
+		await savedRecords(NOW + 350, { experience: true, measurement: true });
+
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...after,
+				choice: {
+					categories: {
+						...before.choice?.categories,
+						...after.choice?.categories,
+					},
+					version: 3,
+				},
+			},
+			now: NOW + 400,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		const categories = kernel.getSnapshot().explicitChoice?.categories;
+		expect(categories?.marketing?.value).toBe(false);
+		expect(categories?.measurement).toMatchObject({
+			confirmedAt: NOW + 350,
+			value: true,
+		});
+		// The seed never held this one, so a stored grant for it stays out.
+		expect(categories?.experience).toBeUndefined();
+		handle.dispose();
+	});
+
+	test('adopts the new subject when another tab cleared and saved under a different ID', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW + 1000);
+
+		vi.setSystemTime(NOW + 2000);
+		const otherTab = createConsentKernel({ now: NOW + 2000 });
+		const otherHandle = createPersistence({ kernel: otherTab });
+		await otherTab.commands.identify({ externalId: 'bob' });
+		await otherTab.commands.save({ marketing: false });
+		flushWrites();
+		const newSubject = otherTab.getSnapshot().subject;
+		otherHandle.dispose();
+
+		expect(newSubject?.subjectId).toBeTruthy();
+		expect(newSubject?.subjectId).not.toBe(seed.subject?.subjectId);
+
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...seed,
+				subject: { ...seed.subject, externalId: 'alice' },
+			},
+			now: NOW + 2000,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+		).toBe(false);
+		expect(kernel.getSnapshot().subject).toEqual(newSubject);
+		handle.dispose();
+	});
+
+	test('voids a seeded grant confirmed in the exact millisecond of a cross-tab clear', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW);
+
+		const kernel = createConsentKernel({
+			initialRecords: seed,
+			now: NOW,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		handle.dispose();
+	});
+
+	test('keeps the seeded subject ID when a mixed seed has a decision that outlives the clear', async () => {
+		const seed = await savedRecords(NOW, { marketing: true });
+		clearInAnotherTab(NOW + 1000);
+
+		vi.setSystemTime(NOW + 2000);
+		const otherTab = createConsentKernel({ now: NOW + 2000 });
+		const otherHandle = createPersistence({ kernel: otherTab });
+		await otherTab.commands.identify({ externalId: 'bob' });
+		await otherTab.commands.save({ marketing: false });
+		flushWrites();
+		const otherSubject = otherTab.getSnapshot().subject;
+		otherHandle.dispose();
+
+		const marketingDecision = seed.choice?.categories.marketing;
+		if (!marketingDecision) {
+			throw new Error('Expected seeded marketing decision');
+		}
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...seed,
+				choice: {
+					categories: {
+						...seed.choice?.categories,
+						measurement: {
+							...marketingDecision,
+							confirmedAt: NOW + 1500,
+							value: false,
+						},
+					},
+					version: 3,
+				},
+				subject: { ...seed.subject, externalId: 'alice' },
+			},
+			now: NOW + 2000,
+		});
+		const handle = createPersistence({ kernel, skipHydration: true });
+		flushWrites();
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		expect(kernel.getSnapshot().subject?.subjectId).toBe(
+			seed.subject?.subjectId
+		);
+		expect(kernel.getSnapshot().subject?.subjectId).not.toBe(
+			otherSubject?.subjectId
+		);
+		expect(kernel.getSnapshot().subject).not.toHaveProperty('externalId');
+		handle.dispose();
 	});
 });
 
@@ -437,11 +712,14 @@ test('clear cancels a queued canonical subject write', async () => {
 	await vi.advanceTimersByTimeAsync(0);
 	await pending;
 	flushWrites();
+	// The clear keeps the subject ID in memory, and nothing else of the
+	// subject.
+	expect(kernel.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
 	const restored = createConsentKernel();
 	const reader = createPersistence({ kernel: restored });
 	expect(restored.getSnapshot().explicitChoice).toBeNull();
-	// The clear keeps the subject ID, and nothing else of the subject.
-	expect(restored.getSnapshot().subject).toEqual({ subjectId: 'canonical' });
+	// No queued write brought the cleared record back under the canonical ID.
+	expect(restored.getSnapshot().subject?.subjectId).not.toBe('canonical');
 	reader.dispose();
 	restored.dispose();
 	persistence.dispose();

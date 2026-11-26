@@ -89,7 +89,14 @@ const resolveSaveSelection = function resolveSaveSelection(
 	if (input === undefined) {
 		return {
 			consentAction: 'custom',
-			values: narrow(presentedSelection(rule, draft, snapshot.explicitChoice)),
+			values: narrow(
+				presentedSelection(
+					rule,
+					draft,
+					snapshot.explicitChoice,
+					snapshot.restrictions
+				)
+			),
 		};
 	}
 	return { consentAction: 'custom', values: input };

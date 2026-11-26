@@ -128,6 +128,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Appcues](./integrations/appcues.md): Load Appcues onboarding flows after experience consent, configure US or EU accounts, and reset the visitor on revocation.
 - [Attentive](./integrations/attentive.md): Load the Attentive tag only after marketing consent with the c15t attentiveTag helper, and check its requests and storage in DevTools.
 - [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/integrations helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
+- [Capless](./integrations/capless-analytics.md): Load Capless web analytics and session replay after measurement consent with the c15t caplessAnalytics helper, queue early calls, and opt the tracker out on withdrawal.
 - [Clay](./integrations/clay.md): Load Clay web intent only after marketing consent and understand its storage and revocation limits.
 - [Clearbit](./integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
 - [Cloudflare Web Analytics](./integrations/cloudflare-web-analytics.md): Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.
@@ -162,6 +163,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Microsoft Clarity](./integrations/microsoft-clarity.md): Load Microsoft Clarity only after measurement consent with the c15t clarity helper, send Consent V2 storage signals and check them in DevTools.
 - [Microsoft UET](./integrations/microsoft-uet.md): Load Microsoft Advertising UET on every page with the c15t microsoftUet helper, send ad_storage consent defaults and updates, and verify both in DevTools.
 - [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
+- [Notra](./integrations/notra-analytics.md): Load Notra web analytics after measurement consent with the c15t notraAnalytics helper, which pins notra.js with subresource integrity and can report JavaScript errors, count hash routes and load through your own domain.
 - [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
 - [Optimizely](./integrations/optimizely.md): Load Optimizely Web Experimentation and Personalization after experience consent with c15t, choose a consent category and understand revocation limits.
@@ -180,7 +182,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Salesforce Account Engagement](./integrations/salesforce-pardot.md): Gate Salesforce Account Engagement tracking on marketing consent, configure its consent API or classic Pardot snippet, and verify revocation with c15t.
 - [Segment](./integrations/segment.md): Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
 - [Sentry](./integrations/sentry.md): Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
-- [Shopify](./integrations/shopify.md): Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront, so Shopify analytics wait for the visitor's choice and follow each later change.
+- [Shopify](./integrations/shopify.md): Send c15t consent to Shopify's Customer Privacy API from a Hydrogen storefront in Next.js, TanStack Start, React Router, Nuxt, Astro or SvelteKit.
 - [Snapchat Pixel](./integrations/snapchat-pixel.md): Load the Snapchat Pixel only after marketing consent with the c15t snapchatPixel helper, guard snaptr event calls, and check it in DevTools.
 - [Statable](./integrations/statable-analytics.md): Load Statable analytics after measurement consent with the c15t statableAnalytics helper, configure its ingestion endpoint, and verify requests and browser storage.
 - [The Trade Desk](./integrations/the-trade-desk.md): Load The Trade Desk with c15t after marketing consent and verify its loader, storage and revocation behavior.

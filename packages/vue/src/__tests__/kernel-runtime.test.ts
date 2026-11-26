@@ -1014,6 +1014,15 @@ describe('IAB is opt-in', () => {
 			].join('');
 			expect(html).toContain('data-testid="iab-consent-banner');
 			expect(context.iabUnavailable.value).toBe(false);
+
+			const root = new DOMParser()
+				.parseFromString(html, 'text/html')
+				.querySelector('[data-testid="iab-consent-banner-root"]');
+			const marker = root?.lastElementChild;
+			expect(root?.hasAttribute('data-c15t-streamed')).toBe(true);
+			expect(root?.querySelectorAll('[data-c15t-stream-end]')).toHaveLength(1);
+			expect(marker?.matches('span[data-c15t-stream-end]')).toBe(true);
+			expect(marker?.hasAttribute('hidden')).toBe(true);
 		} finally {
 			context.dispose();
 		}

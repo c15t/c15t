@@ -19,6 +19,7 @@ import { clearKernelRecords } from '../kernel/clear-records';
 import { hostExperiment, startExperiment } from '../libs/experiment';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition } from '../libs/has';
+import { removeLegacySubjectId } from '../libs/legacy-subject-id';
 import type { IframeBlockerHandle } from '../modules/iframe-blocker/types';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
@@ -292,6 +293,16 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					persistence.dispose();
 					persistenceHandle = null;
 				});
+			} else {
+				// Persistence removes a `<key>-sid` copy c15t 3.2 left. Without
+				// it, a 3.2 server adapter's copy would stay until it expires.
+				// The key comes from the nested storage options even with a
+				// consent source, which `storageFor` leaves out.
+				removeLegacySubjectId(
+					(typeof persistenceOption === 'object'
+						? persistenceOption.storageConfig
+						: undefined) ?? options.storageConfig
+				);
 			}
 			// Persistence gives a browser runtime its subject ID at startup.
 			// Without it the ID lives in memory for the page.
@@ -302,9 +313,10 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				!externalPermissions &&
 				!subject?.subjectId
 			) {
-				kernel.hydrate({
-					subject: { ...subject, subjectId: generateSubjectId() },
-				});
+				const subjectId = generateSubjectId();
+				// It lives in memory for this page only, until a save records it.
+				kernel.markProvisionalSubject(subjectId);
+				kernel.hydrate({ subject: { ...subject, subjectId } });
 			}
 			// After hydration, so the journey knows whether a choice was
 			// stored, and before init, which carries it.

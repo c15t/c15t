@@ -31,16 +31,13 @@ consent records, see [consent modes](/docs/concepts/modes).
 
 ## Install the consent manager
 
-Use the direct registry URL while the `@c15t` namespace is awaiting its
-shadcn directory listing. This example uses `new-york-v4`:
-
 ```bash
-npx shadcn add https://c15t.com/r/new-york-v4/next-consent-manager.json
+npx shadcn add @c15t/next-consent-manager
 ```
 
-Match the style segment in every URL to `style` in your `components.json`,
-such as `radix-nova`, `base-nova` or `aria-nova`. For `new-york` with Tailwind
-v4, use `new-york-v4`. Direct URLs do not substitute `{style}` automatically.
+The `@c15t` namespace is listed in the shadcn registry directory, so you
+don't need to add it to `components.json`. The CLI picks the Radix, Base UI
+or React Aria version from `style` in your `components.json`.
 
 This installs `c15t.config.ts` at the project root and a `ConsentManager`
 component, usually under `components/c15t/`. Its dependencies include the
@@ -98,14 +95,8 @@ If c15t already runs in your app, keep your existing root and config. Install
 the UI items directly:
 
 ```bash
-npx shadcn add \
-  https://c15t.com/r/new-york-v4/next-consent-banner.json \
-  https://c15t.com/r/new-york-v4/next-consent-dialog.json \
-  https://c15t.com/r/new-york-v4/next-consent-dialog-trigger.json
+npx shadcn add @c15t/next-consent-banner @c15t/next-consent-dialog @c15t/next-consent-dialog-trigger
 ```
-
-Replace `new-york-v4` with your project's style as described in
-[Install the consent manager](#install-the-consent-manager).
 
 Import these components from your generated `components/c15t/` files and
 render them inside the existing `ConsentRoot`, replacing the stock banner,
@@ -120,12 +111,12 @@ hooks' policy actions and a way to reopen preferences. Updating `c15t`
 updates consent logic; the copied markup remains yours to maintain.
 
 The registry also includes a preference sheet, an inline widget and an
-embed gate. Install the item you need using the same style segment:
+embed gate. Install the one you need:
 
 ```bash
-npx shadcn add https://c15t.com/r/new-york-v4/next-consent-sheet.json
-npx shadcn add https://c15t.com/r/new-york-v4/next-consent-widget.json
-npx shadcn add https://c15t.com/r/new-york-v4/next-consent-gate.json
+npx shadcn add @c15t/next-consent-sheet
+npx shadcn add @c15t/next-consent-widget
+npx shadcn add @c15t/next-consent-gate
 ```
 
 For custom controls, see the [headless guide](/docs/frameworks/next/headless).

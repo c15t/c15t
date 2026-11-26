@@ -58,4 +58,18 @@ describe('stock UI under a nonce-based style-src', () => {
 		await expect.poll(() => page.violations).toContain('style-src-elem');
 		expect(injectedStyle(page).sheet).toBeNull();
 	});
+
+	it('renders the dialog close button without style-src-attr violations', async () => {
+		const page = await openPage('?close=on');
+		page.client.openDialog();
+
+		const icon = page.client.ui?.root.querySelector<SVGSVGElement>(
+			'[data-testid="consent-dialog-close"] svg'
+		);
+		expect(icon).not.toBeNull();
+		const rect = icon?.getBoundingClientRect();
+		expect(rect?.width).toBeCloseTo(16, 0);
+		expect(rect?.height).toBeCloseTo(16, 0);
+		expect(page.violations).not.toContain('style-src-attr');
+	});
 });

@@ -1,8 +1,8 @@
 ---
 title: Rybbit Analytics
 description: Load Rybbit Analytics only after measurement consent with the c15t rybbitAnalytics helper, map its tracking options to data attributes, and check it in DevTools.
-seoTitle: Rybbit Analytics cookie consent with c15t
-seoDescription: Load Rybbit Analytics, with session replay and web vitals, only with measurement consent. Set it up with the c15t rybbitAnalytics helper.
+seoTitle: Rybbit Analytics consent integration for c15t
+seoDescription: Load Rybbit Analytics only after measurement consent. Set up the c15t helper with your site ID and verify event tracking in DevTools.
 icon: rybbit-analytics
 group: integrations
 ---
@@ -12,6 +12,10 @@ The c15t `rybbitAnalytics` helper keeps Rybbit Analytics off the page until
 inside the same script, under the same consent. The helper sends no consent
 signal to Rybbit. If the visitor withdraws consent, c15t removes the script
 element. By default, c15t also reloads the page.
+
+<Signpost href="https://inth.com/integrations/rybbit-analytics" label="Setup guide">
+  This page is the code reference for `rybbitAnalytics`. To set up the cookie banner for Rybbit Analytics, use the Inth guide.
+</Signpost>
 
 ## Configure Rybbit Analytics
 

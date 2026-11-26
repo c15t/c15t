@@ -1,0 +1,15 @@
+{/* Generated from internals/doc-snippets/sveltekit/src/lib/shopify-consent-sync.svelte (docs:shopify-sveltekit-sync) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```svelte title="src/lib/shopify-consent-sync.svelte"
+<script lang="ts">
+	import { getConsentKernel } from 'c15t/svelte';
+	import { onMount } from 'svelte';
+
+	import { shopifyPrivacy } from '#lib/shopify-privacy.js';
+
+	// Render inside ConsentRoot. Sends the current choice and each change to
+	// Shopify, and stops when the component unmounts.
+	const kernel = getConsentKernel();
+	onMount(() => shopifyPrivacy.connect(kernel));
+</script>
+```

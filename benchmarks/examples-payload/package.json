@@ -17,6 +17,6 @@
 		"@c15t/integrations": "workspace:*",
 		"@c15t/svelte": "workspace:*",
 		"c15t": "workspace:*",
-		"vitest": "4.1.10"
+		"vitest": "4.1.12"
 	}
 }

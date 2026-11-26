@@ -7,8 +7,17 @@ import type {
 import type { SurfaceCopy } from '../ui/copy';
 import { h } from '../ui/dom';
 
-type Vendor = GlobalVendorList['vendors'][number] | NonIABVendor;
+type GVLVendor = GlobalVendorList['vendors'][number] & {
+	dataDeclaration?: number[];
+};
+type Vendor = GVLVendor | NonIABVendor;
 type NamedItems = Record<number, { name: string; description?: string }>;
+
+/** The GVL sends a vendor's data category ids as `dataDeclaration`. */
+const dataCategoryIds = (vendor: Vendor): number[] =>
+	('dataDeclaration' in vendor ? vendor.dataDeclaration : undefined) ??
+	vendor.dataCategories ??
+	[];
 
 const duration = (value: number | null | undefined): number | undefined =>
 	typeof value === 'number' && Number.isFinite(value) && value >= 0
@@ -113,6 +122,31 @@ const createPolicyLinks = (
 };
 
 /**
+ * The standard Features explanation, which TCF policy check 14 requires
+ * wherever Features are shown. Falls back to the translated text when the
+ * vendor list has none.
+ */
+const appendFeaturesStandardText = (
+	content: DocumentFragment,
+	snapshot: ConsentSnapshot,
+	vendor: Vendor,
+	copy: SurfaceCopy
+): void => {
+	if (!vendor.features?.length) {
+		return;
+	}
+	content.append(
+		h(
+			'p',
+			{ 'data-testid': 'iab-vendor-features-standard-text' },
+			snapshot.iab?.gvl?.standardTexts?.features ||
+				copy.t.iab.preferenceCenter.features?.description ||
+				''
+		)
+	);
+};
+
+/**
  * Render the vendor's declared policies, data use, storage, and retention.
  * Missing durations remain undisclosed rather than becoming zero days.
  *
@@ -198,16 +232,13 @@ export const createVendorDisclosures = (
 		standardRetention
 	);
 	appendGroup(t.features, vendor.features ?? [], gvl?.features);
+	appendFeaturesStandardText(content, snapshot, vendor, copy);
 	appendGroup(
 		t.specialFeatures,
 		vendor.specialFeatures ?? [],
 		gvl?.specialFeatures
 	);
-	appendGroup(
-		t.dataCategories,
-		vendor.dataCategories ?? [],
-		gvl?.dataCategories
-	);
+	appendGroup(t.dataCategories, dataCategoryIds(vendor), gvl?.dataCategories);
 	content.append(createStorageDisclosures(vendor, copy, standardRetention));
 	return content;
 };

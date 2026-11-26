@@ -46,6 +46,10 @@ vi.mock('#imports', async () => {
 		},
 		useHead: () => undefined,
 		useRequestEvent: () => nuxt.event,
+		useRequestFetch: () => ({
+			native: (input: RequestInfo | URL, init?: RequestInit) =>
+				fetch(input, init),
+		}),
 		useRequestHeaders: () => nuxt.headers,
 		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({
@@ -172,6 +176,11 @@ test.each([
 		{ _nitro: { routeRules: { cache: { maxAge: 60, swr: true } } } },
 	],
 	['an isr route rule', {}, { _nitro: { routeRules: { isr: 60 } } }],
+	[
+		'an swr route rule on Nitro 3',
+		{},
+		{ routeRules: { cache: { maxAge: 60, swr: true }, ssr: true } },
+	],
 	['a Nitro cached render', {}, { cache: { options: {} } }],
 ])(
 	'HTML shared by %s carries no visitor state',
@@ -181,26 +190,28 @@ test.each([
 		expect(nuxt.fetches).toBe(0);
 		expect(stateValue('c15t:records')).toBeUndefined();
 		expect(stateValue('c15t:request-headers')).toEqual({});
-		// Every visitor the cached HTML reaches would get the same subject ID.
 		expect(nuxt.cookies).toEqual([]);
 		expect(html).not.toContain('consent-banner-root');
 	}
 );
 
-test('a per-request render still prefetches for its visitor', async () => {
-	await renderOnServer(
-		{},
-		{ context: { _nitro: { routeRules: { cache: false } } } }
-	);
+test.each([
+	['Nitro 2', { _nitro: { routeRules: { cache: false } } }],
+	['Nitro 3', { routeRules: { ssr: true } }],
+])(
+	'a per-request render on %s still prefetches for its visitor',
+	async (_name, eventContext) => {
+		await renderOnServer({}, { context: eventContext });
 
-	expect(nuxt.fetches).toBe(1);
-	expect(stateValue('c15t:records')).toBeDefined();
-	expect(nuxt.cookies.map(({ name }) => name)).toEqual(['c15t-sid']);
-	expect(stateValue('c15t:request-headers')).toMatchObject({
-		'accept-language': 'de-DE',
-		'x-vercel-ip-country': 'DE',
-	});
-});
+		expect(nuxt.fetches).toBe(1);
+		expect(stateValue('c15t:records')).toBeDefined();
+		expect(nuxt.cookies).toEqual([]);
+		expect(stateValue('c15t:request-headers')).toMatchObject({
+			'accept-language': 'de-DE',
+			'x-vercel-ip-country': 'DE',
+		});
+	}
+);
 
 test('the browser resolves a prerendered page itself and keeps a stored rejection', async () => {
 	const payload = { prerenderedAt: 1 };

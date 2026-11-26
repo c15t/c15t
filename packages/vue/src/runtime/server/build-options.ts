@@ -87,6 +87,21 @@ export const readBuiltOption = function readBuiltOption(
 };
 
 /**
+ * The message for a runtime override the build ignores.
+ *
+ * @param built - The options the build used.
+ * @param name - The overridden option.
+ * @returns The warning text.
+ */
+export const formatBuildOptionWarning = function formatBuildOptionWarning(
+	built: BuiltOptions,
+	name: BuiltOptionName
+): string {
+	const label = name === 'routePrefix' ? name : `mode.${name}`;
+	return `[@c15t/vue] ${buildOptionVariable(name)} is ignored: the build fixed \`c15t.${label}\` as ${JSON.stringify(readBuiltOption(built, name) ?? null)}. Set it in nuxt.config.ts and rebuild.`;
+};
+
+/**
  * The fixed options a runtime config no longer matches. A change to another
  * mode field, such as `manifestURL`, is not an override.
  *

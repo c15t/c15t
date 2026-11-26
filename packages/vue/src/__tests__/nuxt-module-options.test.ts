@@ -32,12 +32,18 @@ beforeAll(async () => {
 const createNuxt = function createNuxt(
 	c15t: Record<string, unknown>,
 	ssr = true,
-	lifecycle: { _generate?: boolean; _prepare?: boolean; dev?: boolean } = {}
+	lifecycle: {
+		_generate?: boolean;
+		_nitroMajor?: 2 | 3;
+		_prepare?: boolean;
+		dev?: boolean;
+	} = {}
 ): Nuxt {
 	return {
 		hook: () => () => undefined,
 		hooks: { addHooks: () => undefined, hook: () => () => undefined },
 		options: {
+			_nitroMajor: 2,
 			...lifecycle,
 			_requiredModules: {},
 			alias: {},
@@ -545,7 +551,10 @@ describe('mode and routePrefix', () => {
 	test('publishes the checked routePrefix over one already in runtimeConfig', async () => {
 		warn.mockClear();
 		const nuxt = createNuxt({ backendURL: '/api/self-host' });
-		nuxt.options.runtimeConfig.public.c15t = { routePrefix: '/' };
+		// Untyped, as in the module: an app can put any value here.
+		(nuxt.options.runtimeConfig.public as Record<string, unknown>).c15t = {
+			routePrefix: '/',
+		};
 		await runWithNuxtContext(nuxt, () => module({}, nuxt));
 		// The route and the browser read the same prefix.
 		expect(handlerRoutes(nuxt)).toEqual(['/api/c15t/**']);
@@ -563,7 +572,9 @@ describe('mode and routePrefix', () => {
 			backendURL: '/api/self-host',
 			mode: { resolve: 'browser', type: 'manifest' },
 		});
-		nuxt.options.runtimeConfig.public.c15t = { mode: { type: 'hosted' } };
+		(nuxt.options.runtimeConfig.public as Record<string, unknown>).c15t = {
+			mode: { type: 'hosted' },
+		};
 		await runWithNuxtContext(nuxt, () => module({}, nuxt));
 		// The server and the browser run the same mode.
 		expect(
@@ -605,6 +616,31 @@ describe('mode and routePrefix', () => {
 			expect(typeof source === 'function' ? source() : source).toBe(
 				`export default ${JSON.stringify({ mode, routePrefix })};\n`
 			);
+		}
+	);
+
+	test.each([
+		[2, 'consent-route.legacy', ['build-options.nuxt', 'init-prefetch.nuxt']],
+		[3, 'consent-route', ['build-options.nitro3', 'init-prefetch.nitro3']],
+	] as const)(
+		'registers the server variants for Nitro v%i',
+		async (nitroMajor, route, plugins) => {
+			const nuxt = createNuxt({ backendURL: '/api/self-host' }, true, {
+				_nitroMajor: nitroMajor,
+			});
+			await runWithNuxtContext(nuxt, () => module({}, nuxt));
+			const { nitro, serverHandlers } = nuxt.options as unknown as {
+				nitro: { plugins?: string[] };
+				serverHandlers: { handler: string; route: string }[];
+			};
+			expect(
+				serverHandlers
+					.filter(({ route: path }) => path === '/api/c15t/**')
+					.map(({ handler }) => handler.split('/').at(-1))
+			).toEqual([route]);
+			expect(
+				(nitro.plugins ?? []).map((plugin) => plugin.split('/').at(-1))
+			).toEqual(plugins);
 		}
 	);
 

@@ -19,6 +19,7 @@ import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from './vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from './vendors/analytics/ahrefs-analytics';
 import { amplitude } from './vendors/analytics/amplitude';
+import { caplessAnalytics } from './vendors/analytics/capless-analytics';
 import { clay } from './vendors/analytics/clay';
 import { clearbit } from './vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from './vendors/analytics/cloudflare-web-analytics';
@@ -41,6 +42,7 @@ import { marketoMunchkin } from './vendors/analytics/marketo';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { clarity } from './vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from './vendors/analytics/mixpanel-analytics';
+import { notraAnalytics } from './vendors/analytics/notra-analytics';
 import { eloquaTracking } from './vendors/analytics/oracle-eloqua';
 import { pendo } from './vendors/analytics/pendo';
 import { pirsch } from './vendors/analytics/pirsch';
@@ -559,6 +561,18 @@ const requiredIdCases: {
 		},
 	},
 	{
+		create: (projectKey) => caplessAnalytics({ projectKey: asId(projectKey) }),
+		helper: 'caplessAnalytics',
+		option: 'projectKey',
+		script: { category: 'measurement', id: 'capless-analytics' },
+	},
+	{
+		create: (webKey) => notraAnalytics({ webKey: asId(webKey) }),
+		helper: 'notraAnalytics',
+		option: 'webKey',
+		script: { category: 'measurement', id: 'notra-analytics' },
+	},
+	{
 		create: (siteId) => statableAnalytics({ siteId: asId(siteId) }),
 		helper: 'statableAnalytics',
 		option: 'siteId',
@@ -666,6 +680,18 @@ const blankScriptUrlCases: {
 		expectedSrc:
 			'https://web-sdk.aptrinsic.com/api/aptrinsic.js?a=AP-PRODUCT-KEY-2',
 		helper: 'gainsightPx',
+	},
+	{
+		create: (scriptUrl) =>
+			caplessAnalytics({ projectKey: 'cs_test_key', scriptUrl }),
+		expectedSrc: 'https://c.capless.sh/c.js',
+		helper: 'caplessAnalytics',
+	},
+	{
+		create: (scriptUrl) =>
+			notraAnalytics({ scriptUrl, webKey: 'nwk.test_key' }),
+		expectedSrc: 'https://static.usenotra.com/notra.ce3c872ef9c9.js',
+		helper: 'notraAnalytics',
 	},
 	{
 		create: (scriptUrl) => statableAnalytics({ scriptUrl, siteId: 12345 }),

@@ -74,12 +74,40 @@ Do not copy the description into that paragraph.
 
 Add the optional `seoTitle` and `seoDescription` when searchers use different
 words from the navigation label. Search results and social cards show them in
-place of `title` and `description`. Vendor guides use them, for example
-`seoTitle: PostHog cookie consent with c15t`. Write `seoTitle` as the complete
-title, with c15t in it, in 60 characters or fewer; the site adds no suffix. Keep
-`seoDescription` to 160 characters or fewer, lead with what the reader gets,
+place of `title` and `description`. Write `seoTitle` as the complete title,
+with c15t in it, in 40 to 60 characters; the site adds no suffix. Name c15t
+inside the title, such as "IAB GPP and US state opt-outs in Next.js with
+c15t", and do not end it with " | c15t". Add one
+when the page's `description` is under 120 characters. Keep
+`seoDescription` to 120 to 155 characters, lead with what the reader can do,
 and make it unique to the page. Both must match what the page and the source
-show.
+show. Quote a `seoDescription` that contains a colon, or the YAML frontmatter
+does not parse.
+
+Vendor pages under `docs/integrations/` are the developer reference for the
+c15t helper. The cookie banner setup guide for that vendor lives at
+`https://inth.com/integrations/<slug>`. When that guide exists, use
+`seoTitle: <Vendor> <product> consent integration for c15t`, with the
+vendor's display name and the product the helper loads, such as "PostHog
+analytics consent integration for c15t" or "Crisp chat widget consent
+integration for c15t", in 40 to 60 characters (exceptions: "Google Tag Manager
+Consent Mode v2 for c15t", "Google Maps embed consent with ConsentGate in
+c15t", "YouTube embed consent with ConsentGate in c15t"), and write
+`seoDescription` as 120 to 155 characters describing what the page covers
+without mentioning Inth. Use sentence case, no Oxford comma, no dashes (em or
+en). Put a `<Signpost>` after the intro, before the first heading. Name the
+helper the page documents. For the PostHog page:
+
+```mdx
+<Signpost href="https://inth.com/integrations/posthog" label="Setup guide">
+  This page is the code reference for `posthog`. To set up the cookie banner for PostHog, use the Inth guide.
+</Signpost>
+```
+
+`<Signpost href label>` says what the page covers and offers one way out for
+readers who came for something else. Use one per page, at most. The Markdown
+copies of the docs render it as a blockquote with the link last, through the
+flattener in `docs/docs.config.ts`.
 
 Use task headings readers would search for. Question headings help when the
 section answers a question; do not force every heading into a question. Include

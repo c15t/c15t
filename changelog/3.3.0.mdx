@@ -1,0 +1,190 @@
+---
+title: "v3.3.0 - Nuxt 5 support, dialog close button and streamed banner stability"
+version: "3.3.0"
+date: 2026-11-25
+description: "Add Nuxt 5 support, a dialog close button, layout-shift-free streamed banners, and Capless and Notra integrations."
+seoTitle: 'c15t 3.3.0: Nuxt 5 support, close button and banner fixes'
+group: changelog
+tags:
+  - release
+  - stable
+  - performance
+  - react
+  - nextjs
+  - tanstack-start
+  - vue
+  - svelte
+  - astro
+  - browser
+  - integrations
+  - iab
+  - cli
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+---
+
+c15t 3.3 adds Nuxt 5 support, an optional close button for the preference
+dialog, streamed consent banners that do not shift while HTML parses, and
+Capless and Notra integrations, alongside smaller fixes across core, IAB, and
+the UI packages.
+
+## Nuxt 5 support
+
+The Nuxt module now supports Nuxt 5 nightly builds without Nuxt's Nitro 2
+compatibility layer. It registers portable `nuxt/server` handlers for the
+consent route and DevTools tab, plus Nitro 3 plugin variants for build option
+pinning, Inth URL handling, and early `/init` prefetching, while keeping the
+existing Nitro 2 files for Nuxt 4.
+
+Server renders also fall back to Nuxt's request fetch when the request event
+has no `fetch`. `@c15t/vue` now requires `@nuxt/kit@^4.6.1` and accepts Nuxt
+`^3.0.0 || ^4.0.0 || ^5.0.0-0`. Build option pinning, Inth URL handling, and
+early `/init` prefetching target Nitro 2 and Nitro 3 and do not yet support
+the experimental `@nuxt/vite-server` builder. See the
+[Nuxt module](/docs/frameworks/nuxt/module).
+
+## Close button for the preference dialog
+
+The stock preference dialog now supports an optional close button in its header,
+matching the IAB dialog. Clicking it closes the dialog without saving, the same
+as pressing Escape. If the active policy still requires a choice, the banner
+returns. On touch screens, this gives visitors a way out without recording a
+choice because tapping the backdrop does not close the dialog.
+
+The button is off by default so existing dialogs stay unchanged.
+
+| Framework | Option |
+| --- | --- |
+| React, Next.js, TanStack Start | `<ConsentDialog showCloseButton />`, or `<ConsentDialog.Header showCloseButton>` in a composed dialog |
+| Vue, Nuxt | `dialogShowCloseButton: true` in the plugin or module options |
+| Svelte, SvelteKit | `<ConsentDialog showCloseButton />` |
+| Script tag | `ui: { dialog: { showCloseButton: true } }` |
+
+The button reads its label from `common.close`, carries
+`data-testid="consent-dialog-close"`, and exposes the `dialog.closeButton`
+component slot and `consentDialogCloseButton` theme slot. See
+[ConsentDialog](/docs/frameworks/react/components/consent-dialog) and
+[component slots](/docs/customization/slots).
+
+## No layout shift on streamed consent banners
+
+When a server-rendered HTML response paused mid-banner, the "Secured by" tag
+could paint first and push the banner as the card and buttons arrived.
+
+Styled React, Vue/Nuxt, Svelte, and Astro consent banners now stay hidden until
+their serialized markup finishes parsing in browsers that support CSS `:has()`,
+then appear without waiting for hydration. Vue/Nuxt, Svelte, and Astro IAB
+banners now do the same, matching React's IAB banner. Browsers without `:has()`
+reveal the banner as it parses. See
+[how the surfaces deliver their rules](/docs/customization/stylesheets#how-the-surfaces-deliver-their-rules).
+
+## New integrations
+
+- **Capless.** `caplessAnalytics` from `@c15t/integrations/capless-analytics`
+  loads Capless analytics and session replay after `measurement` consent,
+  replays early `track` and `identify` calls, and calls `capless('optout')` on
+  withdrawal. Keep the default page reload on withdrawal because Capless cannot
+  stop a running replay. See [Capless](/docs/integrations/capless-analytics).
+- **Notra.** `notraAnalytics` from `@c15t/integrations/notra-analytics` loads
+  Notra's `notra.js` with subresource integrity after `measurement` consent,
+  with options for `errors`, `hash`, and `endpoint`. Keep the default reload on
+  withdrawal, and add the `networkBlocker` rule from the guide to stop its
+  last `fetch` report as the page unloads. See [Notra](/docs/integrations/notra-analytics).
+
+Both helpers are available in `c15t` CLI setup. The
+[Shopify Hydrogen guide](/docs/integrations/shopify) now also includes setups
+for Next.js, TanStack Start, React Router, Nuxt, Astro, and SvelteKit.
+
+## Fixes
+
+- Setting `branding: 'none'` on the backend now hides the "Secured by" tag in
+  every stock UI, including the IAB banner. `KernelBranding` adds `'none'`.
+- In `@c15t/browser`, `inth` and `consent` branding now render the inth logo in
+  the "Secured by" tag instead of the plain word "inth".
+- Under Global Privacy Control, denied categories now start off in the
+  preference dialog when the visitor has no saved choice, and saving records
+  them as denied. Under a `none` policy, optional categories start on. Vue and
+  `@c15t/browser` now show the restriction notice on saved grants overridden by
+  GPC, matching React and Svelte.
+- Restricting two IAB vendors no longer restricts the vendors between them in
+  the TC string.
+- Custom IAB vendors no longer emit legitimate interest signals for consent-only
+  TCF purposes 1, 3, 4, 5, and 6.
+- Untouched legitimate interest switches in React, Svelte, and Vue IAB dialogs
+  now match what Save encodes.
+- IAB vendor links now render only for absolute `http://` and `https://` URLs.
+  Vendor disclosures in React, Svelte, and `@c15t/browser` now show feature
+  descriptions and the standard TCF Features text.
+- In `@c15t/browser`, registered IAB vendors now show their data categories,
+  and the IAB banner shows the partner count once instead of twice.
+- In Vue, clicking the IAB banner's partners link now opens the dialog on the
+  Vendors tab, and `useConsentIabSave()` no longer records a choice when no CMP
+  handle is mounted.
+- Failed IAB saves now report the error once instead of failing silently, and
+  `saveIABConsentSurface` resolves `{ ok: false }` instead of rejecting.
+- `clear()` now removes the `addtl_consent` cookie and localStorage entry, and
+  revocation cleanup preserves `addtl_consent` and the `c15t-journey-v1` tab
+  journey ID.
+- The `c15t-sid` cookie and localStorage key weren't needed before a visitor
+  makes a choice, so we removed them. The subject ID stays in memory until the
+  first saved record stores it, leftover copies are cleared on startup, and
+  `identify()` before the first save sends with that save. See
+  [the subject ID](/docs/concepts/consent-state#the-subject-id).
+- Server-rendered pages now drop a consent choice that another tab cleared.
+- Mounting a `target: 'body'` script before `<body>` exists now falls back to
+  `<head>` instead of throwing.
+- Pressing Escape now closes only the topmost dialog when dialogs are stacked.
+- Vue skips legal links without a URL instead of linking to `#`, and legal
+  links that open in a new tab now include `rel="noopener noreferrer"` by
+  default in React, Svelte, and Vue.
+- Banners and the preference dialog now use even horizontal padding below
+  640px, exposed as `--consent-banner-padding-mobile` and
+  `--consent-dialog-card-padding-mobile`. See
+  [theme tokens](/docs/customization/tokens).
+- Under a `strict` policy that excludes a gate's category, Svelte `ConsentGate`
+  now shows the blocked message with no Enable button. It also registers its
+  category on mount so the preference dialog lists it.
+- Svelte `ConsentDialogTrigger` now responds to Enter and Space after a drag
+  and renders the inth mark for `inth` and `consent` branding.
+- The Global Vendor List cache now serves the cached list when a refresh fails
+  and retries failed fetches after 60 seconds.
+- Prefetch detection now includes `x-middleware-prefetch`, and hosted SSR
+  renders and same-origin consent proxies forward speculative prefetch headers
+  (`sec-purpose`, `purpose`, `x-purpose`, `x-moz`, `next-router-prefetch`, and
+  `x-middleware-prefetch`) to `/init` so speculative requests do not count as
+  visits in session reports.
+- Development builds now warn when read-once provider options change after
+  mount.
+- `@c15t/cli` updates `zod` to 4.6.7 and `postcss` to 8.5.33 to address
+  published security advisories.
+
+## Before you upgrade
+
+Update `c15t` and any `@c15t/*` packages you use together.
+
+- **Check `:last-child` selectors on banner roots.** Styled banner roots in
+  React, Vue/Nuxt, Svelte, and Astro now end with a hidden
+  `[data-c15t-stream-end]` span. CSS `:last-child` selectors and Tailwind
+  `last:` utilities on direct children of the banner root will match that
+  marker. Target the content's part, class, or test ID instead.
+- **Svelte `ConsentGate` category registration.** `ConsentGate` now registers
+  its category on mount. Returning visitors whose saved choice did not cover
+  that category may see the prompt again.
+- **`c15t-sid` cleanup and deprecations.** Remove `c15t-sid` from your cookie
+  policy if you listed it. `resolveRequestSubject()` is deprecated, now returns
+  `null` when no saved consent record cookie is present, and no longer sets a
+  cookie. Each adapter's `subjectCookie` option, `storage` and
+  `trustForwardedHeaders` on `c15tProxy`, `consentRequestMiddleware`, and
+  `c15tHandle`, `trustForwardedHeaders` on Astro's `middleware`, and
+  non-`storageKey` `storage` fields on Next.js `withConsentProps` are deprecated
+  no-ops and will be removed in v4.
+
+## Packages
+
+`c15t`, `@c15t/core`, `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`,
+`@c15t/vue`, `@c15t/svelte`, `@c15t/astro`, `@c15t/browser`, `@c15t/iab`,
+`@c15t/integrations`, `@c15t/backend`, `@c15t/cli`, `@c15t/node-sdk`, and
+`@c15t/dev-tools` release as 3.3.0. `@c15t/schema` and `@c15t/ui` release as
+3.2.0, and `@c15t/scripts` releases as 3.1.3.

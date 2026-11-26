@@ -8,9 +8,10 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/integrations": "workspace:*",
+		"@shopify/hydrogen": "2026.10.0",
 		"c15t": "workspace:*",
 		"h3": "1.15.11",
-		"nuxt": "^4.5.1"
+		"nuxt": "^4.6.4"
 	},
 	"devDependencies": {
 		"typescript": "6.0.3",

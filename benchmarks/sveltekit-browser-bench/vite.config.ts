@@ -1,4 +1,6 @@
+import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /**
  * `consentManifest()` lets `c15tHandle` preload the on-demand script loader
@@ -36,7 +38,22 @@ const loadC15tPlugins = async function loadC15tPlugins(): Promise<unknown[]> {
  * newer Vite than this app builds with, and the two `Plugin` types are
  * structurally incompatible, so annotating the config makes `svelte-check`
  * fail on a config Vite itself accepts.
+ *
+ * SvelteKit options live here, not in `svelte.config.js`: SvelteKit 3 refuses
+ * that file, and SvelteKit 2.63+ (the base revisions) reads the same options
+ * from the plugin. SvelteKit 3 also dropped the built-in `$lib` alias, so it
+ * is declared here; on SvelteKit 2 it matches the built-in one.
+ * `tsconfig.json` inlines SvelteKit's options instead of extending them,
+ * because each major generates its base config at a different path and Vite
+ * fails on a missing `extends`; SvelteKit 3 warns about it and builds anyway.
  */
 export default {
-	plugins: [sveltekit(), ...(await loadC15tPlugins())],
+	plugins: [
+		sveltekit({
+			adapter: adapter(),
+			alias: { $lib: 'src/lib' },
+			preprocess: vitePreprocess(),
+		}),
+		...(await loadC15tPlugins()),
+	],
 };

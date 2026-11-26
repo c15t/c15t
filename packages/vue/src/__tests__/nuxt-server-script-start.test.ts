@@ -54,6 +54,10 @@ vi.mock('#imports', async () => {
 			nuxt.heads.push(input);
 		},
 		useRequestEvent: () => ({ context: {} }),
+		useRequestFetch: () => ({
+			native: (input: RequestInfo | URL, init?: RequestInit) =>
+				fetch(input, init),
+		}),
 		useRequestHeaders: () => ({ 'x-vercel-ip-country': 'US' }),
 		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({

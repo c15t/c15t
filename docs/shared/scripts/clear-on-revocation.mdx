@@ -42,9 +42,11 @@ group: reference
   `partitioned: true`. A prefix only finds cookies the current page can read,
   so use an exact name for a cookie on another path.
 
-  c15t never deletes its own consent records or the `c15t-sid` subject ID
-  cookie, even when a pattern matches them. The subject ID stays so an
-  opt-out can still reach what was kept under it.
+  c15t never deletes its own consent records, the IAB `euconsent-v2` and
+  `addtl_consent` entries, or the `c15t-journey-v1` tab journey ID in
+  `sessionStorage`, even when a pattern matches them. The records carry the
+  subject ID, so an opt-out can still reach what was
+  kept under it.
 </section>
 
 <section id="when">

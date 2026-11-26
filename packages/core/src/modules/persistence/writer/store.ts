@@ -141,8 +141,8 @@ const removeLocalStorageKey = function removeLocalStorageKey(
 
 /**
  * The cookie text for a record, or `null` when a value in it has no URI
- * encoding, such as an opaque subject ID with a lone surrogate. Like
- * `<key>-sid`, such a record has no cookie copy: the write counts as one
+ * encoding, such as an opaque subject ID with a lone surrogate. Such a
+ * record has no cookie copy: the write counts as one
  * the cookie refused, and localStorage keeps the record.
  */
 const cookieText = function cookieText(encode: () => string): string | null {

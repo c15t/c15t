@@ -12,12 +12,10 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Starter smoke tests | Each `examples/` starter and `internals/svelte-compat/` app builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
 | Framework parity | DOM, accessibility, styles, geometry, live pixel comparisons and Storybook interactions | Example screenshot copies |
-| SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts | Separate standalone E2E runner |
+| SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts; streamed-banner layout for those plus Astro and TanStack Start | Separate standalone E2E runner |
 | CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS, the Tailwind 3 and 4 framework matrix | Runtime performance suites |
 | Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
 | Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate canary runs and full validation | Routine microbench runs |
-| Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the binding's autolinking as a host app resolves it, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
-| Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
 
 Package tests and browser groups run on Node 22, 24 and 26. Coverage and the
 Turbo cache save run on the Node 24 leg only. Type checks run once, on Node 24,
@@ -28,7 +26,9 @@ one Node version never passes another.
 ## Runners
 
 Linux jobs run on Depot's `depot-ubuntu-24.04-4` runners, except for pull
-requests from forks, which run on GitHub's `ubuntu-latest`. Depot shares its
+requests from forks, which run on GitHub's `ubuntu-24.04`. Fork runs pin the
+same Ubuntu release as Depot, because `ubuntu-latest` moved to Ubuntu 26.04,
+where Playwright cannot install Chromium. Depot shares its
 Actions cache across every branch of the repository, and its runners point
 Turbo at Depot Cache, which is shared the same way. A fork's code must not write
 entries that `main`, `canary` or a release later restores, so any workflow that
@@ -78,7 +78,7 @@ CI_INTEGRATION=starters CI_TARGETS=nextjs,html bun scripts/ci-browser.ts
 STARTER_TARGET=react,nuxt bun run --cwd internals/fixtures/acceptance test:starters
 CI_INTEGRATION=compat CI_TARGETS=16-app,16-static-export bun scripts/ci-browser.ts
 CI_INTEGRATION=parity CI_TARGETS=react,svelte,vue,astro bun scripts/ci-browser.ts
-CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit bun scripts/ci-browser.ts
+CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit,astro,tanstack-start bun scripts/ci-browser.ts
 CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
 TAILWIND_MATRIX_VERSIONS=v3 TAILWIND_MATRIX_FIXTURES=vue,nuxt bun run compat:styles:matrix
 ```
@@ -112,14 +112,6 @@ c15t survives preflight, that a utility on the banner root beats c15t's own
 padding (important on Tailwind 3, bare on Tailwind 4), that `dark` on `<html>`
 turns on Tailwind's `dark:` variant and, outside the shadow root, c15t's
 dark tokens, and that the dialog is styled. The fixtures keep their setup in `#region docs:` blocks for the docs.
-
-```sh
-bun run --cwd benchmarks/mobile bench:ci
-bun scripts/ci-mobile-bench-report.ts --kind ios-toolchain --report-dir .ci-reports/mobile-ios-toolchain
-# Android instrumented suite, needs a booted emulator, so it is local-only
-JAVA_HOME=$(/usr/libexec/java_home -v 17) ANDROID_HOME=$HOME/Library/Android/sdk \
-  sh native/core-android/gradlew -p native/core-android :c15t-android:connectedDebugAndroidTest --no-build-cache
-```
 
 `internals/consent-observers` is an ordinary package test with a different
 install. Its `test` script packs the `c15t` closure with the next-compat pack
@@ -180,97 +172,6 @@ nothing releases until a later push passes. After publishing a pending version
 PR merge, Tegami goes on to open the next version PR for notes that arrived
 since.
 
-Mobile work selects on paths, not on the dependency graph alone. The mobile
-SDK group runs for native sources and app fixtures, the React Native Codegen
-specs, build scripts and manifest, and `benchmarks/mobile`. JavaScript-only
-SDK changes and changes to web packages select affected package tests, including
-the mobile JavaScript boundary, without selecting native toolchains.
-`@c15t/benchmarking` is a dependency of both the mobile bench and the backend,
-so the bench is matched by path on purpose: a workspace edge there would put a
-macOS runner on every backend pull request. The device group is narrower, and
-takes only the files an app compiles -- the native kernels, the binding's
-`ios/` and `android/` halves, its podspec and Swift manifest, and the two
-example apps -- plus the runs that select everything. Mobile Markdown,
-`native/CONTRACT.md` included, selects neither group.
-
-`mobile-device.yml` runs advisory app builds independently on publishing-branch
-pushes, using its own last successful ancestor. It cannot delay publishing.
-PRs and full validation call the same workflow and restore their library outputs.
-The device group is absent from `complete`, so `CI complete` stays green when
-a pod fetch fails; read it as a build report. It is the most
-expensive thing here: roughly 25 macOS minutes and 12 Ubuntu minutes per
-selected run, and the same again on a dependency bump, because a full run
-selects it. The mobile SDK group is required when selected and costs roughly 10
-macOS plus 8 Ubuntu minutes. Both groups take Xcode 27, the version
-`native/CONTRACT.md` standardises on, and fall back to Xcode 26, which is all
-`macos-latest` ships; the Swift sources build on either because the expanded
-tracking request is found by selector at runtime rather than by declaration.
-They export `DEVELOPER_DIR` instead of switching `xcode-select`, cache SwiftPM,
-Gradle and CocoaPods, and run iOS on GitHub-hosted macOS and Android on
-`depot-ubuntu-24.04-4`. Files under `native/` own no workspace, so they
-still widen to a full run.
-
-The Android kernel's instrumented suite in `src/androidTest` runs on a booted
-emulator and belongs to neither group. Neither Android leg can host it: both are
-`depot-ubuntu-24.04-4`, which exposes no KVM, and a connected run that finds no device
-answers as a pass rather than a skip. Until a runner with nested virtualization
-or a device cloud is wired up, that suite is a local and pre-release gate, run
-before any change to storage, keystore, launch, or lifecycle, as
-`native/core-android/README.md` describes.
-
-Autolinking is gated separately from the Android assemblies. Assembling an AAR proves Gradle
-can compile the library; it never asks React Native's CLI whether the library can be found. A
-host app's `settings.gradle` runs `react-native config`, so a package the CLI cannot resolve
-fails that app before it configures a project -- and nothing in `packages/react-native` goes
-through that path. It is also not the only linker: an Expo app's `settings.gradle` runs
-`expoAutolinking.rnConfigCommand`, so Expo's own resolver answers for that app and never asks
-the community CLI anything, and the two implementations read a library's config file
-differently. `bun scripts/react-native-autolink.ts` asks both: the unscoped
-`react-native config` from `internals/fixtures/react-native-bare`, and
-`expo-modules-autolinking react-native-config --platform android --json` from
-`internals/fixtures/expo-dev`. Each answer is checked to name the library module and the package class,
-and the bare fixture additionally has to name the podspec. It runs on the Android leg of the
-mobile SDK group and, as `scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
-
-The same two questions are then asked of the tarball rather than the checkout. Both fixtures
-install `@c15t/react-native` as a workspace symlink, so a pass above only proves the repository
-tree resolves, and the tree holds files `package.json` never publishes. The script runs
-`npm pack`, installs the extracted tarball over the symlink in each fixture, resolves again,
-and restores what it moved aside. Against the packed tree it additionally holds the manifest to
-what the two native builds open: `codegenConfig.jsSrcsDir` has to contain a spec file, because
-an app generates `NativeC15tSpec` from that directory for both platforms and the Android bridge
-generates its own copy there, and every path the podspec declares -- sources, headers, the
-resource bundle, the license -- has to resolve inside the package rather than above it.
-Packing skips `prepack`, so this leg needs no build output and runs in `test:scripts` like the
-rest. A `files` allowlist that drops a file an app reads goes red here and green everywhere
-else, which is the gap this closes.
-
-The publish artifact guard in `scripts/check-publish-artifacts.ts` reads the same tarball from
-the other side. npm discards a package's root `.gitignore` as soon as `files` names an
-allowlist, so a directory that is allowlisted is published with whatever a build left in it:
-`ios/Pods` from a `pod install`, a Gradle `build/` tree, `ios/Tests`, `src/test/kotlin`. The
-guard refuses those shapes anywhere in a tarball, not only under `dist/`, and holds
-`@c15t/react-native` to the host-app file list above. It runs at release time as
-`bun run check:publish-artifacts`; its rules also run in `bun run test:scripts`, so an
-allowlist that starts sweeping a build tree fails the pull request rather than the release.
-
-Mobile budgets are gated twice, each on the runner that can measure them. The
-bench step runs `bench:ci`, which fails any measured row over its `budgets.json`
-ceiling. `scripts/ci-mobile-bench-report.ts` then fails a required row that
-produced no number, the way `BENCHMARK_EXPECTED_PACKAGES` does for the runtime
-comparisons, and publishes `mobile-summary.json` and a markdown table to the
-step summary and the evidence artifact. Each leg declares its own required
-rows: the Swift leg takes the `swift-core` rows and the iOS slice bytes, the
-Android leg takes the `kotlin-core` rows, the JS boundary and the Android class
-bytes. The idle rows and the cold Kotlin bootstrap are reported and budget-gated
-but never required: the first three watch a quiet process, and the fourth medians
-over forked JVMs, so all four read the runner's load. `ios_binding_bytes` alone
-stays unmeasured by design. The Kotlin bench needs a warm Gradle run first, because the harness
-invokes Gradle with `--offline`, and the harness needs Xcode at
-`/Applications/Xcode.app`, which the Xcode step links when the image installs a
-versioned bundle. The package behavior group owns the SDK's Vitest suite, so
-it runs once and a JavaScript regression does not wait on a native toolchain.
-
 `benchmark-regression.yml` also runs full comparisons independently on pushes
 to `canary`, nightly at 02:43 UTC, and manually. Scheduled runs check out
 `canary`; manual runs also check out `canary` and accept a different `base_ref`.
@@ -303,7 +204,7 @@ identity for a Vercel token with only `read-write:remote-cache`. Tokens expire
 after 30 minutes, and the action requests revocation when the job ends. The
 Vercel Turborepo CLI policy checks the repository
 name and immutable repository/owner IDs, restricts refs to `main` and `canary`, and allows only push, scheduled, and manual runs of the CI,
-release, validation, mobile-device, bundle-analysis, and benchmark workflows.
+release, validation, bundle-analysis, and benchmark workflows.
 The audience is `https://vercel.com/inth`. Calling workflows map repository
 variables `TURBO_TEAM` and `TURBO_CACHE_POLICY` into environment variables for the
 composite setup action, which cannot read the `vars` context directly. CI does

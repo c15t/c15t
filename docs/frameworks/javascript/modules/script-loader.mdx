@@ -31,7 +31,7 @@ one.
 | `observeConsentBeforeLoad` | `boolean` | `false` | Notify `onConsentChange` during initial denial and subsequent updates before the resource loads. Useful for integrations that coordinate a shared SDK. |
 | `persistAfterConsentRevoked` | `boolean` or `'loaded'` | `false` | `true` keeps the element after withdrawal, including pending downloads. `'loaded'` keeps only elements whose load event completed; pending and failed loads are removed. |
 | `persistAfterDispose` | `boolean` | `false` | Keep an inserted element after configuration removal or loader disposal, while releasing its lifecycle callbacks. |
-| `target` | `'head' \| 'body'` | `'head'` | Where the element goes. |
+| `target` | `'head' \| 'body'` | `'head'` | Where the element goes. Falls back to `<head>` if `<body>` does not exist yet. |
 | `async`, `defer` | `boolean` | none | Attributes on the created element. |
 | `nonce` | `string` | the runtime's `nonce` | CSP nonce for this element. |
 | `fetchPriority` | `'high' \| 'low' \| 'auto'` | none | Fetch priority hint. |

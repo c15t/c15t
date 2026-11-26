@@ -1,0 +1,71 @@
+{/* Generated from internals/doc-snippets/astro/src/layouts/shopify.astro (docs:shopify-astro-layout) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```astro title="src/layouts/base.astro"
+---
+import { renderShopifyScriptTags } from '@shopify/hydrogen';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentScript,
+} from 'c15t/astro/components';
+
+import { i18n, shop } from '../lib/shop';
+import { shopifyConsent } from '../lib/shopify-privacy';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+
+// Hydrogen has no Astro binding: render its tags here, then start them in
+// the browser script below with the same consent settings.
+const shopifyTags = renderShopifyScriptTags({
+	consent: shopifyConsent,
+	i18n,
+	shop,
+}).join('');
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>{title}</title>
+		<ConsentScript />
+		<Fragment set:html={shopifyTags} />
+	</head>
+	<body>
+		<slot />
+		<footer>
+			<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+		</footer>
+		<ConsentBanner />
+		<ConsentDialog />
+		<script>
+			import { initializeShopifyScripts } from '@shopify/hydrogen';
+			import { getConsentClient } from 'c15t/astro/client';
+
+			import { shopifyConsent, shopifyPrivacy } from '../lib/shopify-privacy';
+
+			// Sends the current choice and each change to Shopify. c15t may start
+			// after this script, so try again once every module script has run.
+			const connect = () => {
+				const client = getConsentClient();
+				if (!client) {
+					return false;
+				}
+				shopifyPrivacy.update(client.getConsent());
+				client.subscribe(shopifyPrivacy.update);
+				return true;
+			};
+			if (!connect()) {
+				document.addEventListener('DOMContentLoaded', connect, { once: true });
+			}
+
+			void initializeShopifyScripts({ consent: shopifyConsent });
+		</script>
+	</body>
+</html>
+```

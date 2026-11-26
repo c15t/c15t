@@ -1,4 +1,5 @@
 import { custom } from '@c15t/core';
+import { onDialogDismiss } from '@c15t/ui/primitives';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { describe, expect, test } from 'vitest';
@@ -78,5 +79,92 @@ describe('ConsentDialog open prop', () => {
 		await waitFor(() => expect(query(ROOT)).toBeNull());
 		// The fixture's policy still owes a choice.
 		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
+	});
+
+	test('closes only the topmost stacked dialog on Escape', async () => {
+		render(Fixture, { options });
+		await fireEvent.click(query('[data-testid="open-dialog"]') as HTMLElement);
+		await waitFor(() => expect(query(ROOT)).not.toBeNull());
+
+		let topClosed = false;
+		const stopTop = onDialogDismiss(document.documentElement, () => {
+			topClosed = true;
+			stopTop();
+		});
+
+		await fireEvent.keyDown(document, { key: 'Escape' });
+		expect(topClosed).toBe(true);
+		expect(query(ROOT)).not.toBeNull();
+
+		await fireEvent.keyDown(document, { key: 'Escape' });
+		await waitFor(() => expect(query(ROOT)).toBeNull());
+	});
+});
+
+describe('ConsentDialog showCloseButton', () => {
+	const CLOSE = '[data-testid="consent-dialog-close"]';
+
+	test('renders no close button by default', async () => {
+		render(Fixture, { open: true, options });
+		await waitFor(() => expect(query(ROOT)).not.toBeNull());
+
+		expect(query(CLOSE)).toBeNull();
+	});
+
+	test('the close button closes the dialog without recording consent', async () => {
+		render(Fixture, { options, showCloseButton: true });
+		await fireEvent.click(query('[data-testid="open-dialog"]') as HTMLElement);
+		await waitFor(() => expect(query(CLOSE)).not.toBeNull());
+
+		const button = query(CLOSE) as HTMLButtonElement;
+		expect(button.getAttribute('aria-label')).toBe('Close');
+		const header = query('[data-testid="consent-dialog-header"]');
+		expect(header?.contains(button)).toBe(true);
+		expect(header?.hasAttribute('data-has-close-button')).toBe(true);
+
+		await fireEvent.click(button);
+
+		await waitFor(() => expect(query(ROOT)).toBeNull());
+		// Nothing was recorded, so the policy still owes a choice.
+		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
+	});
+
+	test('falls back to English when common.close is missing or blank', async () => {
+		const fallbackOptions = {
+			...options,
+			prefetch: {
+				...policyFixture(),
+				initialTranslations: {
+					language: 'de',
+					translations: {
+						common: {
+							acceptAll: 'Alle akzeptieren',
+							close: '   ',
+							customize: 'Anpassen',
+							rejectAll: 'Alle ablehnen',
+							save: 'Speichern',
+							securedBy: 'Gesichert durch',
+						},
+						consentManagerDialog: {
+							description: 'Beschreibung',
+							title: 'Datenschutz',
+						},
+						consentTypes: {},
+						cookieBanner: {
+							description: 'Banner',
+							title: 'Cookies',
+						},
+					},
+				},
+			},
+		} as ConsentManagerOptions;
+		render(Fixture, {
+			open: true,
+			options: fallbackOptions,
+			showCloseButton: true,
+		});
+		await waitFor(() => expect(query(CLOSE)).not.toBeNull());
+
+		expect(query(CLOSE)?.getAttribute('aria-label')).toBe('Close');
 	});
 });

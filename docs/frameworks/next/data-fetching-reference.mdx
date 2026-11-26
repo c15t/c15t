@@ -237,8 +237,11 @@ HTTP to anything but a loopback host, the `/init` call carries no cookie, no
 Forwarded headers differ by path, and only what the backend needs travels:
 
 - The backend `/init` call carries the resolved `x-c15t-country`,
-  `x-c15t-region`, `accept-language` and `sec-gpc`, the `user-agent`, and the
-  experiment arm while the visitor has no stored choice. Over `https` or to a
+  `x-c15t-region`, `accept-language` and `sec-gpc`, the `user-agent`,
+  speculative prefetch headers (`sec-purpose`, `purpose`, `x-purpose`, `x-moz`,
+  `next-router-prefetch` and `x-middleware-prefetch`) so the backend does not
+  count prefetches as visits, and the experiment arm while the visitor has no
+  stored choice. Over `https` or to a
   loopback host it also carries the consent cookie (`cookieName`, never the
   rest of the cookie jar), any `forwardHeaders`, and with
   `trustForwardedHeaders` the visitor IP as `x-forwarded-for`. It is sent with

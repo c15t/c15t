@@ -10,6 +10,7 @@
 import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import {
 	EXPERIMENT_STORAGE_KEY,
+	JOURNEY_STORAGE_KEY,
 	PENDING_SAVES_STORAGE_KEY,
 	resolveStorageKeys,
 	STORAGE_KEY,
@@ -23,6 +24,7 @@ import type { ClearOnRevocationTools } from './types';
 export const clearOnRevocationTools: ClearOnRevocationTools = {
 	gateState: getEffectiveGateState,
 	optionalConsentCategories: OPTIONAL_CONSENT_CATEGORIES,
+	protectedSessionStorageKeys: [JOURNEY_STORAGE_KEY],
 	protectedStorageKeys: [
 		STORAGE_KEY,
 		PENDING_SAVES_STORAGE_KEY,

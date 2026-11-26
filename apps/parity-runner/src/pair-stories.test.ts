@@ -12,7 +12,7 @@ test('frameworkOf extracts framework from title', () => {
 	expect(frameworkOf('COMPONENTS - REACT/Button')).toBe('react');
 	expect(frameworkOf('COMPONENTS - SVELTE/Consent Banner')).toBe('svelte');
 	expect(frameworkOf('COMPONENTS - VUE/Dialog')).toBe('vue');
-	expect(frameworkOf('COMPONENTS - SOLID/Switch')).toBe('solid');
+	expect(frameworkOf('COMPONENTS - ASTRO/Consent Banner')).toBe('astro');
 });
 
 test('frameworkOf tolerates varied whitespace', () => {

@@ -4,7 +4,7 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import Fixture from '../../__tests__/fixtures/trigger-devtools-fixture.svelte';
 
@@ -116,6 +116,31 @@ describe('ConsentDialogTrigger with ConsentDevTools', () => {
 		await result.rerender({ trigger: false });
 		await waitFor(() => {
 			expect(devToolsRoot().classList).not.toContain('c15t-dev-tools--docked');
+		});
+	});
+
+	test('keyboard activation toggles DevTools after a drag, while the drag click does not', async () => {
+		render(Fixture);
+		const item = await devToolsItem();
+		item.setPointerCapture ??= vi.fn();
+		item.releasePointerCapture ??= vi.fn();
+
+		const pointer = (type: string, clientX: number) =>
+			fireEvent(
+				item,
+				new MouseEvent(type, { bubbles: true, button: 0, clientX })
+			);
+
+		await pointer('pointerdown', 0);
+		await pointer('pointermove', 40);
+		await pointer('pointerup', 40);
+		await fireEvent.click(item, { detail: 1 });
+		expect(item.getAttribute('aria-expanded')).toBe('false');
+
+		// Keyboard activation fires a click with detail 0 and no pointer press first.
+		await fireEvent.click(item, { detail: 0 });
+		await waitFor(() => {
+			expect(item.getAttribute('aria-expanded')).toBe('true');
 		});
 	});
 });

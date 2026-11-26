@@ -361,6 +361,7 @@
 				? 'late'
 				: undefined}
 			data-testid="consent-banner-root"
+			data-c15t-streamed=""
 			use:scrollLock={shouldScrollLock}
 		>
 			<div class={noStyle ? '' : styles.cardShell || ''}>
@@ -498,6 +499,10 @@
 					</PolicyActionsRenderer>
 				</div>
 			</div>
+			<span
+				data-c15t-stream-end=""
+				hidden
+			></span>
 		</div>
 	</div>
 {/if}

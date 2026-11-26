@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives';
+	import { getDialogState, onDialogDismiss } from '@c15t/ui/primitives';
 	import { firstTabbable } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
@@ -32,12 +32,15 @@
 	const handleKeyDown = function handleKeyDown(
 		event: KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement }
 	) {
-		if (isDialogDismissKey(event.key)) {
-			event.preventDefault();
-			dialog.requestClose('escape');
-		}
 		onkeydown?.(event);
 	};
+
+	$effect(() => {
+		if (!open || !node || !dialog.closeOnEscape) {
+			return;
+		}
+		return onDialogDismiss(node, () => dialog.requestClose('escape'));
+	});
 
 	$effect(() => {
 		if (!open || !node) {

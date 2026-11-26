@@ -211,6 +211,15 @@ const BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES = 87_040;
 const BROWSER_MANIFEST_ENTRIES = new Set(['browser-full', 'browser-headless']);
 
 /**
+ * Startup subject identity and notice reconciliation (#1633) added 2,494
+ * bytes gzip to browser-full and 2,612 to browser-headless. Measured by
+ * building 270efe427, then replacing only core with 3bde2aadb, using the
+ * same dependencies and consumer fixtures. Carry 3 KiB in those entries'
+ * reachable total while this change is absent from the comparison base.
+ */
+const BROWSER_SUBJECT_IDENTITY_GZIP_BYTES = 3072;
+
+/**
  * Google Additional Consent (#1478) added a heading and a notice for the ad
  * tech provider section to every built-in language. `createManifestTransport`
  * bundles every language on first load, so the copy lands in that entry's
@@ -221,6 +230,15 @@ const BROWSER_MANIFEST_ENTRIES = new Set(['browser-full', 'browser-headless']);
  * feature is on the base branch.
  */
 const ADDITIONAL_CONSENT_COPY_GZIP_BYTES = 3584;
+
+/**
+ * Seven languages from #1588 (ar, bn, ht, ko, ru, ur, yi) added 18,759
+ * bytes gzip to the all-language entry. Keep this allowance alongside
+ * the later eleven-language addition while both are absent from the base.
+ * Browser entries emit these languages as unreachable deferred chunks,
+ * covered by `BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES`.
+ */
+const NY_LANGUAGES_GZIP_BYTES = 19_456;
 
 /**
  * Eleven built-in languages from #927 (ja, kn, ml, mr, ms, pa, ta, te, th,
@@ -1279,8 +1297,13 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 	const languageChunks = BROWSER_MANIFEST_ENTRIES.has(scenario)
 		? BROWSER_LANGUAGE_CHUNKS_GZIP_BYTES
 		: 0;
+	const browserSubjectIdentity = BROWSER_MANIFEST_ENTRIES.has(scenario)
+		? BROWSER_SUBJECT_IDENTITY_GZIP_BYTES
+		: 0;
 	const allLanguageCopy = ALL_LANGUAGE_ENTRIES.has(scenario)
-		? ADDITIONAL_CONSENT_COPY_GZIP_BYTES + ASIA_LANGUAGES_GZIP_BYTES
+		? ADDITIONAL_CONSENT_COPY_GZIP_BYTES +
+			NY_LANGUAGES_GZIP_BYTES +
+			ASIA_LANGUAGES_GZIP_BYTES
 		: 0;
 	return [
 		{
@@ -1312,10 +1335,11 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance and the Additional Consent copy and new languages for entries that bundle every language.',
+				'Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance, startup subject identity for browser entries and the Additional Consent copy and new languages for entries that bundle every language.',
 			metric: 'gzipSize',
 			threshold:
 				3072 +
+				browserSubjectIdentity +
 				allLanguageCopy +
 				surfaceStyles.initial +
 				surfaceStyles.deferred +

@@ -2,7 +2,7 @@
  * Framework-agnostic IAB banner summary logic.
  *
  * Extracted from the React useHeadlessIABConsentUI hook to be
- * shared across React, Svelte, Vue, Solid, and Astro.
+ * shared across React, Svelte, Vue, and Astro.
  *
  * @packageDocumentation
  */

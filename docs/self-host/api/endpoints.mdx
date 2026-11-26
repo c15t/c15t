@@ -284,10 +284,15 @@ another language, sign an HS256 JWT with `sub` set to the external ID, `aud`
 | `409 SUBJECT_CONFLICT` | `PATCH` only. Another tenant on the same database already holds this subject ID. Nothing is linked. |
 | `415 UNSUPPORTED_MEDIA_TYPE` | The body isn't sent as `application/json`. Nothing is created or linked. |
 
-A browser has a subject ID from its first page load, so `identify()` can run
-before any save. `PATCH /subjects/:id` then creates the subject. An older
-self-hosted backend answers `404` for a subject no save has created yet. The
-client treats that as success and sends the identity with the next save.
+`PATCH /subjects/:id` creates the subject when no save has created it yet,
+then links the identity.
+
+The browser client sends it only for a subject ID a record already carries,
+or one your app or server supplied. A new visitor's ID lives in memory until
+their first save, so `identify()` before that save sends no request: the
+identity travels with the save instead. An older self-hosted backend answers
+`404` for a subject no save has created yet. The client treats that as
+success and sends the identity with the next save.
 
 `POST /subjects` never refuses a consent because of its token: a bad token
 leaves the link unverified, or unstored with `requireVerifiedLinks`, and the

@@ -5,6 +5,10 @@
 import type { ConsentKernel, SaveResult } from '../types';
 import { actions, beginAction, isOpen } from './rules';
 
+const logSaveError = (error: unknown): void => {
+	console.error('[c15t] Saving the IAB choice failed.', error);
+};
+
 /**
  * Close an IAB surface in the task that handled the click, then save.
  *
@@ -14,26 +18,35 @@ import { actions, beginAction, isOpen } from './rules';
  * load, or the policy changed underneath) and no newer action or navigation
  * came first, so the visitor can try again.
  *
+ * A failed save is reported once, through `onError`, and resolves
+ * `{ ok: false }`, so a surface needs no handler of its own.
+ *
  * @param kernel - The kernel the CMP records into.
  * @param save - Applies any blanket and runs the CMP handle's `save()`.
- * @returns `{ ok: true }` when a new IAB authority was recorded. The handle
- * refuses an authority for a policy that changed while it encoded.
- * @throws {unknown} Whatever `save` throws, after restoring the surface.
+ * @param onError - Receives what `save` threw. Defaults to `console.error`.
+ * @returns `{ ok: true }` when `save` succeeded and recorded a new IAB
+ * authority. The handle refuses an authority for a policy that changed while
+ * it encoded.
  */
 export const saveIABConsentSurface = async (
 	kernel: ConsentKernel,
-	save: () => Promise<void> | void
+	save: () => Promise<void> | void,
+	onError: (error: unknown) => void = logSaveError
 ): Promise<SaveResult> => {
 	const action = beginAction(kernel);
 	const before = kernel.getSnapshot();
 	const surface = before.activeUI;
 	const open = isOpen(surface);
 	let recorded = false;
+	let failed = false;
 	if (open) {
 		kernel.set.activeUI('none');
 	}
 	try {
 		await save();
+	} catch (error) {
+		failed = true;
+		onError(error);
 	} finally {
 		const after = kernel.getSnapshot();
 		recorded = after.iab?.authority !== before.iab?.authority;
@@ -46,5 +59,5 @@ export const saveIABConsentSurface = async (
 			kernel.set.activeUI(surface);
 		}
 	}
-	return { ok: recorded };
+	return { ok: recorded && !failed };
 };

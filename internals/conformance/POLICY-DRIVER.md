@@ -2,8 +2,7 @@
 
 `runConformanceSuite(driver, api)` registers the same 125 checks for React,
 Next.js, Vue and Svelte. These include 42 runtime policy scenarios and 58 public
-producer/codec vectors. Solid registers one explicitly named primitives-only
-exclusion. Missing capabilities on a supported adapter fail the test.
+producer/codec vectors. Missing capabilities on a supported adapter fail the test.
 
 Implement `TestDriver.createPolicySession` and `TestDriver.probePolicyContract`.
 Their framework-neutral types are exported from `@c15t/conformance/driver` and
