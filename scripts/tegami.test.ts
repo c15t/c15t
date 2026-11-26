@@ -696,18 +696,20 @@ describe('version PR body', () => {
 
 describe('GitHub release notes', () => {
 	it.each([
-		{ branch: 'main', grouped: false, version: '3.2.0' },
-		{ branch: 'main', grouped: true, version: '3.2.0' },
-		{ branch: 'canary', grouped: false, version: '3.2.0-canary.0' },
-		{ branch: 'main', grouped: false, version: '3.2.1' },
-		{ branch: 'main', grouped: false, independent: true, version: '3.2.0' },
+		{ branch: 'main', grouped: false, version: '3.3.0' },
+		{ branch: 'main', grouped: true, version: '3.3.0' },
+		{ branch: 'canary', grouped: false, version: '3.3.0-canary.0' },
+		{ branch: 'main', grouped: false, version: '3.3.1' },
+		{ branch: 'main', grouped: false, independent: true, version: '3.3.0' },
 	])(
 		'creates $branch $version release notes with grouped=$grouped independent=$independent',
 		async ({ branch, grouped, independent = false, version }) => {
 			const root = fixture([
 				{ name: 'c15t', version },
-				{ name: '@c15t/ui', version: '3.0.2' },
+				{ name: '@c15t/ui', version: '3.2.0' },
 			]);
+			mkdirSync(join(root, 'changelog'), { recursive: true });
+			writeFileSync(join(root, 'changelog', '3.3.0.mdx'), '# 3.3.0\n');
 			vi.stubEnv('GITHUB_TOKEN', 'fixture-token');
 			const requests: unknown[] = [];
 			vi.stubGlobal(
@@ -763,8 +765,8 @@ describe('GitHub release notes', () => {
 
 			const generatedNotes = expect.stringContaining('Published ');
 			const body =
-				branch === 'main' && version === '3.2.0' && !independent
-					? 'https://c15t.com/changelog/3.2.0'
+				branch === 'main' && version === '3.3.0' && !independent
+					? 'https://c15t.com/changelog/3.3.0'
 					: generatedNotes;
 			expect(requests).toHaveLength(grouped ? 1 : published.length);
 			for (const request of requests) {

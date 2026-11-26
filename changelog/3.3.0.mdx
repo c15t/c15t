@@ -1,9 +1,9 @@
 ---
-title: "v3.3.0 - Nuxt 5 support, dialog close button and older browser support"
+title: "v3.3.0 - Nuxt 5 support, dialog close button and streamed banner stability"
 version: "3.3.0"
 date: 2026-11-25
-description: "Add Nuxt 5 support, a dialog close button, pre-Safari 15.4 browser support, layout-shift-free streamed banners, and Capless and Notra integrations."
-seoTitle: 'c15t 3.3.0: Nuxt 5 support, close button and browser fixes'
+description: "Add Nuxt 5 support, a dialog close button, layout-shift-free streamed banners, and Capless and Notra integrations."
+seoTitle: 'c15t 3.3.0: Nuxt 5 support, close button and banner fixes'
 group: changelog
 tags:
   - release
@@ -26,9 +26,9 @@ authors: [KayleeWilliams]
 ---
 
 c15t 3.3 adds Nuxt 5 support, an optional close button for the preference
-dialog, support for browsers older than Safari 15.4 and Chrome 98, streamed
-consent banners that do not shift while HTML parses, and Capless and Notra
-integrations, alongside smaller fixes across core, IAB, and the UI packages.
+dialog, streamed consent banners that do not shift while HTML parses, and
+Capless and Notra integrations, alongside smaller fixes across core, IAB, and
+the UI packages.
 
 ## Nuxt 5 support
 
@@ -68,17 +68,6 @@ component slot and `consentDialogCloseButton` theme slot. See
 [ConsentDialog](/docs/frameworks/react/components/consent-dialog) and
 [component slots](/docs/customization/slots).
 
-## Older browser support
-
-Since 3.0, browser code called `structuredClone`, `Object.hasOwn`,
-`Array.prototype.at`, and `Array.prototype.findLast`. That broke
-`ConsentProvider` on mount or kept the banner from rendering in Safari and iOS
-Safari before 15.4, Chrome and Android WebView before 98, Firefox before 104, and
-Samsung Internet before 18.
-
-c15t no longer calls those four built-ins in browser code. If you added a
-polyfill only for c15t, you can remove it.
-
 ## No layout shift on streamed consent banners
 
 When a server-rendered HTML response paused mid-banner, the "Secured by" tag
@@ -101,7 +90,8 @@ reveal the banner as it parses. See
 - **Notra.** `notraAnalytics` from `@c15t/integrations/notra-analytics` loads
   Notra's `notra.js` with subresource integrity after `measurement` consent,
   with options for `errors`, `hash`, and `endpoint`. Keep the default reload on
-  withdrawal. See [Notra](/docs/integrations/notra-analytics).
+  withdrawal, and add the `networkBlocker` rule from the guide to stop its
+  last `fetch` report as the page unloads. See [Notra](/docs/integrations/notra-analytics).
 
 Both helpers are available in `c15t` CLI setup. The
 [Shopify Hydrogen guide](/docs/integrations/shopify) now also includes setups
@@ -160,10 +150,11 @@ for Next.js, TanStack Start, React Router, Nuxt, Astro, and SvelteKit.
   and renders the inth mark for `inth` and `consent` branding.
 - The Global Vendor List cache now serves the cached list when a refresh fails
   and retries failed fetches after 60 seconds.
-- Prefetch detection now checks `purpose`, `x-purpose`, `x-moz`, and
-  `x-middleware-prefetch` headers in addition to `sec-purpose` and
-  `next-router-prefetch`, so speculative requests no longer count as visits in
-  session reports.
+- Prefetch detection now includes `x-middleware-prefetch`, and hosted SSR
+  renders and same-origin consent proxies forward speculative prefetch headers
+  (`sec-purpose`, `purpose`, `x-purpose`, `x-moz`, `next-router-prefetch`, and
+  `x-middleware-prefetch`) to `/init` so speculative requests do not count as
+  visits in session reports.
 - Development builds now warn when read-once provider options change after
   mount.
 - `@c15t/cli` updates `zod` to 4.6.7 and `postcss` to 8.5.33 to address
@@ -182,14 +173,18 @@ Update `c15t` and any `@c15t/*` packages you use together.
   its category on mount. Returning visitors whose saved choice did not cover
   that category may see the prompt again.
 - **`c15t-sid` cleanup and deprecations.** Remove `c15t-sid` from your cookie
-  policy if you listed it. `resolveRequestSubject()` and each adapter's
-  `subjectCookie` option are deprecated, no longer set a cookie, and will be
-  removed in v4.
+  policy if you listed it. `resolveRequestSubject()` is deprecated, now returns
+  `null` when no saved consent record cookie is present, and no longer sets a
+  cookie. Each adapter's `subjectCookie` option, `storage` and
+  `trustForwardedHeaders` on `c15tProxy`, `consentRequestMiddleware`, and
+  `c15tHandle`, `trustForwardedHeaders` on Astro's `middleware`, and
+  non-`storageKey` `storage` fields on Next.js `withConsentProps` are deprecated
+  no-ops and will be removed in v4.
 
 ## Packages
 
 `c15t`, `@c15t/core`, `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`,
 `@c15t/vue`, `@c15t/svelte`, `@c15t/astro`, `@c15t/browser`, `@c15t/iab`,
-`@c15t/integrations`, `@c15t/backend`, `@c15t/cli`, `@c15t/node-sdk`,
-`@c15t/translations`, and `@c15t/dev-tools` release as 3.3.0. `@c15t/schema`
-and `@c15t/ui` release as 3.2.0, and `@c15t/scripts` releases as 3.1.3.
+`@c15t/integrations`, `@c15t/backend`, `@c15t/cli`, `@c15t/node-sdk`, and
+`@c15t/dev-tools` release as 3.3.0. `@c15t/schema` and `@c15t/ui` release as
+3.2.0, and `@c15t/scripts` releases as 3.1.3.
