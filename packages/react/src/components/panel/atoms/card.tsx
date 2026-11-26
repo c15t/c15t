@@ -130,6 +130,17 @@ const ConsentDialogCloseButton = ({ noStyle }: { noStyle?: boolean }) => {
 	);
 };
 
+const hasClassName = function hasClassName(
+	className: string | undefined,
+	name: string
+): boolean {
+	return (
+		Boolean(name) &&
+		typeof className === 'string' &&
+		className.split(/\s+/u).includes(name)
+	);
+};
+
 /**
  * The header section of the consent dialog.
  * Should contain the ConsentDialogHeaderTitle and optionally ConsentDialogHeaderDescription.
@@ -152,6 +163,18 @@ const ConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
 	ConsentDialogHeaderProps
 >(({ children, showCloseButton = false, ...props }, ref) => {
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
+	const closeButtonClassName = showCloseButton
+		? mergeSlotProps(components?.dialog?.closeButton, {
+				baseClassName: styles.closeButton,
+				noStyle: props.noStyle ?? contextNoStyle,
+			}).className
+		: undefined;
+	const hasStyledCloseButton =
+		showCloseButton &&
+		hasClassName(closeButtonClassName, styles.closeButton) &&
+		!hasClassName(closeButtonClassName, 'headless');
 	let content: ReactNode = children;
 	if (showCloseButton) {
 		const closeButton = <ConsentDialogCloseButton noStyle={props.noStyle} />;
@@ -184,6 +207,7 @@ const ConsentDialogHeader = createForwardRef<
 			baseClassName={styles.header}
 			{...props}
 			slotKey="dialog.header"
+			data-has-close-button={hasStyledCloseButton ? '' : undefined}
 			data-testid="consent-dialog-header"
 		>
 			{content}

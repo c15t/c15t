@@ -10,7 +10,7 @@
 		applyPublisherRestrictionsToGVL,
 		introducedLegitimateInterest,
 	} from '@c15t/iab/headless';
-	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+	import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import { buttonVariants } from '@c15t/ui/styles/primitives';
@@ -170,14 +170,12 @@
 		consent.state.setActiveUI('none');
 	};
 
-	const handleDialogKeydown = function handleDialogKeydown(
-		event: KeyboardEvent
-	) {
-		if (isDialogDismissKey(event.key)) {
-			event.preventDefault();
-			handleClose();
+	$effect(() => {
+		if (!isOpen || typeof document === 'undefined') {
+			return;
 		}
-	};
+		return onDialogDismiss(document.documentElement, handleClose);
+	});
 
 	$effect(() => {
 		if (activeTab === 'purposes' || activeTab === 'vendors') {
@@ -353,7 +351,6 @@
 					initialFocus: 'first-tabbable',
 				}}
 				use:scrollLock={preferences.blocking}
-				onkeydown={handleDialogKeydown}
 			>
 				<!-- Header -->
 				<div

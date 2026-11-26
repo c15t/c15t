@@ -1,4 +1,5 @@
 import { custom } from '@c15t/core';
+import { onDialogDismiss } from '@c15t/ui/primitives';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { describe, expect, test } from 'vitest';
@@ -79,6 +80,25 @@ describe('ConsentDialog open prop', () => {
 		// The fixture's policy still owes a choice.
 		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
 	});
+
+	test('closes only the topmost stacked dialog on Escape', async () => {
+		render(Fixture, { options });
+		await fireEvent.click(query('[data-testid="open-dialog"]') as HTMLElement);
+		await waitFor(() => expect(query(ROOT)).not.toBeNull());
+
+		let topClosed = false;
+		const stopTop = onDialogDismiss(document.documentElement, () => {
+			topClosed = true;
+			stopTop();
+		});
+
+		await fireEvent.keyDown(document, { key: 'Escape' });
+		expect(topClosed).toBe(true);
+		expect(query(ROOT)).not.toBeNull();
+
+		await fireEvent.keyDown(document, { key: 'Escape' });
+		await waitFor(() => expect(query(ROOT)).toBeNull());
+	});
 });
 
 describe('ConsentDialog showCloseButton', () => {
@@ -98,9 +118,9 @@ describe('ConsentDialog showCloseButton', () => {
 
 		const button = query(CLOSE) as HTMLButtonElement;
 		expect(button.getAttribute('aria-label')).toBe('Close');
-		expect(
-			query('[data-testid="consent-dialog-header"]')?.contains(button)
-		).toBe(true);
+		const header = query('[data-testid="consent-dialog-header"]');
+		expect(header?.contains(button)).toBe(true);
+		expect(header?.hasAttribute('data-has-close-button')).toBe(true);
 
 		await fireEvent.click(button);
 

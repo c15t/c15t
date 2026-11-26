@@ -1,6 +1,7 @@
 import type { ConsentSnapshot, PresentationAction } from '@c15t/core';
 import type { ConsentRuntimeIABHandle } from '@c15t/core/runtime';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
 
 import { classes } from '../generated/iab-styles';
@@ -35,6 +36,7 @@ export const createIABSurface = (
 	let overlay: HTMLElement | null = null;
 	let preferences: IABPreferences | null = null;
 	let release: (() => void)[] = [];
+	let releaseDismiss: (() => void) | null = null;
 	let disposed = false;
 	let ready = false;
 	let loadFailed = false;
@@ -48,11 +50,15 @@ export const createIABSurface = (
 		loadFailed: boolean;
 	} | null = null;
 	let status: HTMLElement | null = null;
-	const clear = (): void => {
+	const clear = (keepDismiss = false): void => {
 		for (const cleanup of release) {
 			cleanup();
 		}
 		release = [];
+		if (!keepDismiss) {
+			releaseDismiss?.();
+			releaseDismiss = null;
+		}
 		root?.remove();
 		overlay?.remove();
 		root = null;
@@ -163,9 +169,20 @@ export const createIABSurface = (
 				)
 			);
 			content.addEventListener('keydown', (event) => {
-				if (event.key === 'Escape') {
+				if (
+					event.key === 'Escape' &&
+					!event.defaultPrevented &&
+					!event.composed &&
+					content.getRootNode() !== document
+				) {
 					event.preventDefault();
-					client.closeDialog();
+					document.dispatchEvent(
+						new KeyboardEvent('keydown', {
+							bubbles: true,
+							cancelable: true,
+							key: 'Escape',
+						})
+					);
 				}
 			});
 		}
@@ -384,6 +401,9 @@ export const createIABSurface = (
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(root);
+		if (dialog && !releaseDismiss) {
+			releaseDismiss = onDialogDismiss(root, () => client.closeDialog());
+		}
 		if (flip) {
 			void root.offsetHeight;
 			root.classList.replace(
@@ -441,7 +461,7 @@ export const createIABSurface = (
 		// A rebuild of the surface already on screen, such as when the
 		// vendor list arrives, swaps it in place rather than entering again.
 		const entering = rendered?.ui !== ui;
-		clear();
+		clear(ui === 'dialog' && !entering);
 		build(snapshot, ui === 'dialog', entering);
 		rendered = { loadFailed, ready, snapshot, ui };
 	};

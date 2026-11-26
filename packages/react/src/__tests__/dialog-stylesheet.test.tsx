@@ -134,6 +134,7 @@ test.each([
 			const titleCenterY = titleRect.top + titleRect.height / 2;
 			const closeCenterY = closeRect.top + closeRect.height / 2;
 
+			expect(header.hasAttribute('data-has-close-button')).toBe(true);
 			expect(Math.abs(titleCenterY - closeCenterY)).toBeLessThanOrEqual(2);
 			expect(titleRect.right).toBeLessThanOrEqual(closeRect.left);
 			expect(headerRect.right - closeRect.right).toBeCloseTo(
@@ -179,6 +180,7 @@ test('a headless close button does not reserve stock header end padding', async 
 		if (!header) {
 			throw new Error('Expected dialog header');
 		}
+		expect(header.hasAttribute('data-has-close-button')).toBe(false);
 		const style = getComputedStyle(header);
 		expect(style.paddingInlineEnd).toBe(style.paddingInlineStart);
 	} finally {

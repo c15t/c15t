@@ -64,6 +64,37 @@ const closeLabel = computed(
 		translations.value.bundle?.common?.close?.trim() ||
 		translations.value.english.common.close
 );
+const hasClassName = function hasClassName(
+	value: unknown,
+	name: string
+): boolean {
+	if (!name) {
+		return false;
+	}
+	if (typeof value === 'string') {
+		return value.split(/\s+/u).includes(name);
+	}
+	if (Array.isArray(value)) {
+		return value.some((item) => hasClassName(item, name));
+	}
+	if (typeof value === 'object' && value !== null) {
+		return Boolean((value as Record<string, unknown>)[name]);
+	}
+	return false;
+};
+const hasStyledCloseButton = computed(() => {
+	if (!config.value.dialogShowCloseButton || !dialogStyles.closeButton) {
+		return false;
+	}
+	const resolvedClass = slotAttrs(
+		config.value.components?.dialog?.closeButton,
+		dialogStyles.closeButton
+	).class;
+	return (
+		hasClassName(resolvedClass, dialogStyles.closeButton) &&
+		!hasClassName(resolvedClass, 'headless')
+	);
+});
 // Closing records no consent, like Escape.
 const closeDialog = function closeDialog() {
 	activeUI.value = null;
@@ -242,6 +273,7 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 									dialogStyles.header
 								)
 							"
+							:data-has-close-button="hasStyledCloseButton ? '' : undefined"
 							data-testid="consent-dialog-header"
 						>
 							<h2

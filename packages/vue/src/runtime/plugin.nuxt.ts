@@ -80,7 +80,8 @@ const readLocalFetch = function readLocalFetch(
 	if (typeof event.fetch === 'function') {
 		return event.fetch as typeof globalThis.fetch;
 	}
-	return (useFetch() as { native: typeof globalThis.fetch }).native;
+	return (useFetch() as { native?: typeof globalThis.fetch } | undefined)
+		?.native;
 };
 
 /**

@@ -100,11 +100,15 @@
 	// is handed in, its owner is also responsible for `start()`/`dispose()`.
 	const externalRuntime = untrack(() => props.runtime);
 	const ownsRuntime = externalRuntime === undefined;
+	// Only an app that configured IAB at mount reaches for `@c15t/iab`, and
+	// keeping the factory fixed stops a later `iab` prop change from warning
+	// about the internal `createIAB` option.
+	const initialCreateIAB = untrack(() =>
+		isIABConfigured(options.iab) ? lazyCreateIAB : undefined
+	);
 	const runtimeOptions = () => ({
 		...options,
-		// Only an app that configured IAB reaches for `@c15t/iab`, and even
-		// then the module arrives through a dynamic import.
-		createIAB: isIABConfigured(options.iab) ? lazyCreateIAB : undefined,
+		createIAB: initialCreateIAB,
 		// Called only when `gpp` is set, so other apps never fetch the chunk.
 		loadGPP,
 		mode: options.mode as ConsentManagerOptions['mode'],

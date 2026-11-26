@@ -1,4 +1,5 @@
 import { createOfflineTransport, custom, policyRulePresets } from '@c15t/core';
+import { onDialogDismiss } from '@c15t/ui/primitives/dialog';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { classes } from '../generated/styles';
@@ -795,7 +796,9 @@ describe('mountConsentUI', () => {
 		expect(close.getAttribute('part')).toBe('consentDialogCloseButton');
 		expect(close.classList).toContain('brand-close');
 		expect(close.querySelector('svg')?.getAttribute('style')).toBeNull();
-		expect(query(root, 'consent-dialog-header').contains(close)).toBe(true);
+		const header = query(root, 'consent-dialog-header');
+		expect(header.contains(close)).toBe(true);
+		expect(header.hasAttribute('data-has-close-button')).toBe(true);
 
 		close.click();
 
@@ -804,6 +807,27 @@ describe('mountConsentUI', () => {
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
 		).toBeNull();
+	});
+
+	it('omits data-has-close-button when the close-button slot sets noStyle', async () => {
+		const { root, client } = await mount({
+			dialog: { showCloseButton: true },
+			theme: {
+				slots: {
+					consentDialogCloseButton: {
+						className: 'custom-close',
+						noStyle: true,
+					},
+				},
+			},
+		});
+		client.openDialog();
+
+		const close = query<HTMLButtonElement>(root, 'consent-dialog-close');
+		expect(close.classList).toContain('custom-close');
+		expect(
+			query(root, 'consent-dialog-header').hasAttribute('data-has-close-button')
+		).toBe(false);
 	});
 
 	it('falls back to English when common.close is blank', async () => {
@@ -842,6 +866,28 @@ describe('mountConsentUI', () => {
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
 		).toBeNull();
+	});
+
+	it('closes only the topmost stacked dialog on Escape', async () => {
+		const { client } = await mount();
+		client.openDialog();
+
+		let topClosed = false;
+		const stopTop = onDialogDismiss(document.documentElement, () => {
+			topClosed = true;
+			stopTop();
+		});
+
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+		expect(topClosed).toBe(true);
+		expect(client.getSnapshot().activeUI).toBe('dialog');
+
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+		expect(client.getSnapshot().activeUI).toBe('banner');
 	});
 
 	it('stamps the configured nonce on the injected style element', async () => {
