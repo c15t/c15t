@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/browser": patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### The "Secured by" tag shows the inth logo

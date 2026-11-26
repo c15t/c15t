@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/browser': patch
-  '@c15t/core': patch
-  '@c15t/dev-tools': patch
-  '@c15t/vue': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(npm:@c15t/dev-tools)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Preference switches match what is in effect
