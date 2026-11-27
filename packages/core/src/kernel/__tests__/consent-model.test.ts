@@ -886,3 +886,53 @@ describe('statistics-only presets', () => {
 		}
 	);
 });
+
+describe('Morocco consent preset', () => {
+	test('keeps reviewed purposes available while gating ads and social sharing', async () => {
+		const kernel = createConsentKernel({
+			consentCategories: ['functionality', 'marketing'],
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: 'MA',
+				regionCode: null,
+				rules: [policyRulePresets.moroccoOptIn()],
+			}),
+			now: POLICY_NOW,
+		});
+		try {
+			expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+			expect(kernel.getSnapshot().effectivePermissions).toEqual({
+				experience: true,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
+			});
+			await kernel.commands.save('all');
+			expect(kernel.getSnapshot().effectivePermissions).toEqual({
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			});
+			await kernel.commands.save('none');
+			expect(kernel.getSnapshot().effectivePermissions).toEqual({
+				experience: true,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
+			});
+			await kernel.commands.save({ measurement: false });
+			expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
+			const reenable = await kernel.commands.save({ measurement: true });
+			expect(reenable.ok).toBe(false);
+			expect(reenable.issues?.[0]).toEqual({
+				code: 'out-of-scope',
+				path: 'measurement',
+			});
+		} finally {
+			kernel.dispose();
+		}
+	});
+});

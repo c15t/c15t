@@ -150,6 +150,12 @@ export const playgroundPresets: PlaygroundPreset[] = [
 		rule: policyRulePresets.brazilOptIn(),
 	},
 	{
+		country: 'MA',
+		id: 'moroccoOptIn',
+		label: 'Morocco ads and social sharing',
+		rule: policyRulePresets.moroccoOptIn(),
+	},
+	{
 		country: 'CH',
 		id: 'switzerlandOptIn',
 		label: 'Switzerland opt-in',
