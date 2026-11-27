@@ -26,7 +26,9 @@ not a separate audit of every national implementation. This is not a complete
 worldwide privacy-law inventory. For example, Hong Kong, Macao, Taiwan,
 New Zealand, South Africa, Israel, Mexico and other Latin American and Gulf
 jurisdictions require separate reviews before claiming worldwide coverage.
+Morocco has a narrow cookie-decision review; the rest of Africa is not covered.
 
+- [Morocco](africa.md)
 - [Europe, UK, Switzerland and Türkiye](europe.md)
 - [United States, Canada and Brazil](americas.md)
 - [Singapore, Malaysia, Thailand, Indonesia, Philippines, Vietnam, Brunei and Laos](southeast-asia.md)
@@ -73,6 +75,7 @@ variant can replace a legally required consent.
 | DIFC | DIFC Data Protection Law + Regulation 9 | Separate business-selected opt-in profile | Choice |
 | ADGM | Data Protection Regulations 2021 | Separate business-selected profiles, assessed opt-out available | Choice / no prompt |
 | Saudi Arabia | PDPL + implementing regulation | Opt-in for marketing; assessed analytics recipe | Choice / no prompt |
+| Morocco | Law 09-08 + CNDP D-939-2025 | Opt-in for ads and social sharing; permissive for reviewed personalization and statistics | Choice |
 
 France, the Netherlands and Liechtenstein also have narrow audience/statistics
 routes described in the Europe note. Do not turn these into Europe-wide

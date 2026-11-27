@@ -111,6 +111,7 @@ assumptions do not fit your application.
 | Japan | `japanOptIn()`, `japanOptOut()` |
 | Switzerland | `switzerlandOptIn()`, `switzerlandOptOutNoPrompt()` |
 | Restricted statistics profiles | `ukStatistics()`, `malaysiaStatistics()` |
+| Morocco | `moroccoOptIn()` |
 | Other regional opt-in | Singapore, Malaysia, Thailand, Indonesia, Philippines, Vietnam, Brunei, Laos, China, South Korea, India, Brazil, Turkey and more in `policyRulePresets`. |
 | Global defaults | `worldNone()`, `worldOptOutNoPrompt()` |
 
@@ -118,6 +119,22 @@ Statistics profiles are scoped configurations, not permission to run arbitrary
 analytics or marketing vendors. Inspect their allowed categories and required
 rights. Do not substitute them for a full consent configuration based only on a
 vendor calling its product analytics.
+
+`moroccoOptIn()` follows CNDP Deliberation D-939-2025. It asks for consent
+before personalized advertising (`marketing`) and social-sharing features
+(`functionality`). Non-profiling content personalization (`experience`) and
+non-profiling audience measurement (`measurement`) stay available before a
+choice through permissive scope. Declare or register `functionality` and
+`marketing` categories so the choice covers them; undeclared categories under a
+permissive rule only acknowledge the banner and stay denied. Give the required
+information before the first cookie deposit and file the CNDP simplified
+declaration. Profiling,
+different-purpose interconnection and foreign transfers need separate CNDP
+authorization that this preset does not provide. Choice records expire after
+180 days; keep the six-month cookie-data and refusal-retention duties in your
+own storage configuration. A refusal in an out-of-scope category is saved, but
+a later positive save for that category is rejected because the rule's scope
+covers only the two consent-requiring purposes.
 
 ## Compose custom rules
 

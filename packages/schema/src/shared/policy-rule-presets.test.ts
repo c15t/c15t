@@ -282,6 +282,7 @@ const countryPresets = [
 	['bruneiOptIn', 'BN'],
 	['laosOptIn', 'LA'],
 	['brazilOptIn', 'BR'],
+	['moroccoOptIn', 'MA'],
 	['switzerlandOptIn', 'CH'],
 	['turkeyOptIn', 'TR'],
 
@@ -556,4 +557,53 @@ describe('reviewed opt-out and statistics profiles', () => {
 			});
 		}
 	);
+});
+
+describe('Morocco cookie preset', () => {
+	test('gates only the consent-requiring D-939-2025 purposes', () => {
+		const authored = policyRulePresets.moroccoOptIn();
+		const rule = normalizePolicyRule(authored);
+		expect(rule).toMatchObject({
+			model: 'opt-in',
+			prompt: 'choice',
+			scope: ['functionality', 'marketing'],
+			scopeMode: 'permissive',
+		});
+		expect(authored.validity).toEqual({ choiceDays: 180 });
+		expect(rule.validity.choiceMs).toBe(180 * 86_400_000);
+		expect(rule.preselectedCategories).toEqual([]);
+		expect(authored.i18n).toEqual({ messageProfile: 'preferences' });
+		expect(authored.review?.sources).toEqual(
+			expect.arrayContaining([
+				expect.stringContaining('cndp.ma/images/lois/Loi-09-08-Fr.pdf'),
+				expect.stringContaining('conformite-des-sites-web'),
+				expect.stringContaining('D-939-2025'),
+			])
+		);
+		expect(authored.review?.assumptions?.join(' ')).toContain(
+			'profiling, different-purpose interconnection or foreign transfers'
+		);
+	});
+
+	test('keeps the global fallback for unknown locations', () => {
+		const rules = [
+			policyRulePresets.moroccoOptIn(),
+			policyRulePresets.worldOptOutNoPrompt(),
+		];
+		expect(
+			resolvePolicyRules({ countryCode: 'MA', regionCode: null, rules })
+		).toMatchObject({ policyId: 'morocco_opt_in', status: 'matched' });
+		expect(
+			resolvePolicyRules({ countryCode: 'FR', regionCode: null, rules })
+		).toMatchObject({
+			policyId: 'world_opt_out_no_prompt',
+			status: 'matched',
+		});
+		expect(
+			resolvePolicyRules({ countryCode: null, regionCode: null, rules })
+		).toMatchObject({
+			policyId: 'world_opt_out_no_prompt',
+			status: 'matched',
+		});
+	});
 });

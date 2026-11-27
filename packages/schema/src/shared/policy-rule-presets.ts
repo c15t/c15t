@@ -25,6 +25,14 @@ const QUEBEC_SOURCE =
 const QUEBEC_CONSENT_SOURCE =
 	'https://www.cai.gouv.qc.ca/uploads/pdfs/CAI_Criteres_Validite_Consentement.pdf';
 
+const MOROCCO_SCOPE =
+	'Law 09-08 article 2 applies when the controller is established in Morocco or uses automated means located there; visitor location alone neither establishes nor rules out applicability. Override the matcher for the actual processing scope.';
+const MOROCCO_LAW_SOURCE = 'https://www.cndp.ma/images/lois/Loi-09-08-Fr.pdf';
+const MOROCCO_GUIDELINES_SOURCE =
+	'https://www.cndp.ma/conformite-des-sites-web/';
+const MOROCCO_DECISION_SOURCE =
+	'https://www.cndp.ma/wp-content/uploads/2025/12/Deliberation-N%C2%B0-D-939-2025-du-28112025-relative-au-modele-de-declaration-simplifiee-relative-au-traitement-des-donnees-a-caractere-personnel-de-cookies-sur-un-terminal.pdf';
+
 const SHARED_ASSUMPTIONS = [
 	'365-day choice and notice validity are independent c15t product defaults, not legal requirements.',
 	'A refusal in the requested scope suppresses automatic choice prompts, including after policy changes or grant expiry. New, changed or expired opt-in purposes remain denied until the user opens preferences and grants them.',
@@ -319,6 +327,44 @@ const countryOptOut = function countryOptOut(
 	};
 };
 
+/**
+ * Morocco's D-939-2025 simplified cookie declaration distinguishes four
+ * purposes. This rule gates only the two that need prior consent and leaves
+ * the reviewed no-consent purposes available under permissive scope.
+ */
+const moroccoRule = function moroccoRule(): PolicyRule {
+	return {
+		categories: ['functionality', 'marketing'],
+		i18n: { messageProfile: 'preferences' },
+		id: 'morocco_opt_in',
+		match: policyMatchers.countries(['MA']),
+		model: 'opt-in',
+		prompt: 'choice',
+		review: {
+			assumptions: [
+				MOROCCO_SCOPE,
+				'D-939-2025 section 6 requires prior consent before first deposit for personalized advertising and social-sharing cookies. This rule scopes those purposes to marketing and functionality; keep that mapping accurate for every registered script and declare both categories to the client so the choice covers them.',
+				'D-939-2025 section 6 does not require prior consent for non-profiling editorial or service personalization based on prior choices or consultations, or for non-profiling navigation statistics and audience measurement. Permissive scope leaves experience and measurement allowed before a choice; every included script must stay within those purposes.',
+				'Do not use this rule for profiling, different-purpose interconnection or foreign transfers. Sections 3, 9 and 10 of D-939-2025 route those uses to separate CNDP authorization; category consent does not supply it.',
+				'Provide the six section 6 information items before first deposit, file the section 8 simplified declaration, delete or anonymize cookie data after six months under section 5, and retain a refusal for at most six months under section 6. The 180-day choice validity is a product setting, not a claim that every consent record must expire.',
+				'The kernel has one permission model per rule and preselectedCategories only seeds UI drafts. A positive save outside the active scope is rejected, while a refusal outside scope can be saved. Check effective permissions before publishing.',
+				'Equivalent default prominence for accept and reject is a c15t product invariant.',
+				'The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration.',
+			],
+			reviewBy: '2027-05-27',
+			reviewedOn: '2026-11-27',
+			sources: [
+				MOROCCO_DECISION_SOURCE,
+				MOROCCO_LAW_SOURCE,
+				MOROCCO_GUIDELINES_SOURCE,
+			],
+			status: 'reviewed',
+		},
+		scopeMode: 'permissive',
+		validity: { choiceDays: 180 },
+	};
+};
+
 const CANADA_CONSENT_SOURCE =
 	'https://www.priv.gc.ca/en/privacy-topics/technology/online-privacy-tracking-cookies/tracking-and-ads/gl_ba_1112/';
 
@@ -371,6 +417,8 @@ export interface PolicyRulePresets {
 	ukStatistics: () => PolicyRule;
 	/** Malaysia: solely statistics/research, nonidentifying output and no secondary uses. */
 	malaysiaStatistics: () => PolicyRule;
+	/** Morocco: opt-in for ads and social sharing; permissive for reviewed statistics and personalization. */
+	moroccoOptIn: () => PolicyRule;
 
 	/** China: opt-in starter for disclosed optional purposes relying on consent. */
 	chinaOptIn: () => PolicyRule;
@@ -626,6 +674,7 @@ export const policyRulePresets: PolicyRulePresets = {
 		categories: ['measurement'],
 		scopeMode: 'strict',
 	}),
+	moroccoOptIn: () => moroccoRule(),
 	philippinesOptIn: () =>
 		countryOptIn(
 			'philippines_opt_in',
